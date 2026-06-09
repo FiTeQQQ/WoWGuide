@@ -4619,25 +4619,34 @@ function handleWowheadPaste(e){
   const type=m[1].toLowerCase().replace(/-/g,'');
   const id=m[2];
   const slug=m[3]||'';
-  if(slug){
-    // Name is in the URL slug → insert immediately, fetch icon in background
-    const name=slug.split('-').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
-    _insertWowLink(type,id,name,'');
-    // Fetch icon separately and apply to the just-inserted link
+  // Always fetch tooltip for name + icon
+  const slugName = slug ? slug.split('-').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ') : null;
+  if(slugName){
+    // Insert immediately with name from slug, then apply icon when fetched
+    _insertWowLink(type,id,slugName,'');
+    const insertedA = _lastInsertedLink;
     fetch(`https://nether.wowhead.com/tooltip/${type}/${id}?locale=en_US`)
       .then(r=>r.json())
-      .then(d=>{ if(d.icon){ const a=_lastInsertedLink; if(a){ a.style.backgroundImage=`url("https://wow.zamimg.com/images/wow/icons/tiny/${d.icon}.gif")`; a.dataset.whIconAdded='true'; }} })
+      .then(d=>{ if(d.icon && insertedA){ _applyWowIcon(insertedA, d.icon); } })
       .catch(()=>{});
   } else {
-    // Fetch name from Wowhead tooltip API
+    // Fetch both name and icon before inserting
     toast('Načítám název ability…');
     fetch(`https://nether.wowhead.com/tooltip/${type}/${id}?locale=en_US`)
       .then(r=>r.json())
       .then(d=>_insertWowLink(type,id,d.name||`${type} #${id}`,d.icon||''))
-      .catch(()=>_insertWowLink(type,id,`${type} #${id}`));
+      .catch(()=>_insertWowLink(type,id,`${type} #${id}`,''));
   }
 }
 let _lastInsertedLink = null;
+function _applyWowIcon(a, icon){
+  a.style.backgroundImage=`url("https://wow.zamimg.com/images/wow/icons/tiny/${icon}.gif")`;
+  a.style.backgroundRepeat='no-repeat';
+  a.style.backgroundPosition='left center';
+  a.style.backgroundSize='16px 16px';
+  a.style.paddingLeft='20px';
+  a.dataset.whIconAdded='true';
+}
 function _insertWowLink(type,id,name,icon){
   const a=document.createElement('a');
   a.href=`https://www.wowhead.com/${type}=${id}`;
@@ -4647,14 +4656,7 @@ function _insertWowLink(type,id,name,icon){
   a.dataset.game='wow';
   a.dataset.type=type;
   a.textContent=`[${name}]`;
-  if(icon){
-    a.style.backgroundImage=`url("https://wow.zamimg.com/images/wow/icons/tiny/${icon}.gif")`;
-    a.style.backgroundRepeat='no-repeat';
-    a.style.backgroundPosition='left center';
-    a.style.backgroundSize='16px 16px';
-    a.style.paddingLeft='20px';
-    a.dataset.whIconAdded='true';
-  }
+  if(icon) _applyWowIcon(a, icon);
   _lastInsertedLink = a;
   a.addEventListener('click', e=>{ e.stopPropagation(); window.open(a.href,'_blank','noopener,noreferrer'); e.preventDefault(); });
   if(_lastEditable)_lastEditable.focus();
