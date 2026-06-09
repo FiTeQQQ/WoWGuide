@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+git add guide.html
+git commit -m "fix: guard WowheadPower.init"
+git push origin main<!DOCTYPE html>
 <html lang="en" style="--main-max-w: 1400px; --notes-w: 340px;"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -3505,7 +3507,7 @@ function toggleEditMode(){
     btn.textContent='✏ Edit Mode'; btn.classList.remove('edit-active');
     _lastEditable=null; _savedRange=null;
     renderAll(); // Re-render to hide edit controls
-    if(window.$WowheadPower) window.$WowheadPower.init();
+    if(window.$WowheadPower && typeof window.$WowheadPower.init==="function") window.$WowheadPower.init();
   }
 }
 
@@ -4642,7 +4644,7 @@ function _insertWowLink(type,id,name){
     r.setStartAfter(a);r.collapse(true);sel.removeAllRanges();sel.addRange(r);
     _savedRange=r.cloneRange();
   }
-  if(window.$WowheadPower)window.$WowheadPower.init();
+  if(window.$WowheadPower && typeof window.$WowheadPower.init==="function") window.$WowheadPower.init();
   setTimeout(applyWowheadHandlers, 300);
 }
 
@@ -4770,7 +4772,7 @@ function insertWhLink(type,id,name){
   } else if(_lastEditable){
     _lastEditable.appendChild(a);
   }
-  if(window.$WowheadPower) window.$WowheadPower.init();
+  if(window.$WowheadPower && typeof window.$WowheadPower.init==="function") window.$WowheadPower.init();
   applyWowheadHandlers();
 }
 
@@ -5395,7 +5397,11 @@ async function cloudSave(){
       history.replaceState(null,'',`${location.pathname}?r=${finalId}${_bossParam}`);
       showShareButtons();
     }
-    const shareUrl = `${location.origin}${location.pathname}?r=${finalId}&boss=${_getBossSlug()}`;
+    // Pokud jsme na ?boss= URL bez ?r=, share link zachová boss= formát
+    const _hasRParam = new URLSearchParams(location.search).has('r');
+    const shareUrl = _hasRParam
+      ? `${location.origin}${location.pathname}?r=${finalId}&boss=${_getBossSlug()}`
+      : `${location.origin}${location.pathname}?boss=${_getBossSlug()}`;
     await navigator.clipboard.writeText(shareUrl).catch(()=>{});
     toast(lock ? '🔒 Uloženo! Link zkopírován.' : '☁️ Uloženo! Link zkopírován.');
     setLocked(lock);
