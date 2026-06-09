@@ -4398,8 +4398,10 @@ function showAutocomplete(el){
         span.style.color=CC[p.class]||'#9ca3af';span.style.fontWeight='600';
         span.textContent=p.name;
         range.deleteContents();range.insertNode(span);
-        // Move cursor after span
-        const after=document.createRange();after.setStartAfter(span);after.collapse(true);
+        // Move cursor after span — insert plain text node to break span's formatting context
+        const zwsNode=document.createTextNode('​');
+        span.parentNode.insertBefore(zwsNode, span.nextSibling);
+        const after=document.createRange();after.setStart(zwsNode,1);after.collapse(true);
         sel.removeAllRanges();sel.addRange(after);
       }
       closeAutocomplete();
