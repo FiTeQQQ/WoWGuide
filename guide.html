@@ -3215,6 +3215,9 @@ function _applySlideVariant(el){
   const multi=v.variants.length>1;
   const overlay=el.querySelector('.cv-overlay');
   const rh=el.querySelector('.img-resize-handle');
+  const _setBtn=el.querySelector('.img-set-btn');
+  const _addVBtn=el.querySelector('.img-add-variant-btn');
+  const _whLayer=el.querySelector('.cv-wh-layer');
   el.innerHTML='';
   if(src){
     const img=document.createElement('img');
@@ -3294,7 +3297,10 @@ function _applySlideVariant(el){
     el.addEventListener('mouseenter',()=>showDots(),{passive:true});
     el.addEventListener('mouseleave',()=>{const d=el.querySelector('.img-dot-bar');if(d){d.style.opacity='0.65';d.style.background='rgba(0,0,0,.45)';}},{passive:true});
   }
+  if(_setBtn && !el.querySelector('.img-set-btn')) el.appendChild(_setBtn);
+  if(_addVBtn && !el.querySelector('.img-add-variant-btn')) el.appendChild(_addVBtn);
   if(overlay) el.appendChild(overlay);
+  if(_whLayer && !el.querySelector('.cv-wh-layer')) el.appendChild(_whLayer);
   if(rh&&!el.querySelector('.img-resize-handle')) el.appendChild(rh);
 }
 
@@ -3322,13 +3328,6 @@ function applyImages(){
       addBtn.textContent='+ varianta';
       addBtn.style.cssText='position:absolute;top:6px;right:6px;font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.3);cursor:pointer;z-index:10;opacity:0;transition:opacity .2s;pointer-events:auto';
       addBtn.onclick=e=>{e.stopPropagation();_imgAddVariant(id);};
-      const copyBtn=document.createElement('button');
-      copyBtn.className='clone-slide-btn edit-only';
-      copyBtn.title='Kopírovat variantu (se všemi prvky)';
-      copyBtn.style.cssText='font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--text-mid);cursor:pointer;margin-left:4px';
-      copyBtn.textContent='⊕ Copy Image';
-      copyBtn.onclick=e=>{e.stopPropagation();_imgCopyVariant(id);};
-      bar.appendChild(copyBtn);
       el.appendChild(addBtn);
       // Use named handlers so we don't stack listeners
       el._varHoverIn=()=>addBtn.style.opacity='1';
