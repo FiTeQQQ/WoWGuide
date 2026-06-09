@@ -4016,22 +4016,37 @@ const SIZE_VALS = ['11px','13px','16px','20px'];
 const SIZE_BODY = ['11px','13px','15px','18px'];
 
 function setGlobalSize(type, size){
-  const targets = type==='title'
-    ? document.querySelectorAll('.notes-title, .rc-label')
-    : document.querySelectorAll('.rc-body, .notes-body');
-  targets.forEach(el => {
-    el.style.fontSize = size;
-    // Remove nested font-size overrides (from old fmtSize edits)
-    el.querySelectorAll('[style*="font-size"]').forEach(s => s.style.fontSize = '');
-  });
+  // If cursor is inside a specific card → apply only to that card
+  const activeCard = _lastEditable?.closest('.rc, .notes-heading');
+  if(activeCard){
+    const targets = type==='title'
+      ? activeCard.querySelectorAll('.notes-title, .rc-label, .hdg-text')
+      : activeCard.querySelectorAll('.rc-body, .notes-body');
+    // If the _lastEditable itself is the target type, include it
+    if(type==='title' && (_lastEditable.classList.contains('rc-label')||_lastEditable.classList.contains('hdg-text')||_lastEditable.classList.contains('notes-title')))
+      targets.length ? null : _lastEditable.style.fontSize=size;
+    if(type==='body' && (_lastEditable.classList.contains('rc-body')||_lastEditable.classList.contains('notes-body')))
+      _lastEditable.style.fontSize=size;
+    targets.forEach(el=>{ el.style.fontSize=size; el.querySelectorAll('[style*="font-size"]').forEach(s=>s.style.fontSize=''); });
+    toast(`Velikost ${size} → aktivní karta`);
+  } else {
+    // Global — apply to all
+    const targets = type==='title'
+      ? document.querySelectorAll('.notes-title, .rc-label')
+      : document.querySelectorAll('.rc-body, .notes-body');
+    targets.forEach(el => {
+      el.style.fontSize = size;
+      el.querySelectorAll('[style*="font-size"]').forEach(s => s.style.fontSize = '');
+    });
+    localStorage.setItem(`fontSize_${type}`, size);
+    toast(`Velikost ${size} → všechny notes`);
+  }
   // Highlight active button
   const ids = SIZE_KEYS[type];
   ids.forEach(id => { const b=document.getElementById(id); if(b) b.style.background=''; });
   const vals = type==='title' ? SIZE_VALS : SIZE_BODY;
   const idx = vals.indexOf(size);
   if(idx>=0){ const b=document.getElementById(ids[idx]); if(b) b.style.background='var(--accent-dim)'; }
-  // Save
-  localStorage.setItem(`fontSize_${type}`, size);
 }
 
 function restoreGlobalSizes(){
