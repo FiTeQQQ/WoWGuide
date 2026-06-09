@@ -926,6 +926,11 @@ git push origin main<!DOCTYPE html>
         <button id="cvArrowStyleDashed" class="cv-dash-btn"        onclick="cvApplyProp('dashStyle','dashed')"  title="Přerušovaná">- - -</button>
         <button id="cvArrowStyleDotted" class="cv-dash-btn"        onclick="cvApplyProp('dashStyle','dotted')"  title="Tečkovaná">· · ·</button>
       </div>
+      <div class="cv-row" style="margin-top:4px">
+        <span class="cv-lbl">Průhl.</span>
+        <input type="range" id="cvArrowAlpha" min="0" max="100" value="100" style="width:65px" oninput="cvApplyProp('strokeA',this.value);document.getElementById('cvArrowAlphaV').textContent=this.value+'%'">
+        <span class="cv-val" id="cvArrowAlphaV">100%</span>
+      </div>
     </div>
 
     <!-- TEXT (pouze typ text) -->
@@ -6921,6 +6926,8 @@ function syncPropsPanel(obj){
     const ds=obj.dashStyle||'solid';
     ['solid','dashed','dotted'].forEach(s=>{document.getElementById('cvArrowStyle'+s.charAt(0).toUpperCase()+s.slice(1))?.classList.toggle('active',s===ds);});
     if(aw){aw.value=obj.strokeW||2;if(awv)awv.textContent=obj.strokeW||2;}
+    const aa=document.getElementById('cvArrowAlpha'); const aav=document.getElementById('cvArrowAlphaV');
+    if(aa){const v=Math.round((obj.strokeA!=null?obj.strokeA:1)*100);aa.value=v;if(aav)aav.textContent=v+'%';}
   }
   // Text
   if(isText){
