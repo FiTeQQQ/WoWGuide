@@ -1,0 +1,8 @@
+name = "raidguide-api"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+[[kv_namespaces]]
+binding = "ROSTERS"
+id = "521e2ee35390448fb60767812678e292"
+preview_id = "09796430935a4effab6359713cdf7a28"

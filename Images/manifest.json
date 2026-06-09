@@ -1,0 +1,16 @@
+{
+  "raids": [
+    {
+      "slug": "voidspire",
+      "name": "Voidspire",
+      "bosses": [
+        {
+          "slug": "lightblinded-vanguard",
+          "name": "Lightblinded Vanguard",
+          "thumbnail": "Images/Voidspire/LightblindedVaguard.png",
+          "image": "Images/Voidspire/LightblindedVaguard.png"
+        }
+      ]
+    }
+  ]
+}

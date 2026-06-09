@@ -1,0 +1,10 @@
+<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+ <g id="Layer_1">
+  <title>Melee DPS</title>
+  <ellipse stroke-width="0" ry="50" rx="50" id="svg_2" cy="50" cx="50" opacity="undefined" stroke="#000" fill="#6d0a0b"/>
+  <g stroke="null" id="svg_8">
+   <path stroke="null" fill="#ffffff" id="svg_6" d="m76.2921,23.7079l-11.06109,0.17131l-30.33525,32.16947l3.48711,3.4851l5.91027,-5.90706l2.17804,2.17723l-5.91027,5.90706l3.4181,3.4161l31.88222,-30.60124l0.43087,-10.81797zm0,0"/>
+   <path stroke="null" fill="#ffffff" id="svg_7" d="m24.83403,59.28705l4.72837,4.72597l-5.7514,5.74819l-0.10311,6.45548l6.60231,0.07542l5.76905,-5.76584l4.72837,4.72597l4.47282,-4.47041l-15.97361,-15.96478l-4.47282,4.47001zm0,0"/>
+  </g>
+ </g>
+</svg>

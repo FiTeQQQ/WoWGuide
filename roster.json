@@ -1,0 +1,234 @@
+{
+  "roster": [
+    {
+      "id": "mpvkh73rq49m",
+      "name": "Egoup",
+      "class": "evoker",
+      "spec": "Augmentation",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/classicon_evoker_augmentation.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh73r9gdu",
+      "name": "Noxyra",
+      "class": "warlock",
+      "spec": "Destruction",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_shadow_rainoffire.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh73rkps0",
+      "name": "Nerliusd",
+      "class": "druid",
+      "spec": "Guardian",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/ability_racial_bearform.jpg",
+      "role": "tank"
+    },
+    {
+      "id": "mpvkh73rumey",
+      "name": "Jùnjié",
+      "class": "evoker",
+      "spec": "Augmentation",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/classicon_evoker_augmentation.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh73rkqb3",
+      "name": "Hrona",
+      "class": "mage",
+      "spec": "Frost",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_frost_frostbolt02.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh73rroyu",
+      "name": "Márra",
+      "class": "deathknight",
+      "spec": "Blood",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_deathknight_bloodpresence.jpg",
+      "role": "tank"
+    },
+    {
+      "id": "mpvkh73ro13m",
+      "name": "Skylerm",
+      "class": "paladin",
+      "spec": "Retribution",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_holy_auraoflight.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh73rgls9",
+      "name": "Jachurdudu",
+      "class": "druid",
+      "spec": "Balance",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_nature_starfall.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh73r7kmp",
+      "name": "Terapeutka",
+      "class": "monk",
+      "spec": "Mistweaver",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/monk_stance_wiseserpent.jpg",
+      "role": "healer",
+      "altOf": "mq1cgbt09q3s"
+    },
+    {
+      "id": "mpvkh73rjhnh",
+      "name": "Heady",
+      "class": "druid",
+      "spec": "Restoration",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_nature_healingtouch.jpg",
+      "role": "healer"
+    },
+    {
+      "id": "mpvkh73rqg49",
+      "name": "Senso",
+      "class": "demonhunter",
+      "spec": "Havoc",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/ability_demonhunter_specdps.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh73rkctw",
+      "name": "Weisswinter",
+      "class": "hunter",
+      "spec": "Beast Mastery",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/ability_hunter_bestialdiscipline.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh7h8ywvv",
+      "name": "Saeva",
+      "class": "rogue",
+      "spec": "Subtlety",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/ability_stealth.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh7h84mt2",
+      "name": "Mastodonec",
+      "class": "paladin",
+      "spec": "Retribution",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_holy_auraoflight.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh7h8cxuy",
+      "name": "Spaghett",
+      "class": "mage",
+      "spec": "Arcane",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_holy_magicalsentry.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh7h8qswx",
+      "name": "Holypally",
+      "class": "paladin",
+      "spec": "Retribution",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_holy_auraoflight.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh73reth3",
+      "name": "Amyas",
+      "class": "priest",
+      "spec": "Discipline",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_holy_powerwordshield.jpg",
+      "role": "healer"
+    },
+    {
+      "id": "mpvkh73rcpkt",
+      "name": "Batyxburst",
+      "class": "mage",
+      "spec": "Frost",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_frost_frostbolt02.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh73riwx5",
+      "name": "Deepline",
+      "class": "shaman",
+      "spec": "Restoration",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_nature_magicimmunity.jpg",
+      "role": "healer"
+    },
+    {
+      "id": "mpvkh73r8taq",
+      "name": "Cenryhavill",
+      "class": "paladin",
+      "spec": "Retribution",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_holy_auraoflight.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh73r4svq",
+      "name": "Bymms",
+      "class": "demonhunter",
+      "spec": "Devourer",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/classicon_demonhunter_void.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh73r4ctj",
+      "name": "Desmodus",
+      "class": "warrior",
+      "spec": "Fury",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/ability_warrior_innerrage.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mpvkh7h8tedz",
+      "name": "Manofsteel",
+      "class": "deathknight",
+      "spec": "Blood",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_deathknight_bloodpresence.jpg",
+      "role": "tank",
+      "altOf": "mpvkh73r8taq"
+    },
+    {
+      "id": "mq1cgbt09q3s",
+      "name": "Osvicena",
+      "class": "paladin",
+      "spec": "Holy",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_holy_holybolt.jpg",
+      "role": "healer"
+    },
+    {
+      "id": "mq1ckrejxzxr",
+      "name": "Labelbruh",
+      "class": "deathknight",
+      "spec": "Unholy",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_deathknight_unholypresence.jpg",
+      "role": "dps",
+      "altOf": "mpvkh73rumey"
+    },
+    {
+      "id": "mq1fo9anybze",
+      "name": "Fifak",
+      "class": "warrior",
+      "spec": "Protection",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/ability_warrior_defensivestance.jpg",
+      "role": "tank",
+      "altOf": "mpvkh73r8taq"
+    },
+    {
+      "id": "mpvkh73r03jz",
+      "name": "Saliven",
+      "class": "rogue",
+      "spec": "Outlaw",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/ability_rogue_waylay.jpg",
+      "role": "dps"
+    },
+    {
+      "id": "mq3lgnzi12a7",
+      "name": "Fidan",
+      "class": "shaman",
+      "spec": "Restoration",
+      "specIcon": "https://wow.zamimg.com/images/wow/icons/small/spell_nature_magicimmunity.jpg",
+      "role": "healer",
+      "altOf": "mpvkh73rkps0"
+    }
+  ],
+  "exportedAt": "2026-06-07T09:44:25.136Z"
+}
