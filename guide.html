@@ -1011,6 +1011,14 @@ git push origin main<!DOCTYPE html>
       <button class="btn btn-ghost" style="font-size:11px;padding:3px 8px" onclick="cvCopySelected()">Copy</button>
       <button class="btn btn-ghost" style="font-size:11px;padding:3px 8px" onclick="cvPaste()">Paste</button>
     </div>
+    <!-- Z-ORDER -->
+    <div class="cv-row" style="margin-top:4px;gap:3px" title="Pořadí vrstev">
+      <button class="btn btn-ghost" style="font-size:11px;padding:3px 6px" title="Úplně dopředu" onclick="cvZOrder('front')">⬆⬆</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:3px 6px" title="O vrstvu dopředu" onclick="cvZOrder('forward')">⬆</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:3px 6px" title="O vrstvu dozadu" onclick="cvZOrder('backward')">⬇</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:3px 6px" title="Úplně dozadu" onclick="cvZOrder('back')">⬇⬇</button>
+      <span style="font-size:10px;color:var(--text-dim);margin-left:2px">vrstva</span>
+    </div>
   </div>
 
   <!-- ══ Canvas Mini Panel (roster/group/marker picker) ══ -->
@@ -6706,6 +6714,22 @@ function setCvTool(tool){
   } else {
     document.getElementById('cvPropsPanel')?.classList.remove('visible');
   }
+}
+
+function cvZOrder(dir){
+  if(!_cvSelSlide||!_cvSelId) return;
+  const arr=canvasData[_cvSelSlide];
+  if(!arr) return;
+  const idx=arr.findIndex(o=>o.id===_cvSelId);
+  if(idx<0) return;
+  const obj=arr.splice(idx,1)[0];
+  if(dir==='front')       arr.push(obj);
+  else if(dir==='back')   arr.unshift(obj);
+  else if(dir==='forward') arr.splice(Math.min(idx+1,arr.length),0,obj);
+  else if(dir==='backward') arr.splice(Math.max(idx-1,0),0,obj);
+  saveState();
+  renderCvOverlay(_cvSelSlide);
+  cvSelectObj(_cvSelSlide,obj.id);
 }
 
 function cvDeleteSelected(){
