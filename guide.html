@@ -715,6 +715,9 @@ git push origin main<!DOCTYPE html>
   /* pointer-events always on so group tooltips work in read mode too */
   .cv-obj { cursor: pointer; }
   .cv-handle { cursor: nwse-resize; }
+  .cv-dash-btn { background:rgba(255,255,255,.06); border:1px solid var(--border2); border-radius:4px; color:var(--text-mid); font-size:11px; padding:2px 6px; cursor:pointer; letter-spacing:1px; }
+  .cv-dash-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .cv-dash-btn.active { border-color:var(--accent); color:var(--accent); background:rgba(79,142,255,.12); }
   body.cv-drawing .slide-img .cv-overlay { cursor: crosshair; }
   body.cv-drawing .slide-img { cursor: crosshair; }
 
@@ -916,6 +919,12 @@ git push origin main<!DOCTYPE html>
         <input type="range" id="cvArrowWidth" min="1" max="20" value="2" style="width:65px" oninput="cvApplyProp('strokeW',this.value);document.getElementById('cvArrowWidthV').textContent=this.value">
         <span class="cv-val" id="cvArrowWidthV">2</span>
         <span class="cv-lbl" style="margin-left:2px">px</span>
+      </div>
+      <div class="cv-row" style="margin-top:4px;gap:4px">
+        <span class="cv-lbl">Styl</span>
+        <button id="cvArrowStyleSolid"  class="cv-dash-btn active" onclick="cvApplyProp('dashStyle','solid')"   title="Plná">——</button>
+        <button id="cvArrowStyleDashed" class="cv-dash-btn"        onclick="cvApplyProp('dashStyle','dashed')"  title="Přerušovaná">- - -</button>
+        <button id="cvArrowStyleDotted" class="cv-dash-btn"        onclick="cvApplyProp('dashStyle','dotted')"  title="Tečkovaná">· · ·</button>
       </div>
     </div>
 
@@ -5948,6 +5957,8 @@ function buildCvEl(obj,selected,slideId,svg){
     line.setAttribute('x1',obj.x1+'%'); line.setAttribute('y1',obj.y1+'%');
     line.setAttribute('x2',obj.x2+'%'); line.setAttribute('y2',obj.y2+'%');
     line.setAttribute('stroke',strokeClr); line.setAttribute('stroke-width',sw);
+    const _dash={'dashed':`${sw*4},${sw*3}`,'dotted':`${sw},${sw*2}`}[obj.dashStyle||'solid']||null;
+    if(_dash) line.setAttribute('stroke-dasharray',_dash);
     if(defs) line.setAttribute('marker-end',mid);
     g.appendChild(line);
     // Wider invisible hit line for easier clicking
@@ -6877,6 +6888,8 @@ function syncPropsPanel(obj){
   // Arrow thickness
   if(isArrow){
     const aw=document.getElementById('cvArrowWidth'); const awv=document.getElementById('cvArrowWidthV');
+    const ds=obj.dashStyle||'solid';
+    ['solid','dashed','dotted'].forEach(s=>{document.getElementById('cvArrowStyle'+s.charAt(0).toUpperCase()+s.slice(1))?.classList.toggle('active',s===ds);});
     if(aw){aw.value=obj.strokeW||2;if(awv)awv.textContent=obj.strokeW||2;}
   }
   // Text
