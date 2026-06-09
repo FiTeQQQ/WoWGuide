@@ -4649,6 +4649,10 @@ function _insertWowLink(type,id,name,icon){
   a.textContent=`[${name}]`;
   if(icon){
     a.style.backgroundImage=`url("https://wow.zamimg.com/images/wow/icons/tiny/${icon}.gif")`;
+    a.style.backgroundRepeat='no-repeat';
+    a.style.backgroundPosition='left center';
+    a.style.backgroundSize='16px 16px';
+    a.style.paddingLeft='20px';
     a.dataset.whIconAdded='true';
   }
   _lastInsertedLink = a;
@@ -5723,7 +5727,7 @@ function renderCvOverlay(slideId){
     a.dataset.game = 'wow';
     a.dataset.type = 'spell';
     a.style.cssText = `position:absolute;left:${obj.x}%;top:${obj.y}%;width:${sz}px;height:${sz}px;transform:translate(-50%,-50%);pointer-events:auto;opacity:0;display:block`;
-    a.addEventListener('click', e=>{ e.stopPropagation(); window.open(a.href,'_blank','noopener,noreferrer'); e.preventDefault(); });
+    a.addEventListener('click', e=>{ e.stopPropagation(); e.preventDefault(); });
     whLayer.appendChild(a);
   });
   if(whLayer.children.length > 0){
