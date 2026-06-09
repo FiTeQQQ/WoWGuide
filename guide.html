@@ -5686,6 +5686,7 @@ function initCvOverlays(){
     svg.addEventListener('mousemove',e=>cvMouseMove(e,el.id));
     svg.addEventListener('mouseup',  e=>cvMouseUp(e,el.id));
     svg.addEventListener('mouseleave',e=>{ if(_cvDraw) cvMouseUp(e,el.id); });
+    svg.addEventListener('mouseenter',()=>{ _cvHoverSlide=el.id; });
     svg.addEventListener('dragstart',e=>e.preventDefault());
   });
 }
@@ -6717,6 +6718,7 @@ function cvDeleteSelected(){
   document.getElementById('cvPropsPanel').classList.remove('visible');
 }
 
+let _cvHoverSlide = null;
 function cvCopySelected(){
   if(!_cvSelSlide||!_cvSelId) return;
   const obj=(canvasData[_cvSelSlide]||[]).find(function(o){return o.id===_cvSelId;});
@@ -6725,14 +6727,17 @@ function cvCopySelected(){
 
 function cvPaste(){
   if(!_cvCopied) return;
-  const sid=_cvSelSlide||(document.querySelector('.slide-img')&&document.querySelector('.slide-img').id);
+  // Prefer slide under cursor, fallback to _cvSelSlide, fallback to first slide
+  const sid = _cvHoverSlide || _cvSelSlide || (document.querySelector('.slide-img')&&document.querySelector('.slide-img').id);
   if(!sid) return;
   const n=Object.assign(JSON.parse(JSON.stringify(_cvCopied)),{id:cvUid()});
+  // Offset a bit so it doesn't stack exactly on top
   if(n.type==='arrow'){ n.x1=(n.x1||0)+3; n.y1=(n.y1||0)+3; n.x2=(n.x2||0)+3; n.y2=(n.y2||0)+3; }
   else { n.x=(n.x||0)+3; n.y=(n.y||0)+3; }
   if(!canvasData[sid]) canvasData[sid]=[];
   canvasData[sid].push(n);
   saveState(); renderCvOverlay(sid); cvSelectObj(sid,n.id);
+  toast('Vloženo na slide ' + (document.getElementById(sid)?.closest('.slide-wrap')?.querySelector('.slide-num')?.textContent || sid));
 }
 
 function _positionPropsPanel(){
