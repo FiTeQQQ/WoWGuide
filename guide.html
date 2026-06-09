@@ -3348,6 +3348,7 @@ function restoreSelection(){
 }
 
 // ── HELPER: Attach edit listeners to element (prevents duplicates) ──
+let _editSaveTimer = null;
 function attachEditableListeners(el){
   if(!el)return;
   // Focus listener — CRITICAL: updates _lastEditable for Wowhead insertion
@@ -3358,6 +3359,11 @@ function attachEditableListeners(el){
   el.addEventListener('click', saveSelection);
   // Wowhead + marker paste
   el.addEventListener('paste', handleWowheadPaste, {capture:true});
+  // Auto-save to cloud on any text edit (debounced 1.5s)
+  el.addEventListener('input', ()=>{
+    clearTimeout(_editSaveTimer);
+    _editSaveTimer = setTimeout(()=>{ if(editMode) saveState(); }, 1500);
+  });
   // Class colorize on blur + update TOC if slide title/num changed
   el.addEventListener('blur', ()=>{
     if(editMode) colorizeClasses(el);
@@ -4614,19 +4620,25 @@ function handleWowheadPaste(e){
   const id=m[2];
   const slug=m[3]||'';
   if(slug){
-    // Name is in the URL slug → use immediately
+    // Name is in the URL slug → insert immediately, fetch icon in background
     const name=slug.split('-').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
-    _insertWowLink(type,id,name);
+    _insertWowLink(type,id,name,'');
+    // Fetch icon separately and apply to the just-inserted link
+    fetch(`https://nether.wowhead.com/tooltip/${type}/${id}?locale=en_US`)
+      .then(r=>r.json())
+      .then(d=>{ if(d.icon){ const a=_lastInsertedLink; if(a){ a.style.backgroundImage=`url("https://wow.zamimg.com/images/wow/icons/tiny/${d.icon}.gif")`; a.dataset.whIconAdded='true'; }} })
+      .catch(()=>{});
   } else {
     // Fetch name from Wowhead tooltip API
     toast('Načítám název ability…');
     fetch(`https://nether.wowhead.com/tooltip/${type}/${id}?locale=en_US`)
       .then(r=>r.json())
-      .then(d=>_insertWowLink(type,id,d.name||`${type} #${id}`))
+      .then(d=>_insertWowLink(type,id,d.name||`${type} #${id}`,d.icon||''))
       .catch(()=>_insertWowLink(type,id,`${type} #${id}`));
   }
 }
-function _insertWowLink(type,id,name){
+let _lastInsertedLink = null;
+function _insertWowLink(type,id,name,icon){
   const a=document.createElement('a');
   a.href=`https://www.wowhead.com/${type}=${id}`;
   a.dataset.wowhead=`${type}=${id}`;
@@ -4635,6 +4647,11 @@ function _insertWowLink(type,id,name){
   a.dataset.game='wow';
   a.dataset.type=type;
   a.textContent=`[${name}]`;
+  if(icon){
+    a.style.backgroundImage=`url("https://wow.zamimg.com/images/wow/icons/tiny/${icon}.gif")`;
+    a.dataset.whIconAdded='true';
+  }
+  _lastInsertedLink = a;
   a.addEventListener('click', e=>{ e.stopPropagation(); window.open(a.href,'_blank','noopener,noreferrer'); e.preventDefault(); });
   if(_lastEditable)_lastEditable.focus();
   restoreSelection();
@@ -5688,6 +5705,31 @@ function renderCvOverlay(slideId){
       }
     }
   });
+  // Add invisible Wowhead tooltip anchors for spell-type objects
+  const slideImg = el.closest('.slide-img') || el.querySelector('.slide-img') || el;
+  let whLayer = slideImg.querySelector('.cv-wh-layer');
+  if(!whLayer){
+    whLayer = document.createElement('div');
+    whLayer.className = 'cv-wh-layer';
+    whLayer.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:14';
+    slideImg.appendChild(whLayer);
+  }
+  whLayer.innerHTML = '';
+  objs.filter(o=>o.type==='spell' && o.spellId).forEach(obj=>{
+    const sz = obj.iconSize || 32;
+    const a = document.createElement('a');
+    a.href = `https://www.wowhead.com/spell=${obj.spellId}`;
+    a.dataset.wowhead = `spell=${obj.spellId}`;
+    a.dataset.game = 'wow';
+    a.dataset.type = 'spell';
+    a.style.cssText = `position:absolute;left:${obj.x}%;top:${obj.y}%;width:${sz}px;height:${sz}px;transform:translate(-50%,-50%);pointer-events:auto;opacity:0;display:block`;
+    a.addEventListener('click', e=>{ e.stopPropagation(); window.open(a.href,'_blank','noopener,noreferrer'); e.preventDefault(); });
+    whLayer.appendChild(a);
+  });
+  if(whLayer.children.length > 0){
+    if(window.$WowheadPower && typeof window.$WowheadPower.init==='function') window.$WowheadPower.init();
+    setTimeout(applyWowheadHandlers, 200);
+  }
 }
 
 // ─── Build SVG element for one canvas object ───
