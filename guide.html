@@ -710,9 +710,9 @@ git push origin main<!DOCTYPE html>
   /* SVG overlay on each slide image */
   .cv-overlay {
     position: absolute; inset: 0; width: 100%; height: 100%;
-    pointer-events: none; z-index: 13; overflow: visible;
+    pointer-events: auto; z-index: 13; overflow: visible;
   }
-  .edit-mode .cv-overlay { pointer-events: auto; }
+  /* pointer-events always on so group tooltips work in read mode too */
   .cv-obj { cursor: pointer; }
   .cv-handle { cursor: nwse-resize; }
   body.cv-drawing .slide-img .cv-overlay { cursor: crosshair; }
