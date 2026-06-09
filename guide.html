@@ -6818,6 +6818,7 @@ function renderBossSwatches(activeColor){
 function syncPropsPanel(obj){
   const panel=document.getElementById('cvPropsPanel');
   if(!panel) return;
+  if(!editMode){ panel.classList.remove('visible'); return; }
   panel.classList.add('visible');
   setTimeout(_positionPropsPanel,0);
   const t=obj.type;
