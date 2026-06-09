@@ -5781,6 +5781,12 @@ function renderCvOverlay(slideId){
     a.dataset.type = 'spell';
     a.style.cssText = `position:absolute;left:${obj.x}%;top:${obj.y}%;width:${sz}px;height:${sz}px;transform:translate(-50%,-50%);pointer-events:auto;opacity:0;display:block`;
     a.addEventListener('click', e=>{ e.stopPropagation(); e.preventDefault(); });
+    a.addEventListener('mousedown', e=>{
+      if(!editMode||_cvTool!=='select') return;
+      e.stopPropagation(); e.preventDefault();
+      cvSelectObj(slideId, obj.id);
+      _cvPotentialDrag={slideId,objId:obj.id,startX:e.clientX,startY:e.clientY,orig:JSON.parse(JSON.stringify(obj))};
+    });
     whLayer.appendChild(a);
   });
   if(whLayer.children.length > 0){
@@ -6867,8 +6873,9 @@ function syncPropsPanel(obj){
   const isGroup=t==='group';
   const isMarker=t==='marker';
   const isBoss=t==='boss';
+  const isSpell=t==='spell';
   // Title
-  const titles={rect:'Obdélník',circle:'Kruh',triangle:'Trojúhelník',arrow:'Šipka',text:'Text',player:'Hráč',group:'Skupina',marker:'Marker',boss:'Ikona'};
+  const titles={rect:'Obdélník',circle:'Kruh',triangle:'Trojúhelník',arrow:'Šipka',text:'Text',player:'Hráč',group:'Skupina',marker:'Marker',boss:'Ikona',spell:'Spell'};
   const titleEl=document.getElementById('cvPropsTitle'); if(titleEl) titleEl.textContent=titles[t]||'Vlastnosti';
   // show/hide helpers
   function sf(id,v){const el=document.getElementById(id);if(el)el.style.display=v?'flex':'none';}
@@ -6881,10 +6888,10 @@ function syncPropsPanel(obj){
   sb('cvS_border', isShape||isText||isTriangle);
   sb('cvS_arrowWidth', isArrow);
   sb('cvS_text', isText);
-  sf('cvS_iconSize', isPlayer||isGroup||isMarker||isBoss);
+  sf('cvS_iconSize', isPlayer||isGroup||isMarker||isBoss||isSpell);
   sf('cvS_label', isPlayer);
   sb('cvS_group', isGroup);
-  sf('cvS_boss', isBoss);
+  sf('cvS_boss', isBoss||isSpell);
   sf('cvS_rotation', isShape||isTriangle);
   // Shape text
   if(isShape||isTriangle){
@@ -6938,7 +6945,7 @@ function syncPropsPanel(obj){
     ['circle','rect'].forEach(v=>{const b=document.getElementById('cvIS_'+v);if(b)b.classList.toggle('active',v===(obj.iconShape||'circle'));});
   }
   // Boss
-  if(isBoss){
+  if(isBoss||isSpell){
     const bf=document.getElementById('cvBossFill'); if(bf) bf.value=obj.fill||'#888888';
     const ba=document.getElementById('cvBossAlpha'); const bav=document.getElementById('cvBossAlphaV');
     if(ba){const v=Math.round((obj.fillA!=null?obj.fillA:0.25)*100);ba.value=v;if(bav)bav.textContent=v+'%';}
