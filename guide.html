@@ -4780,10 +4780,16 @@ function openSpellModal(anchorEl){
 
 function closeWhPanel(){if(_whPanel){_whPanel.remove();_whPanel=null;}}
 
-function insertWhLink(type,id,name){
+function insertWhLink(type,id,name,icon){
   const href=`https://www.wowhead.com/${type}=${id}`;
   const a=document.createElement('a');
-  a.href=href;a.dataset.wowhead=`${type}=${id}`;a.textContent=name;
+  a.href=href;
+  a.dataset.wowhead=`${type}=${id}`;
+  a.dataset.game='wow';
+  a.dataset.type=type;
+  a.className='icontinyl';
+  a.textContent=`[${name}]`;
+  if(icon) _applyWowIcon(a, icon);
   if(_lastEditable){_lastEditable.focus();restoreSelection();}
   const sel=window.getSelection();
   if(sel&&sel.rangeCount){
@@ -4991,8 +4997,8 @@ function openSpellModal(anchorEl){
       const m=urlInp.value.match(/wowhead\.com\/(?:[a-z0-9-]+\/)?([a-z]+)=(\d+)/i);
       if(m){
         fetch(`https://nether.wowhead.com/tooltip/${m[1]}/${m[2]}?locale=en_US`)
-          .then(r=>r.json()).then(d=>{ insertWhLink(m[1],m[2],d.name||m[1]+' #'+m[2]); closeWhPanel(); })
-          .catch(()=>{ insertWhLink(m[1],m[2],m[1]+' #'+m[2]); closeWhPanel(); });
+          .then(r=>r.json()).then(d=>{ insertWhLink(m[1],m[2],d.name||m[1]+' #'+m[2],d.icon||''); closeWhPanel(); })
+          .catch(()=>{ insertWhLink(m[1],m[2],m[1]+' #'+m[2],''); closeWhPanel(); });
       }
     }
   };
@@ -5018,7 +5024,7 @@ function openSpellModal(anchorEl){
         row.innerHTML=`<img src="https://wow.zamimg.com/images/wow/icons/small/${s.icon||'inv_misc_questionmark'}.jpg" style="width:18px;height:18px;border-radius:3px" onerror="this.style.opacity='.2'"><span style="font-size:12px;color:var(--text)">${_esc(s.name)}</span>`;
         row.onmouseenter=()=>row.style.background='rgba(255,255,255,.08)';
         row.onmouseleave=()=>row.style.background='';
-        row.onclick=()=>{ insertWhLink('spell',s.id,s.name); closeWhPanel(); };
+        row.onclick=()=>{ insertWhLink('spell',s.id,s.name,s.icon||''); closeWhPanel(); };
         listEl.appendChild(row);
       });
     });
