@@ -8139,7 +8139,7 @@ function tlRenderTable(q){
       <td style="text-align:center;padding:6px 10px;color:#e2e8f0;font-family:monospace;font-size:14px;font-weight:700;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.08);white-space:nowrap">${ev.time}</td>
       <td style="padding:6px 10px;border-right:1px solid rgba(255,255,255,0.05)">
         <span style="display:inline-flex;align-items:center;gap:6px">
-          <span data-tl-color-dot style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;border:1px solid rgba(255,255,255,0.25);cursor:pointer" title="Změnit barvu" onclick="tlPickColor('${_tlEsc(slug)}','${_tlEsc(eKey)}','${color}',this.closest('tr'),event.clientX,event.clientY)"></span>
+          <span data-tl-color-dot data-slug="${_tlEsc(slug)}" data-key="${_tlEsc(eKey)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;border:1px solid rgba(255,255,255,0.25);cursor:pointer" title="Změnit barvu" onclick="tlPickColor(this,event.clientX,event.clientY)"></span>
           <span data-tl-color style="color:${color};font-size:13px;font-weight:600">${ev.spellId
             ? `<a href="https://www.wowhead.com/spell=${ev.spellId}" data-wowhead style="color:inherit;text-decoration:none;cursor:default" onclick="return false">${_tlEsc(ev.ability)}</a>`
             : _tlEsc(ev.ability)}</span>
@@ -8193,8 +8193,10 @@ function _tlColorReset(slug,key,rowEl){
   }
 }
 let _tlColorPopSlug='', _tlColorPopKey='', _tlColorPopRow=null;
-function tlPickColor(slug,key,current,rowEl,cx,cy){
-  _tlColorPopSlug=slug; _tlColorPopKey=key; _tlColorPopRow=rowEl;
+function tlPickColor(dotEl,cx,cy){
+  _tlColorPopSlug=dotEl.dataset.slug;
+  _tlColorPopKey=dotEl.dataset.key;
+  _tlColorPopRow=dotEl.closest('tr');
   const pop=document.getElementById('tlColorPop');
   pop.style.display='flex';
   const pw=260, ph=50;
