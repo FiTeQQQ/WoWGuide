@@ -297,6 +297,46 @@ GH_IMG_BASE = 'https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/Images/'
 
 
 
+## 📦 Session 5 — Přehled změn (10. červen 2026)
+
+### Oprava: Text formatting toolbar (`#fmtBar`) — obarvování textu v notes
+
+**Problém:** Kliknutí na barevný dot v toolbaru neměnilo barvu textu. Text zůstával žlutý (barva třídy z `colorizeClasses`).
+
+**Příčiny (dvě):**
+1. `fmtColor` volal `window.getSelection()` — ale při `mousedown` na dot mohla být selekce už ztracená. Fix: obnovit uložený `_fmtSel` range a refocusovat `_fmtActiveEl` před aplikací.
+2. `execCommand('foreColor')` vytvořil `<span style="color:...">` uvnitř `[data-player]`/`[data-cc]` spanu. `colorizeClasses` při `blur` stripoval `[data-player]`/`[data-cc]` span a s ním i vnitřní color span → barva se resetovala na class color.
+
+**Řešení:**
+- `fmtColor` nyní vkládá `<span data-user-fmt="1" style="color:#xxx">` přes Range API místo `execCommand`
+- `fmtExec` (bold/italic) obnovuje `_fmtSel` a refocusuje `_fmtActiveEl` před `execCommand`
+- `applyColorPatterns` přeskakuje text uvnitř `[data-user-fmt]` spanů (skip selector rozšířen)
+- `replaceMarkerShortcuts` také přeskakuje `[data-user-fmt]`
+- `colorizeClasses` při strippování `[data-cc]`/`[data-player]` zachovává children pokud obsahují `[data-user-fmt]` (místo `replaceWith(textNode)` dělá `replaceWith(...childNodes)`)
+
+**Soubory změněny:** `guide.html` (5 změn v Python scriptu)
+
+**Push command:**
+```cmd
+cd "C:\Users\Filip\Desktop\Claude Projects\RaidGuideWOW" && git add guide.html && git commit -m "fix text coloring: use data-user-fmt spans, restore _fmtSel on apply" && git push
+```
+
+---
+
+## 📦 Session 4 — Přehled změn (9. červen 2026)
+
+### Oprava text coloring — předchozí pokusy
+- Přidán `#fmtBar` s 13 WoW class colors (místo full color palety)
+- `onmousedown` + `event.preventDefault()` na každém color dotu
+- Přejmenování hlavního souboru z `index.html` → `guide.html`
+- Přidán `.gitignore` (zabraňuje commitování `.mhtml` souborů atd.)
+
+### Git accident
+- Náhodně byl commitnutý "Lightblinded Vanguard Guide" HTML (uložená YouTube stránka) s Google API klíči
+- Fix: `git rm -r --cached` + `.gitignore` + commit
+
+---
+
 ## 📦 Session 3 — Přehled změn
 
 ### Auto cloud sync
@@ -375,6 +415,7 @@ wc -l /sessions/inspiring-tender-bell/mnt/RaidGuideWOW/index.html    # musí bý
 
 ### Sandbox cesta k souboru
 ```
-Windows:  C:\Users\Filip\Desktop\Claude Projects\RaidGuideWOW\index.html
-Sandbox:  /sessions/inspiring-tender-bell/mnt/RaidGuideWOW/index.html
+Windows:  C:\Users\Filip\Desktop\Claude Projects\RaidGuideWOW\guide.html
+Sandbox:  /sessions/<session-id>/mnt/RaidGuideWOW/guide.html
 ```
+> Poznámka: session-id se mění při každém chatu. Zjisti ho přes `ls /sessions/` nebo z kontextu systémového promptu.
