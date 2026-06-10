@@ -881,6 +881,11 @@ git push origin main<!DOCTYPE html>
           style="width:46px;background:rgba(255,255,255,.07);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;padding:2px 4px;outline:none">
         <span class="cv-lbl">%</span>
       </div>
+      <div class="cv-row">
+        <span class="cv-lbl">Průhl.</span>
+        <input type="range" id="cvShapeTextAlpha" min="0" max="100" value="100" style="width:65px" oninput="cvApplyProp('shapeTextAlpha',this.value);document.getElementById('cvShapeTextAlphaV').textContent=this.value+'%'">
+        <span class="cv-val" id="cvShapeTextAlphaV">100%</span>
+      </div>
     </div>
 
     <!-- COLOR SWATCHES (sdílené pro fill+border) -->
@@ -5895,7 +5900,7 @@ function buildCvEl(obj,selected,slideId,svg){
       const t=document.createElementNS(NS,'text');
       t.setAttribute('x',(x+w/2)+'%'); t.setAttribute('y',(y+h/2)+'%');
       t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
-      t.setAttribute('fill',obj.shapeTextColor||'#fff'); t.setAttribute('font-weight','700');
+      t.setAttribute('fill',hexAlpha(obj.shapeTextColor||'#ffffff',obj.shapeTextAlpha!=null?obj.shapeTextAlpha:1)); t.setAttribute('font-weight','700');
       t.setAttribute('font-family','sans-serif');
       {const _svgEl=svg||(g.closest?g.closest('svg'):null);
       const _svgH=_svgEl?(_svgEl.getBoundingClientRect().height||_svgEl.clientHeight||450):450;
@@ -5928,7 +5933,7 @@ function buildCvEl(obj,selected,slideId,svg){
       const t=document.createElementNS(NS,'text');
       t.setAttribute('x',cxPx); t.setAttribute('y',cyPx); // pixel coords like circle
       t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
-      t.setAttribute('fill',obj.shapeTextColor||'#fff'); t.setAttribute('font-weight','700');
+      t.setAttribute('fill',hexAlpha(obj.shapeTextColor||'#ffffff',obj.shapeTextAlpha!=null?obj.shapeTextAlpha:1)); t.setAttribute('font-weight','700');
       t.setAttribute('font-family','sans-serif');
       {const _fPx=(obj.shapeTextSize||100)/100*(_sH*0.04);
       t.setAttribute('font-size',_fPx+'px');}
@@ -5962,7 +5967,7 @@ function buildCvEl(obj,selected,slideId,svg){
       const t=document.createElementNS(NS,'text');
       t.setAttribute('x',(x+w/2)+'%'); t.setAttribute('y',(y+h*0.65)+'%');
       t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
-      t.setAttribute('fill',obj.shapeTextColor||'#fff'); t.setAttribute('font-weight','700');
+      t.setAttribute('fill',hexAlpha(obj.shapeTextColor||'#ffffff',obj.shapeTextAlpha!=null?obj.shapeTextAlpha:1)); t.setAttribute('font-weight','700');
       t.setAttribute('font-family','sans-serif');
       {const _svgEl=svg||(g.closest?g.closest('svg'):null);
       const _svgH=_svgEl?(_svgEl.getBoundingClientRect().height||_svgEl.clientHeight||450):450;
@@ -6904,6 +6909,8 @@ function syncPropsPanel(obj){
     const st=document.getElementById('cvShapeText'); if(st) st.value=obj.shapeText||'';
     const stc=document.getElementById('cvShapeTextColor'); if(stc) stc.value=obj.shapeTextColor||'#ffffff';
     const sts=document.getElementById('cvShapeTextSize'); if(sts) sts.value=obj.shapeTextSize||100;
+    const sta=document.getElementById('cvShapeTextAlpha'); const stav=document.getElementById('cvShapeTextAlphaV');
+    if(sta){const v=Math.round((obj.shapeTextAlpha!=null?obj.shapeTextAlpha:1)*100);sta.value=v;if(stav)stav.textContent=v+'%';}
   }
   // Color swatches — show fill color as active
   if(hasColor){
@@ -7076,6 +7083,7 @@ function cvApplyProp(prop,val){
   if(prop==='groupTextColor') obj.groupTextColor=val;
   if(prop==='shapeText') obj.shapeText=val;
   if(prop==='shapeTextColor') obj.shapeTextColor=val;
+  if(prop==='shapeTextAlpha') obj.shapeTextAlpha=val/100;
   if(prop==='shapeTextSize') obj.shapeTextSize=parseFloat(val);
   if(prop==='dashStyle') obj.dashStyle=val;
   if(prop==='bossLabel'){
