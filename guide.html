@@ -8015,7 +8015,26 @@ function showTimeline(){
   document.getElementById('tlZoomVal').textContent=_tlZoom+'×';
   const panel=document.getElementById('timelinePanel');
   panel.style.display='flex';
+  _tlInitDrag();
   tlSetView('table');
+}
+function _tlInitDrag(){
+  const el=document.getElementById('tlGanttView');
+  if(!el||el._dragInited) return;
+  el._dragInited=true;
+  let down=false,startX=0,startY=0,scrollX=0,scrollY=0;
+  el.addEventListener('mousedown',e=>{
+    if(e.button!==0) return;
+    down=true; startX=e.clientX; startY=e.clientY;
+    scrollX=el.scrollLeft; scrollY=el.scrollTop;
+    el.style.cursor='grabbing'; e.preventDefault();
+  });
+  window.addEventListener('mousemove',e=>{
+    if(!down) return;
+    el.scrollLeft=scrollX-(e.clientX-startX);
+    el.scrollTop =scrollY-(e.clientY-startY);
+  });
+  window.addEventListener('mouseup',()=>{ down=false; el.style.cursor='grab'; });
 }
 function hideTimeline(){ document.getElementById('timelinePanel').style.display='none'; }
 
@@ -8057,7 +8076,7 @@ function tlRenderTable(q){
     const bg=i%2===0?'rgba(255,255,255,0.025)':'transparent';
     const iconHtml=ev.spellId?_tlIconImg(ev.spellId,16,color):'';
     html+=`<tr style="background:${bg}" data-key="${_tlEsc(eKey)}">
-      <td style="text-align:center;padding:4px 6px;color:#8b8fa8;font-family:monospace;font-size:11px;border-right:1px solid rgba(255,255,255,0.05);white-space:nowrap">${ev.time}</td>
+      <td style="text-align:center;padding:4px 8px;color:#e2e8f0;font-family:monospace;font-size:13px;font-weight:700;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.08);white-space:nowrap">${ev.time}</td>
       <td style="padding:4px 8px;border-right:1px solid rgba(255,255,255,0.05)">
         <div style="display:flex;align-items:center;gap:5px">
           ${iconHtml}
@@ -8099,13 +8118,12 @@ function tlPickColor(slug,key,current,btn){
     const c=e.target.value;
     btn.style.background=c;
     _tlSetEdit(slug,key,'color',c);
-    // Update the row's color
     const row=btn.closest('tr');
     if(row){
-      const link=row.querySelector('a,span[style*="font-weight"]');
-      if(link) link.style.color=c;
-      const icon=row.querySelector('img');
-      if(icon) icon.style.borderColor=c;
+      // Update ability text/link color
+      row.querySelectorAll('a[data-wowhead],span[style*="font-weight"]').forEach(el=>el.style.color=c);
+      // Update icon border
+      row.querySelectorAll('img').forEach(el=>el.style.borderColor=c);
     }
   });
   inp.click();
@@ -8240,7 +8258,7 @@ function _tlEsc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').re
   </div>
   </div>
   <!-- Gantt View -->
-  <div id="tlGanttView" style="display:none;overflow:auto;flex:1;padding:8px 0 16px">
+  <div id="tlGanttView" style="display:none;overflow:auto;flex:1;padding:8px 0 16px;cursor:grab;user-select:none">
     <div id="tlGanttInner" style="display:flex;flex-direction:column;min-width:max-content"></div>
   </div>
 </div>
