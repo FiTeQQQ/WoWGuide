@@ -2090,7 +2090,7 @@
 </div>
 
 <!-- Floating text formatting toolbar -->
-<div id="fmtBar" class="" style="top: 835.125px; left: 1226px;" onmousedown="event.preventDefault()">
+<div id="fmtBar" class="" style="top: 835.125px; left: 1226px;">
   <button class="fmt-btn" id="fmtBold" onclick="fmtExec('bold')" title="Bold"><b>B</b></button>
   <button class="fmt-btn" id="fmtItalic" onclick="fmtExec('italic')" title="Italic"><i>I</i></button>
   <div class="fmt-sep"></div>
@@ -4041,6 +4041,7 @@ const _imgState = new WeakMap();
 
 // ── TEXT FORMATTING TOOLBAR ──
 let _fmtSel = null; // saved selection for format toolbar
+let _fmtActiveEl = null; // editable element that owned the selection
 
 function initFmtBar(){
   const bar = document.getElementById('fmtBar');
@@ -4057,6 +4058,7 @@ function initFmtBar(){
     const anchor = sel.anchorNode?.parentElement?.closest('[data-editable],[contenteditable="true"]');
     if(!anchor) return;
     _fmtSel = sel.getRangeAt(0).cloneRange();
+    _fmtActiveEl = document.activeElement; // remember which editable had focus
     const rect = sel.getRangeAt(0).getBoundingClientRect();
     const topPos = rect.top - 44;
     bar.style.top  = `${Math.max(4, topPos)}px`;
@@ -4069,7 +4071,11 @@ function initFmtBar(){
   });
 }
 
-function fmtRestore(){ if(_fmtSel){const s=window.getSelection();s.removeAllRanges();s.addRange(_fmtSel);} }
+function fmtRestore(){
+  // Re-focus the editable first, then restore selection
+  if(_fmtActiveEl && typeof _fmtActiveEl.focus === 'function') _fmtActiveEl.focus();
+  if(_fmtSel){const s=window.getSelection();s.removeAllRanges();s.addRange(_fmtSel);}
+}
 
 // ── GLOBAL FONT SIZES ──
 const SIZE_KEYS = { title: ['tS','tM','tL','tXL'], body: ['bS','bM','bL','bXL'] };
