@@ -2361,6 +2361,7 @@ let groupsColor = '#F48CBA';
 let canvasData  = {};    // { slideId: [canvasObj, ...] }
 let encounterSpells = { bosses: [] }; // { bosses: [{name, spells:[{id,name,icon}]}] }
 let cvPresets   = ['#3b82f6','#ef4444','#22c55e','#f59e0b','#e879f9','#e8e8e8']; // 6 user-customizable color presets
+let deletedSlides = []; // slide IDs permanently removed by user
 
 // Canvas editor runtime state (not persisted)
 let _cvTool    = 'select';
@@ -2456,6 +2457,7 @@ function loadState(){
     if(d.canvasData) canvasData=d.canvasData;
     if(d.variantCanvasData) variantCanvasData=d.variantCanvasData;
     if(d.cvPresets?.length===6) cvPresets=d.cvPresets;
+    if(d.deletedSlides?.length) { deletedSlides=d.deletedSlides; applyDeletedSlides(); }
     if(d.slideNotes){
       Object.entries(d.slideNotes).forEach(([sid,html])=>{
         const sl=document.getElementById(sid);
@@ -2479,7 +2481,7 @@ function saveState(){
   try{
     const _slideNotesSnap={};
     document.querySelectorAll('.slide').forEach(sl=>{ const sn=sl.querySelector('.slide-notes'); if(sn) _slideNotesSnap[sl.id]=sn.innerHTML; });
-    localStorage.setItem(_lsKey(),JSON.stringify({roster,slots,images,assignmentExtras,showGroups,groupsLabel,groupsColor,canvasData,variantCanvasData,cvPresets,slideNotes:_slideNotesSnap}));
+    localStorage.setItem(_lsKey(),JSON.stringify({roster,slots,images,assignmentExtras,showGroups,groupsLabel,groupsColor,canvasData,variantCanvasData,cvPresets,slideNotes:_slideNotesSnap,deletedSlides}));
   }catch(e){ console.warn('saveState localStorage error:',e); }
   syncRosterCloud();
   _autoCloudSync();
@@ -4558,10 +4560,18 @@ function makeHeadingEl(text){
   return {hdg, span};
 }
 
+function applyDeletedSlides(){
+  deletedSlides.forEach(sid=>{
+    const el=document.getElementById(sid);
+    if(el) el.remove();
+  });
+}
+
 function deleteSlide(btn){
   const slide=btn.closest('.slide');
   if(!slide) return;
   if(!confirm('Smazat tento slide? Tato akce je nevratná.')) return;
+  const sid=slide.id;
   const imgEl=slide.querySelector('.slide-img');
   if(imgEl && imgEl.id){
     const id=imgEl.id;
@@ -4569,6 +4579,7 @@ function deleteSlide(btn){
     delete canvasData[id];
     delete variantCanvasData[id];
   }
+  if(sid && !deletedSlides.includes(sid)) deletedSlides.push(sid);
   slide.remove();
   saveState();
   updateSidebarTOC();
@@ -5466,7 +5477,7 @@ function buildPayload(lock=false){
     const sn=sl.querySelector('.slide-notes');
     if(sn) slideNotes[sl.id]=sn.innerHTML;
   });
-  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, canvasData, variantCanvasData, locked: lock, slideNotes };
+  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, canvasData, variantCanvasData, locked: lock, slideNotes, deletedSlides };
 }
 
 async function _postRoster(payload){
@@ -5560,6 +5571,7 @@ async function loadFromCloud(id){
     if(data.canvasData) canvasData=data.canvasData;
     if(data.variantCanvasData) variantCanvasData=data.variantCanvasData;
     setLocked(data.locked||false);
+    if(data.deletedSlides?.length) { deletedSlides=data.deletedSlides; applyDeletedSlides(); }
     if(data.slideNotes){
       Object.entries(data.slideNotes).forEach(([sid,html])=>{
         const sl=document.getElementById(sid);
