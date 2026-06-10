@@ -466,6 +466,9 @@
     animation: ctxIn .12s ease;
   }
   #fmtBar.visible { display: flex; }
+  #fmtBar.tl-mode #fmtBold,
+  #fmtBar.tl-mode #fmtItalic,
+  #fmtBar.tl-mode .fmt-sep:first-of-type { display: none; }
   .fmt-btn {
     padding: 3px 7px; border-radius: 5px; border: 1px solid transparent;
     background: none; color: var(--text-mid); font-size: 12px; cursor: pointer;
@@ -4040,6 +4043,7 @@ const _imgState = new WeakMap();
 // ── TEXT FORMATTING TOOLBAR ──
 let _fmtSel = null; // saved selection for format toolbar
 let _fmtActiveEl = null; // editable element that owned the selection
+let _fmtTLCallback = null; // when set: fmtBar is in TL-color mode, not text-selection mode
 
 function initFmtBar(){
   const bar = document.getElementById('fmtBar');
@@ -4065,7 +4069,11 @@ function initFmtBar(){
   });
   // Hide on click outside
   document.addEventListener('mousedown', e => {
-    if(!bar.contains(e.target)) bar.classList.remove('visible');
+    if(!bar.contains(e.target)) {
+      bar.classList.remove('visible');
+      bar.classList.remove('tl-mode');
+      _fmtTLCallback = null;
+    }
   });
 }
 
@@ -4248,7 +4256,16 @@ function fmtSize(size){
 }
 
 function fmtColor(color){
-  document.getElementById('fmtBar').classList.remove('visible');
+  const _fmtBarEl = document.getElementById('fmtBar');
+  _fmtBarEl.classList.remove('visible');
+  _fmtBarEl.classList.remove('tl-mode');
+  // TL mode: apply color to ability row, not to text selection
+  if(_fmtTLCallback){
+    const cb = _fmtTLCallback;
+    _fmtTLCallback = null;
+    cb(color);
+    return;
+  }
   if(!_fmtSel) return;
   if(_fmtActiveEl) _fmtActiveEl.focus();
   const s = window.getSelection();
@@ -8144,21 +8161,35 @@ function _tlColorApply(c,slug,key,rowEl){
     row.querySelectorAll('img').forEach(el=>el.style.borderColor=c);
   }
 }
-function tlPickColor(slug,key,current,rowEl,cx,cy){
-  let inp=document.getElementById('_tlColorPicker');
-  if(!inp){
-    inp=document.createElement('input');
-    inp.type='color'; inp.id='_tlColorPicker';
-    inp.style.cssText='position:fixed;width:28px;height:22px;padding:0;border:none;cursor:pointer;z-index:10000;border-radius:3px';
-    document.body.appendChild(inp);
-    inp.addEventListener('input',function(){ _tlColorApply(this.value,this._s,this._k,this._r); });
-    inp.addEventListener('change',function(){ _tlColorApply(this.value,this._s,this._k,this._r); });
+function _tlColorReset(slug,key,rowEl){
+  if(_tlEdits[slug]&&_tlEdits[slug][key]) delete _tlEdits[slug][key]['color'];
+  _tlSaveEdits();
+  // Restore original color from _TL_DATA
+  let origColor='#9ca3af';
+  if(_tlActive&&_tlActive.events){
+    const ev=_tlActive.events.find(e=>e.time+'|'+e.ability===key);
+    if(ev) origColor=ev.color;
   }
-  inp.style.left=Math.min(cx||0,window.innerWidth-40)+'px';
-  inp.style.top=Math.min(cy||0,window.innerHeight-30)+'px';
-  inp.value=current||'#ffffff';
-  inp._s=slug; inp._k=key; inp._r=rowEl;
-  inp.click();
+  const row=rowEl&&rowEl.tagName==='TR'?rowEl:(rowEl&&rowEl.closest?rowEl.closest('tr'):null);
+  if(row){
+    const tc=row.querySelector('[data-tl-color]'); if(tc) tc.style.color=origColor;
+    row.querySelectorAll('img').forEach(el=>el.style.borderColor=origColor);
+  }
+}
+function tlPickColor(slug,key,current,rowEl,cx,cy){
+  // Use fmtBar (same as notes toolbar) instead of native color input
+  _fmtTLCallback = function(c){
+    if(c==='inherit'){
+      _tlColorReset(slug,key,rowEl);
+    } else {
+      _tlColorApply(c,slug,key,rowEl);
+    }
+  };
+  const bar=document.getElementById('fmtBar');
+  bar.classList.add('tl-mode');
+  bar.style.left=Math.min(cx||0, window.innerWidth-320)+'px';
+  bar.style.top=Math.min(cy||0, window.innerHeight-50)+'px';
+  bar.classList.add('visible');
 }
 
 function tlRenderGantt(q){
