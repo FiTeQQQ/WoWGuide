@@ -466,6 +466,8 @@
     animation: ctxIn .12s ease;
   }
   #fmtBar.visible { display: flex; }
+  /* TL ability name — no wowhead underline */
+  [data-tl-color] a { text-decoration: none !important; }
   .fmt-btn {
     padding: 3px 7px; border-radius: 5px; border: 1px solid transparent;
     background: none; color: var(--text-mid); font-size: 12px; cursor: pointer;
@@ -8140,7 +8142,7 @@ function tlRenderTable(q){
       <td style="padding:6px 10px;border-right:1px solid rgba(255,255,255,0.05)">
         <span style="display:inline-flex;align-items:center;gap:6px">
           <span data-tl-color-dot data-slug="${_tlEsc(slug)}" data-key="${_tlEsc(eKey)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;border:1px solid rgba(255,255,255,0.25);cursor:pointer" title="Změnit barvu" onclick="tlPickColor(this,event.clientX,event.clientY)"></span>
-          <span data-tl-color style="font-size:13px;font-weight:400;color:#e2e8f0;background:${_tlHexBg(color)};border-radius:4px;padding:1px 5px">${ev.spellId
+          <span data-tl-color style="font-size:13px;font-weight:400;color:#e2e8f0;background:${_tlHexBg(color)};border-left:3px solid ${color};border-radius:0 4px 4px 0;padding:1px 6px 1px 5px">${ev.spellId
             ? `<a href="https://www.wowhead.com/spell=${ev.spellId}" data-wowhead style="color:inherit;text-decoration:none;cursor:default" onclick="return false">${_tlEsc(ev.ability)}</a>`
             : _tlEsc(ev.ability)}</span>
         </span>
@@ -8171,7 +8173,7 @@ function _tlColorApply(c,slug,key,rowEl){
   _tlSetEdit(slug,key,'color',c);
   const row=rowEl&&rowEl.tagName==='TR'?rowEl:(rowEl&&rowEl.closest?rowEl.closest('tr'):null);
   if(row){
-    const tc=row.querySelector('[data-tl-color]'); if(tc) tc.style.background=_tlHexBg(c);
+    const tc=row.querySelector('[data-tl-color]'); if(tc){tc.style.background=_tlHexBg(c);tc.style.borderLeftColor=c;}
     const dot=row.querySelector('[data-tl-color-dot]'); if(dot) dot.style.background=c;
     row.querySelectorAll('img').forEach(el=>el.style.borderColor=c);
   }
@@ -8191,7 +8193,7 @@ function _tlColorReset(slug,key,rowEl){
   }
   const row=rowEl&&rowEl.tagName==='TR'?rowEl:(rowEl&&rowEl.closest?rowEl.closest('tr'):null);
   if(row){
-    const tc=row.querySelector('[data-tl-color]'); if(tc) tc.style.background=_tlHexBg(origColor);
+    const tc=row.querySelector('[data-tl-color]'); if(tc){tc.style.background=_tlHexBg(origColor);tc.style.borderLeftColor=origColor;}
     const dot=row.querySelector('[data-tl-color-dot]'); if(dot) dot.style.background=origColor;
     row.querySelectorAll('img').forEach(el=>el.style.borderColor=origColor);
   }
