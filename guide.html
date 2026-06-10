@@ -8080,7 +8080,7 @@ function tlRenderTable(q){
       <td style="text-align:center;padding:6px 10px;color:#e2e8f0;font-family:monospace;font-size:14px;font-weight:700;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.08);white-space:nowrap">${ev.time}</td>
       <td style="padding:6px 10px;border-right:1px solid rgba(255,255,255,0.05)">
         <span data-tl-color style="color:${color};font-size:13px;font-weight:600">${ev.spellId
-          ? `<span data-wowhead="spell=${ev.spellId}">${_tlEsc(ev.ability)}</span>`
+          ? `<a href="https://www.wowhead.com/spell=${ev.spellId}" data-wowhead style="color:inherit;text-decoration:none;cursor:default" onclick="return false">${_tlEsc(ev.ability)}</a>`
           : _tlEsc(ev.ability)}</span>
       </td>
       <td style="padding:6px 10px">
@@ -8118,7 +8118,7 @@ function tlPickColor(slug,key,current,rowEl){
   if(!inp){
     inp=document.createElement('input');
     inp.type='color'; inp.id='_tlColorPicker';
-    inp.style.cssText='position:fixed;left:-200px;top:-200px;width:40px;height:40px;opacity:0.01';
+    inp.style.cssText='position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01';
     document.body.appendChild(inp);
     inp.addEventListener('input',function(){ _tlColorApply(this.value,this._tlSlug,this._tlKey,this._tlRow); });
     inp.addEventListener('change',function(){ _tlColorApply(this.value,this._tlSlug,this._tlKey,this._tlRow); });
