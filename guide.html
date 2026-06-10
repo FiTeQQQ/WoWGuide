@@ -1,6 +1,4 @@
-git add guide.html
-git commit -m "fix: guard WowheadPower.init"
-git push origin main<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" style="--main-max-w: 1400px; --notes-w: 340px;"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -5511,25 +5509,20 @@ async function cloudSave(){
   const lock = shareLocked;
   const payload = buildPayload(lock);
   try {
-    let finalId = id;
-    if(id){
-      // Existující link — jen uložit, žádný modal
-      await _putRoster(id, payload);
+    // Vždy ukázat modal — vlastní název nebo random ID
+    const customName = await shareModal();
+    if(customName === null) return; // zrušeno (✕ nebo Escape)
+    const slug = customName.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+    let finalId;
+    if(slug){
+      await _putRosterById(slug, payload);
+      finalId = slug;
     } else {
-      // První save — otevři share modal
-      const customName = await shareModal();
-      if(customName === null) return; // zrušeno (✕ nebo Escape)
-      const slug = customName.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
-      if(slug){
-        await _putRosterById(slug, payload);
-        finalId = slug;
-      } else {
-        finalId = await _postRoster(payload);
-      }
-      const _bossParam = _getBossSlug() !== 'default' ? '&boss='+_getBossSlug() : '';
-      history.replaceState(null,'',`${location.pathname}?r=${finalId}${_bossParam}`);
-      showShareButtons();
+      finalId = await _postRoster(payload);
     }
+    const _bossParam = _getBossSlug() !== 'default' ? '&boss='+_getBossSlug() : '';
+    history.replaceState(null,'',`${location.pathname}?r=${finalId}${_bossParam}`);
+    showShareButtons();
     // Pokud jsme na ?boss= URL bez ?r=, share link zachová boss= formát
     const _hasRParam = new URLSearchParams(location.search).has('r');
     const shareUrl = _hasRParam
