@@ -5552,7 +5552,10 @@ async function cloudSave(){
       finalId = await _postRoster(payload);
     }
     // Nezměníme URL v prohlížeči — zachováme původní odkaz
-    const shareUrl = `${location.origin}${location.pathname}?r=${finalId}`;
+    const _bossSlug = _getBossSlug();
+    const shareUrl = _bossSlug && _bossSlug !== 'default'
+      ? `${location.origin}${location.pathname}?r=${finalId}&boss=${_bossSlug}`
+      : `${location.origin}${location.pathname}?r=${finalId}`;
     _shareModalShowResult(shareUrl);
     setLocked(lock);
   } catch(e) {
