@@ -8127,9 +8127,12 @@ function tlRenderTable(q){
     html+=`<tr style="background:${bg}" data-key="${_tlEsc(eKey)}">
       <td style="text-align:center;padding:6px 10px;color:#e2e8f0;font-family:monospace;font-size:14px;font-weight:700;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.08);white-space:nowrap">${ev.time}</td>
       <td style="padding:6px 10px;border-right:1px solid rgba(255,255,255,0.05)">
-        <span data-tl-color style="color:${color};font-size:13px;font-weight:600;cursor:pointer;border-radius:3px;padding:1px 3px" title="Klikni pro změnu barvy" onclick="tlPickColor('${_tlEsc(slug)}','${_tlEsc(eKey)}','${color}',this.closest('tr'),event.clientX,event.clientY)">${ev.spellId
-          ? `<a href="https://www.wowhead.com/spell=${ev.spellId}" data-wowhead style="color:inherit;text-decoration:none;pointer-events:none">${_tlEsc(ev.ability)}</a>`
-          : _tlEsc(ev.ability)}</span>
+        <span style="display:inline-flex;align-items:center;gap:6px">
+          <span data-tl-color-dot style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;border:1px solid rgba(255,255,255,0.25);cursor:pointer" title="Změnit barvu" onclick="tlPickColor('${_tlEsc(slug)}','${_tlEsc(eKey)}','${color}',this.closest('tr'),event.clientX,event.clientY)"></span>
+          <span data-tl-color style="color:${color};font-size:13px;font-weight:600">${ev.spellId
+            ? `<a href="https://www.wowhead.com/spell=${ev.spellId}" data-wowhead style="color:inherit;text-decoration:none;cursor:default" onclick="return false">${_tlEsc(ev.ability)}</a>`
+            : _tlEsc(ev.ability)}</span>
+        </span>
       </td>
       <td style="padding:6px 10px">
         <span class="tl-note" data-slug="${_tlEsc(slug)}" data-key="${_tlEsc(eKey)}"
@@ -8158,6 +8161,7 @@ function _tlColorApply(c,slug,key,rowEl){
   const row=rowEl&&rowEl.tagName==='TR'?rowEl:(rowEl&&rowEl.closest?rowEl.closest('tr'):null);
   if(row){
     const tc=row.querySelector('[data-tl-color]'); if(tc) tc.style.color=c;
+    const dot=row.querySelector('[data-tl-color-dot]'); if(dot) dot.style.background=c;
     row.querySelectorAll('img').forEach(el=>el.style.borderColor=c);
   }
 }
@@ -8173,6 +8177,7 @@ function _tlColorReset(slug,key,rowEl){
   const row=rowEl&&rowEl.tagName==='TR'?rowEl:(rowEl&&rowEl.closest?rowEl.closest('tr'):null);
   if(row){
     const tc=row.querySelector('[data-tl-color]'); if(tc) tc.style.color=origColor;
+    const dot=row.querySelector('[data-tl-color-dot]'); if(dot) dot.style.background=origColor;
     row.querySelectorAll('img').forEach(el=>el.style.borderColor=origColor);
   }
 }
