@@ -1154,6 +1154,7 @@
     <!-- Share group -->
     <button class="btn btn-green" id="shareBtn" onclick="cloudSave()" title="Uloží roster a zkopíruje link">Share</button>
     <button class="btn btn-ghost" id="makeCopyBtn" onclick="cloudFork()" title="Vytvoří novou kopii s vlastním linkem">Make Copy</button>
+    <button class="btn btn-ghost" id="timelineBtn" onclick="showTimeline()" title="Boss timeline – tabulka &amp; osa">⏱ Timeline</button>
     <div style="width:1px;background:var(--border2);margin:0 2px"></div>
     <!-- Lock -->
     <div class="lock-toggle-wrap" id="lockToggle" onclick="toggleShareLock()" title="Zamknout — po uložení nebude možné editovat">
@@ -7954,6 +7955,129 @@ document.addEventListener('click', e=>{
   if(m && m.style.display!=='none' && !m.contains(e.target)) closeCvCtxMenu();
 });
 
+
+// ============================================================
+// TIMELINE
+// ============================================================
+const _TL_DATA = {"boss": "Lightblinded Vanguard", "duration": "08:20", "events": [{"time": "00:04", "ability": "War Chaplain Senn Empowered", "note": "", "spellId": "1272380", "color": "#9ca3af"}, {"time": "00:10", "ability": "Searing Radiance", "note": "", "spellId": "1276639", "color": "#fb923c"}, {"time": "00:16", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "00:29", "ability": "Aura of Devotion", "note": "Consecration - Bellamy Out", "spellId": "1246162", "color": "#4ade80"}, {"time": "00:32", "ability": "Elekk Charge", "note": "Bait To Marker", "spellId": "1249130", "color": "#22d3ee"}, {"time": "00:34", "ability": "Bait Absorbs", "note": "Group Healing Absorbs", "spellId": "1272484", "color": "#f87171"}, {"time": "00:57", "ability": "General Amias Bellamy Empowered", "note": "", "spellId": "1272423", "color": "#9ca3af"}, {"time": "01:02", "ability": "Searing Radiance", "note": "", "spellId": "1255738", "color": "#fb923c"}, {"time": "01:10", "ability": "Avenger's Shield - All", "note": "All Spread", "spellId": "1246497", "color": "#e879f9"}, {"time": "01:21", "ability": "Aura of Wrath", "note": "Consecration - Venel Out", "spellId": "1248449", "color": "#4ade80"}, {"time": "01:29", "ability": "Execution Sentence - Group Soaks", "note": "Group Soaks + Bait", "spellId": "", "color": "#facc15"}, {"time": "01:32", "ability": "Elekk Charge", "note": "", "spellId": "1249130", "color": "#22d3ee"}, {"time": "01:34", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "01:46", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "01:50", "ability": "Commander Venel Lightblood Empowered", "note": "", "spellId": "1272425", "color": "#9ca3af"}, {"time": "01:54", "ability": "Searing Radiance", "note": "", "spellId": "1255738", "color": "#fb923c"}, {"time": "02:04", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "02:10", "ability": "Tornados", "note": "", "spellId": "", "color": "#60a5fa"}, {"time": "02:17", "ability": "Aura of Peace", "note": "Consecration - Senn Out", "spellId": "1248451", "color": "#4ade80"}, {"time": "02:18", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "02:22", "ability": "Bait Absorbs", "note": "Group Healing Absorbs", "spellId": "1248710", "color": "#f87171"}, {"time": "02:24", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "02:24", "ability": "Execution Sentence - Group Soaks", "note": "Group Soaks + Shield", "spellId": "", "color": "#facc15"}, {"time": "02:40", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "02:44", "ability": "Elekk Charge", "note": "", "spellId": "1249130", "color": "#22d3ee"}, {"time": "02:44", "ability": "War Chaplain Senn Empowered", "note": "", "spellId": "1272380", "color": "#9ca3af"}, {"time": "02:58", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "03:02", "ability": "Searing Radiance - The Big One", "note": "Massive Healing Needed", "spellId": "1276639", "color": "#fb923c"}, {"time": "03:08", "ability": "Aura of Devotion", "note": "Consecration - Bellamy Out", "spellId": "1246162", "color": "#4ade80"}, {"time": "03:13", "ability": "Bait Absorbs", "note": "Group Healing Absorbs", "spellId": "1272484", "color": "#f87171"}, {"time": "03:13", "ability": "Searing Radiance", "note": "", "spellId": "1255739", "color": "#fb923c"}, {"time": "03:29", "ability": "Elekk Charge", "note": "", "spellId": "1249130", "color": "#22d3ee"}, {"time": "03:36", "ability": "General Amias Bellamy Empowered", "note": "", "spellId": "1272423", "color": "#9ca3af"}, {"time": "03:52", "ability": "Avenger's Shield - All", "note": "All Spread", "spellId": "1246497", "color": "#e879f9"}, {"time": "03:54", "ability": "Searing Radiance", "note": "", "spellId": "1255738", "color": "#fb923c"}, {"time": "04:01", "ability": "Aura of Wrath", "note": "Consecration - Venel Out", "spellId": "1248449", "color": "#4ade80"}, {"time": "04:05", "ability": "Execution Sentence - Group Soaks", "note": "", "spellId": "", "color": "#facc15"}, {"time": "04:13", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "04:21", "ability": "Elekk Charge", "note": "", "spellId": "1249130", "color": "#22d3ee"}, {"time": "04:28", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "04:29", "ability": "Commander Venel Lightblood Empowered", "note": "", "spellId": "1272425", "color": "#9ca3af"}, {"time": "04:46", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "04:50", "ability": "Tornados", "note": "", "spellId": "", "color": "#60a5fa"}, {"time": "04:56", "ability": "Aura of Peace", "note": "Consecration - Senn Out", "spellId": "1248451", "color": "#4ade80"}, {"time": "04:57", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "04:59", "ability": "Execution Sentence - Group Soaks", "note": "", "spellId": "", "color": "#facc15"}, {"time": "05:02", "ability": "Bait Absorbs", "note": "Group Healing Absorbs", "spellId": "1248710", "color": "#f87171"}, {"time": "05:04", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "05:22", "ability": "War Chaplain Senn Empowered", "note": "", "spellId": "1272380", "color": "#9ca3af"}, {"time": "05:24", "ability": "Elekk Charge", "note": "", "spellId": "1249130", "color": "#22d3ee"}, {"time": "05:24", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "05:40", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "05:41", "ability": "Searing Radiance", "note": "", "spellId": "1276639", "color": "#fb923c"}, {"time": "05:47", "ability": "Aura of Devotion", "note": "Consecration - Bellamy Out", "spellId": "1246162", "color": "#4ade80"}, {"time": "05:52", "ability": "Bait Absorbs", "note": "Group Healing Absorbs", "spellId": "1272484", "color": "#f87171"}, {"time": "06:08", "ability": "Elekk Charge", "note": "", "spellId": "1249130", "color": "#22d3ee"}, {"time": "06:15", "ability": "General Amias Bellamy Empowered", "note": "", "spellId": "1272423", "color": "#9ca3af"}, {"time": "06:33", "ability": "Searing Radiance", "note": "", "spellId": "1255738", "color": "#fb923c"}, {"time": "06:34", "ability": "Avenger's Shield - All", "note": "All Spread", "spellId": "1246497", "color": "#e879f9"}, {"time": "06:52", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}, {"time": "07:00", "ability": "Elekk Charge", "note": "", "spellId": "1249130", "color": "#22d3ee"}, {"time": "07:10", "ability": "Avenger's Shield", "note": "", "spellId": "1246497", "color": "#e879f9"}], "groups": {"War Chaplain Senn Empowered": {"spellId": "1272380", "color": "#9ca3af", "times": [{"time": "00:04", "note": "", "label": "War Chaplain Senn Empowered"}, {"time": "02:44", "note": "", "label": "War Chaplain Senn Empowered"}, {"time": "05:22", "note": "", "label": "War Chaplain Senn Empowered"}]}, "Searing Radiance": {"spellId": "1276639", "color": "#fb923c", "times": [{"time": "00:10", "note": "", "label": "Searing Radiance"}, {"time": "01:02", "note": "", "label": "Searing Radiance"}, {"time": "01:54", "note": "", "label": "Searing Radiance"}, {"time": "03:02", "note": "Massive Healing Needed", "label": "Searing Radiance - The Big One"}, {"time": "03:13", "note": "", "label": "Searing Radiance"}, {"time": "03:54", "note": "", "label": "Searing Radiance"}, {"time": "05:41", "note": "", "label": "Searing Radiance"}, {"time": "06:33", "note": "", "label": "Searing Radiance"}]}, "Avenger's Shield": {"spellId": "1246497", "color": "#e879f9", "times": [{"time": "00:16", "note": "", "label": "Avenger's Shield"}, {"time": "01:10", "note": "All Spread", "label": "Avenger's Shield - All"}, {"time": "01:34", "note": "", "label": "Avenger's Shield"}, {"time": "01:46", "note": "", "label": "Avenger's Shield"}, {"time": "02:04", "note": "", "label": "Avenger's Shield"}, {"time": "02:18", "note": "", "label": "Avenger's Shield"}, {"time": "02:24", "note": "", "label": "Avenger's Shield"}, {"time": "02:40", "note": "", "label": "Avenger's Shield"}, {"time": "02:58", "note": "", "label": "Avenger's Shield"}, {"time": "03:52", "note": "All Spread", "label": "Avenger's Shield - All"}, {"time": "04:13", "note": "", "label": "Avenger's Shield"}, {"time": "04:28", "note": "", "label": "Avenger's Shield"}, {"time": "04:46", "note": "", "label": "Avenger's Shield"}, {"time": "04:57", "note": "", "label": "Avenger's Shield"}, {"time": "05:04", "note": "", "label": "Avenger's Shield"}, {"time": "05:24", "note": "", "label": "Avenger's Shield"}, {"time": "05:40", "note": "", "label": "Avenger's Shield"}, {"time": "06:34", "note": "All Spread", "label": "Avenger's Shield - All"}, {"time": "06:52", "note": "", "label": "Avenger's Shield"}, {"time": "07:10", "note": "", "label": "Avenger's Shield"}]}, "Aura of Devotion": {"spellId": "1246162", "color": "#4ade80", "times": [{"time": "00:29", "note": "Consecration - Bellamy Out", "label": "Aura of Devotion"}, {"time": "03:08", "note": "Consecration - Bellamy Out", "label": "Aura of Devotion"}, {"time": "05:47", "note": "Consecration - Bellamy Out", "label": "Aura of Devotion"}]}, "Elekk Charge": {"spellId": "1249130", "color": "#22d3ee", "times": [{"time": "00:32", "note": "Bait To Marker", "label": "Elekk Charge"}, {"time": "01:32", "note": "", "label": "Elekk Charge"}, {"time": "02:44", "note": "", "label": "Elekk Charge"}, {"time": "03:29", "note": "", "label": "Elekk Charge"}, {"time": "04:21", "note": "", "label": "Elekk Charge"}, {"time": "05:24", "note": "", "label": "Elekk Charge"}, {"time": "06:08", "note": "", "label": "Elekk Charge"}, {"time": "07:00", "note": "", "label": "Elekk Charge"}]}, "Bait Absorbs": {"spellId": "1272484", "color": "#f87171", "times": [{"time": "00:34", "note": "Group Healing Absorbs", "label": "Bait Absorbs"}, {"time": "02:22", "note": "Group Healing Absorbs", "label": "Bait Absorbs"}, {"time": "03:13", "note": "Group Healing Absorbs", "label": "Bait Absorbs"}, {"time": "05:02", "note": "Group Healing Absorbs", "label": "Bait Absorbs"}, {"time": "05:52", "note": "Group Healing Absorbs", "label": "Bait Absorbs"}]}, "General Amias Bellamy Empowered": {"spellId": "1272423", "color": "#9ca3af", "times": [{"time": "00:57", "note": "", "label": "General Amias Bellamy Empowered"}, {"time": "03:36", "note": "", "label": "General Amias Bellamy Empowered"}, {"time": "06:15", "note": "", "label": "General Amias Bellamy Empowered"}]}, "Aura of Wrath": {"spellId": "1248449", "color": "#4ade80", "times": [{"time": "01:21", "note": "Consecration - Venel Out", "label": "Aura of Wrath"}, {"time": "04:01", "note": "Consecration - Venel Out", "label": "Aura of Wrath"}]}, "Execution Sentence - Group Soaks": {"spellId": "", "color": "#facc15", "times": [{"time": "01:29", "note": "Group Soaks + Bait", "label": "Execution Sentence - Group Soaks"}, {"time": "02:24", "note": "Group Soaks + Shield", "label": "Execution Sentence - Group Soaks"}, {"time": "04:05", "note": "", "label": "Execution Sentence - Group Soaks"}, {"time": "04:59", "note": "", "label": "Execution Sentence - Group Soaks"}]}, "Commander Venel Lightblood Empowered": {"spellId": "1272425", "color": "#9ca3af", "times": [{"time": "01:50", "note": "", "label": "Commander Venel Lightblood Empowered"}, {"time": "04:29", "note": "", "label": "Commander Venel Lightblood Empowered"}]}, "Tornados": {"spellId": "", "color": "#60a5fa", "times": [{"time": "02:10", "note": "", "label": "Tornados"}, {"time": "04:50", "note": "", "label": "Tornados"}]}, "Aura of Peace": {"spellId": "1248451", "color": "#4ade80", "times": [{"time": "02:17", "note": "Consecration - Senn Out", "label": "Aura of Peace"}, {"time": "04:56", "note": "Consecration - Senn Out", "label": "Aura of Peace"}]}}};
+let _tlView = 'table';
+let _tlActive = null;
+
+function showTimeline(){
+  _tlActive = _TL_DATA;
+  document.getElementById('tlBossName').textContent = '⏱ ' + _tlActive.boss;
+  document.getElementById('tlSearch').value = '';
+  const panel = document.getElementById('timelinePanel');
+  panel.style.display = 'flex';
+  tlSetView('table');
+  tlRenderTable('');
+}
+function hideTimeline(){
+  document.getElementById('timelinePanel').style.display = 'none';
+}
+function tlSetView(v){
+  _tlView = v;
+  document.getElementById('tlTableView').style.display = v==='table' ? '' : 'none';
+  document.getElementById('tlGanttView').style.display  = v==='gantt' ? '' : 'none';
+  document.getElementById('tlBtnTable').className = 'btn ' + (v==='table' ? 'btn-green' : 'btn-ghost');
+  document.getElementById('tlBtnGantt').className = 'btn ' + (v==='gantt' ? 'btn-green' : 'btn-ghost');
+  document.getElementById('tlBtnTable').style.cssText = 'padding:4px 12px;font-size:12px';
+  document.getElementById('tlBtnGantt').style.cssText = 'padding:4px 12px;font-size:12px';
+  if(v==='gantt') tlRenderGantt();
+}
+function tlFilter(q){
+  if(_tlView==='table') tlRenderTable(q);
+  else tlRenderGantt(q);
+}
+function tlRenderTable(q){
+  if(!_tlActive) return;
+  const tbody = document.getElementById('tlTableBody');
+  const filter = q.toLowerCase();
+  let html = '';
+  _tlActive.events.forEach((ev,i) => {
+    const abil = ev.ability.toLowerCase(), note = ev.note.toLowerCase();
+    if(filter && !abil.includes(filter) && !note.includes(filter) && !ev.time.includes(filter)) return;
+    const bg = i%2===0 ? 'rgba(255,255,255,0.02)' : 'transparent';
+    const spellLink = ev.spellId
+      ? `<a href="https://www.wowhead.com/spell=${ev.spellId}" data-wowhead style="color:${ev.color};text-decoration:none;font-weight:500">${_tlEsc(ev.ability)}</a>`
+      : `<span style="color:${ev.color};font-weight:500">${_tlEsc(ev.ability)}</span>`;
+    const noteTxt = ev.note ? `<span style="color:var(--text-dim,#8b8fa8)">${_tlEsc(ev.note)}</span>` : '';
+    html += `<tr style="background:${bg}">
+      <td style="text-align:center;padding:5px 4px;color:var(--text-dim,#8b8fa8);font-family:monospace;font-size:11px;border-right:1px solid rgba(255,255,255,0.05)">${ev.time}</td>
+      <td style="padding:5px 8px;border-right:1px solid rgba(255,255,255,0.05)">${spellLink}</td>
+      <td style="padding:5px 8px">${noteTxt}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+  if(window.WH && WH.init) setTimeout(()=>{try{WH.init();}catch(e){}},100);
+}
+
+function tlRenderGantt(q){
+  if(!_tlActive) return;
+  const container = document.getElementById('tlGanttInner');
+  const filter = (q||'').toLowerCase();
+  // Parse total duration
+  const [dm,ds] = _tlActive.duration.split(':').map(Number);
+  const totalSec = dm*60 + ds;
+  const PX_PER_SEC = 1.8;
+  const LABEL_W = 170;
+  const ROW_H = 36;
+  const HEADER_H = 28;
+  const totalW = Math.ceil(totalSec * PX_PER_SEC);
+  
+  let html = `<div style="display:flex;position:sticky;top:0;z-index:5;background:var(--bg,#0f1117);border-bottom:1px solid var(--border,#2a2d3a)">`;
+  html += `<div style="width:${LABEL_W}px;flex-shrink:0;border-right:1px solid var(--border,#2a2d3a)"></div>`;
+  html += `<div style="position:relative;width:${totalW}px;height:${HEADER_H}px;flex-shrink:0">`;
+  // Time marks every 30s
+  for(let s=0; s<=totalSec; s+=30){
+    const x = s*PX_PER_SEC;
+    const mm = String(Math.floor(s/60)).padStart(2,'0');
+    const ss2 = String(s%60).padStart(2,'0');
+    html += `<span style="position:absolute;left:${x}px;top:4px;font-size:10px;color:var(--text-dim,#8b8fa8);transform:translateX(-50%);white-space:nowrap">${mm}:${ss2}</span>`;
+    html += `<div style="position:absolute;left:${x}px;top:18px;width:1px;height:10px;background:rgba(255,255,255,0.08)"></div>`;
+  }
+  html += `</div></div>`;
+  
+  // Rows per ability group
+  Object.entries(_tlActive.groups).forEach(([name, grp]) => {
+    if(filter && !name.toLowerCase().includes(filter)) return;
+    html += `<div style="display:flex;border-bottom:1px solid rgba(255,255,255,0.04)">`;
+    // Label column
+    html += `<div style="width:${LABEL_W}px;flex-shrink:0;border-right:1px solid var(--border,#2a2d3a);display:flex;align-items:center;gap:6px;padding:0 8px;height:${ROW_H}px;overflow:hidden">`;
+    if(grp.spellId){
+      html += `<a href="https://www.wowhead.com/spell=${grp.spellId}" data-wowhead style="display:inline-flex;align-items:center;gap:5px;color:${grp.color};text-decoration:none;font-size:11px;font-weight:500;line-height:1.2;overflow:hidden">`;
+      html += `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:${LABEL_W-24}px">${_tlEsc(name)}</span></a>`;
+    } else {
+      html += `<span style="color:${grp.color};font-size:11px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_tlEsc(name)}</span>`;
+    }
+    html += `</div>`;
+    // Timeline cells
+    html += `<div style="position:relative;width:${totalW}px;height:${ROW_H}px;flex-shrink:0">`;
+    // Striped background every 30s
+    for(let s=0; s<totalSec; s+=60){
+      const x = s*PX_PER_SEC; const w = 30*PX_PER_SEC;
+      html += `<div style="position:absolute;left:${x}px;top:0;width:${w}px;height:100%;background:rgba(255,255,255,0.015)"></div>`;
+    }
+    // Event markers
+    grp.times.forEach(ev => {
+      const [em,es] = ev.time.split(':').map(Number);
+      const sec = em*60+es;
+      const x = sec*PX_PER_SEC;
+      const tip = ev.label + (ev.note ? ' – ' + ev.note : '');
+      html += `<div title="${_tlEsc(tip)}" style="position:absolute;left:${x}px;top:50%;transform:translate(-50%,-50%);width:28px;height:22px;border-radius:4px;background:${grp.color}22;border:1.5px solid ${grp.color};display:flex;align-items:center;justify-content:center;cursor:default">`;
+      html += `<span style="font-size:9px;color:${grp.color};font-family:monospace;white-space:nowrap">${ev.time}</span>`;
+      html += `</div>`;
+    });
+    html += `</div></div>`;
+  });
+  
+  container.innerHTML = html;
+  if(window.WH && WH.init) setTimeout(()=>{try{WH.init();}catch(e){}},100);
+}
+
+function _tlEsc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// ============================================================
+
 </script>
 <div id="cvCtxMenu">
   <div class="ctx-section">Přiřadit skupině</div>
@@ -7974,5 +8098,36 @@ document.addEventListener('click', e=>{
   <div id="cvGroupTipTitle" style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px"></div>
   <div id="cvGroupTipList" style="display:flex;flex-direction:column;gap:2px"></div>
 </div>
+
+<!-- ====== TIMELINE PANEL ====== -->
+<div id="timelinePanel" style="display:none;position:fixed;inset:0;z-index:9500;background:var(--bg,#0f1117);flex-direction:column;">
+  <!-- Header bar -->
+  <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border,#2a2d3a);background:var(--bg2,#161922);flex-shrink:0;">
+    <button onclick="hideTimeline()" class="btn btn-ghost" style="padding:3px 10px">← Zpět</button>
+    <span id="tlBossName" style="font-weight:700;font-size:14px;color:var(--text)">Timeline</span>
+    <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+      <input id="tlSearch" type="text" autocomplete="off" placeholder="🔍 Hledat..." style="padding:4px 8px;border-radius:6px;border:1px solid var(--border,#2a2d3a);background:var(--bg2,#161922);color:var(--text);font-size:12px;width:160px" oninput="tlFilter(this.value)">
+      <button id="tlBtnTable" class="btn btn-green" onclick="tlSetView('table')" style="padding:4px 12px;font-size:12px">☰ Tabulka</button>
+      <button id="tlBtnGantt" class="btn btn-ghost" onclick="tlSetView('gantt')" style="padding:4px 12px;font-size:12px">⏱ Osa</button>
+    </div>
+  </div>
+  <!-- Table View -->
+  <div id="tlTableView" style="overflow-y:auto;flex:1;padding:0 8px 16px">
+    <table id="tlTable" style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">
+      <thead><tr style="position:sticky;top:0;background:var(--bg2,#161922);z-index:2">
+        <th style="width:58px;text-align:center;padding:6px 4px;border-bottom:1px solid var(--border,#2a2d3a);color:var(--text-dim,#8b8fa8);font-weight:600">Čas</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#2a2d3a);color:var(--text-dim,#8b8fa8);font-weight:600">Abilita</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#2a2d3a);color:var(--text-dim,#8b8fa8);font-weight:600">Poznámka</th>
+      </tr></thead>
+      <tbody id="tlTableBody"></tbody>
+    </table>
+  </div>
+  <!-- Gantt View -->
+  <div id="tlGanttView" style="display:none;overflow:auto;flex:1;padding:8px 0 16px">
+    <div id="tlGanttInner" style="display:flex;flex-direction:column;min-width:max-content"></div>
+  </div>
+</div>
+<!-- ====== END TIMELINE PANEL ====== -->
+
 </body>
 </html>
