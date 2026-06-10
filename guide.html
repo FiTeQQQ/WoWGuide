@@ -3959,7 +3959,7 @@ const CLASS_COLOR_RULES = [
 function escapeRegex(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
 
 function applyColorPatterns(container, rules, attr){
-  const skip=`a,[${attr}],[data-cc],[data-player]`;
+  const skip=`a,[${attr}],[data-cc],[data-player],[data-user-fmt]`;
   const walker=document.createTreeWalker(
     container, NodeFilter.SHOW_TEXT,
     {acceptNode: n=>n.parentElement.closest(skip)
@@ -3981,7 +3981,11 @@ function applyColorPatterns(container, rules, attr){
 function colorizeClasses(container){
   // Strip old spans
   container.querySelectorAll('[data-cc],[data-player]').forEach(s=>{
-    s.replaceWith(document.createTextNode(s.textContent));
+    if(s.querySelector('[data-user-fmt]')){
+      s.replaceWith(...[...s.childNodes]);
+    } else {
+      s.replaceWith(document.createTextNode(s.textContent));
+    }
   });
   container.normalize();
   // Pass 1: player names (priority, from current roster)
@@ -3998,7 +4002,7 @@ function colorizeClasses(container){
 const MARKER_NAMES = ['skull','moon','circle','square','star','triangle','cross','diamond'];
 function replaceMarkerShortcuts(container){
   const pattern = new RegExp(`\\bm(${MARKER_NAMES.join('|')})\\b`, 'gi');
-  const skip = 'a,[data-cc],[data-player],[data-mk]';
+  const skip = 'a,[data-cc],[data-player],[data-mk],[data-user-fmt]';
   const walker = document.createTreeWalker(
     container, NodeFilter.SHOW_TEXT,
     {acceptNode: n => n.parentElement.closest(skip)
@@ -4215,12 +4219,16 @@ function applyWowheadHandlers(){
 }
 
 function fmtExec(cmd){
-  // Called from onmousedown — selection still alive
   document.getElementById('fmtBar').classList.remove('visible');
-  const sel = window.getSelection();
-  if(!sel || sel.isCollapsed) return;
+  if(!_fmtSel) return;
+  if(_fmtActiveEl) _fmtActiveEl.focus();
+  const s = window.getSelection();
+  s.removeAllRanges();
+  s.addRange(_fmtSel);
+  if(s.isCollapsed) return;
   document.execCommand(cmd, false, null);
   saveState();
+  _fmtSel = null;
 }
 
 function fmtSize(size){
@@ -4240,17 +4248,35 @@ function fmtSize(size){
 }
 
 function fmtColor(color){
-  // Called from onmousedown — selection is still alive at this point
   document.getElementById('fmtBar').classList.remove('visible');
-  const sel = window.getSelection();
-  if(!sel || sel.isCollapsed) return;
+  if(!_fmtSel) return;
+  if(_fmtActiveEl) _fmtActiveEl.focus();
+  const s = window.getSelection();
+  s.removeAllRanges();
+  s.addRange(_fmtSel);
+  if(s.isCollapsed) return;
+  const range = s.getRangeAt(0);
   if(color === 'inherit'){
+    // Remove user-fmt and execCommand formatting
     document.execCommand('removeFormat', false, null);
+    const anc = range.commonAncestorContainer.nodeType === 1
+      ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement;
+    anc.querySelectorAll('[data-user-fmt]').forEach(sp => sp.replaceWith(...[...sp.childNodes]));
+    anc.normalize();
   } else {
-    document.execCommand('styleWithCSS', false, true);
-    document.execCommand('foreColor', false, color);
+    const span = document.createElement('span');
+    span.setAttribute('data-user-fmt', '1');
+    span.style.color = color;
+    try {
+      range.surroundContents(span);
+    } catch(e) {
+      const frag = range.extractContents();
+      span.appendChild(frag);
+      range.insertNode(span);
+    }
   }
   saveState();
+  _fmtSel = null;
 }
 
 // ── ADD / REMOVE NOTE CARDS ──
