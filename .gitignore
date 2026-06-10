@@ -1,0 +1,8 @@
+# Ignore saved web pages and their asset folders
+*.mhtml
+Lightblinded Vanguard Guide*
+*_files/
+
+# OS
+.DS_Store
+Thumbs.db
