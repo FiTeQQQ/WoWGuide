@@ -3440,6 +3440,7 @@ function attachEditableListeners(el){
     // FIX: Update TOC when slide title or number changes
     if(el.classList.contains('slide-title') || el.classList.contains('slide-num')){
       updateSidebarTOC();
+  updateCloudButtons();
     }
   });
   // Auto-replace shortcuts (!! → ❗ etc)
@@ -5502,7 +5503,9 @@ function getCloudId(){
 }
 
 function updateCloudButtons(){
-  // placeholder — tlačítka jsou vždy viditelná
+  const hasR = !!getCloudId();
+  const btn = document.getElementById('makeCopyBtn');
+  if(btn) btn.style.display = hasR ? 'none' : '';
 }
 
 function buildPayload(lock=false){
