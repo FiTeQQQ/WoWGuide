@@ -466,9 +466,6 @@
     animation: ctxIn .12s ease;
   }
   #fmtBar.visible { display: flex; }
-  #fmtBar.tl-mode #fmtBold,
-  #fmtBar.tl-mode #fmtItalic,
-  #fmtBar.tl-mode .fmt-sep:first-of-type { display: none; }
   .fmt-btn {
     padding: 3px 7px; border-radius: 5px; border: 1px solid transparent;
     background: none; color: var(--text-mid); font-size: 12px; cursor: pointer;
@@ -2112,6 +2109,32 @@
   <div class="fmt-color-dot" style="background:#C69B3A" title="Warrior" onmousedown="event.preventDefault(); fmtColor('#C69B3A')"></div>
   <div class="fmt-sep"></div>
   <button class="fmt-btn" onmousedown="event.preventDefault(); fmtColor('inherit')" title="Reset color" style="font-size:10px">✕</button>
+</div>
+
+<!-- TL Ability Color Popup -->
+<div id="tlColorPop" style="display:none;position:fixed;z-index:10001;background:#1a1d2a;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:5px 7px;box-shadow:0 4px 16px rgba(0,0,0,.7);align-items:center;gap:4px;flex-wrap:wrap;max-width:260px">
+  <div style="width:14px;height:14px;border-radius:50%;background:#C41E3A;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Death Knight" onclick="_tlColorPopApply('#C41E3A')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#A330C9;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Demon Hunter" onclick="_tlColorPopApply('#A330C9')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#FF7C0A;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Druid" onclick="_tlColorPopApply('#FF7C0A')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#33937F;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Evoker" onclick="_tlColorPopApply('#33937F')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#AAD372;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Hunter" onclick="_tlColorPopApply('#AAD372')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#3FC7EB;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Mage" onclick="_tlColorPopApply('#3FC7EB')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#00FF98;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Monk" onclick="_tlColorPopApply('#00FF98')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#F48CBA;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Paladin" onclick="_tlColorPopApply('#F48CBA')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#AAAAAA;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Priest" onclick="_tlColorPopApply('#AAAAAA')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#FFF468;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Rogue" onclick="_tlColorPopApply('#FFF468')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#0070DD;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Shaman" onclick="_tlColorPopApply('#0070DD')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#8788EE;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Warlock" onclick="_tlColorPopApply('#8788EE')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#C69B3A;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Warrior" onclick="_tlColorPopApply('#C69B3A')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#fb923c;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Oranžová" onclick="_tlColorPopApply('#fb923c')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#f87171;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Červená" onclick="_tlColorPopApply('#f87171')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#facc15;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Žlutá" onclick="_tlColorPopApply('#facc15')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#4ade80;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Zelená" onclick="_tlColorPopApply('#4ade80')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#22d3ee;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Cyan" onclick="_tlColorPopApply('#22d3ee')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#60a5fa;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Modrá" onclick="_tlColorPopApply('#60a5fa')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#9ca3af;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Šedá" onclick="_tlColorPopApply('#9ca3af')"></div>
+  <div style="width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0;margin:0 1px"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#333,#111);border:1px solid rgba(255,255,255,.3);cursor:pointer;flex-shrink:0;font-size:9px;display:flex;align-items:center;justify-content:center;color:#fff" title="Reset" onclick="_tlColorPopApply(null)">✕</div>
 </div>
 
 <!-- WarcraftLogs API Import -->
@@ -4043,7 +4066,6 @@ const _imgState = new WeakMap();
 // ── TEXT FORMATTING TOOLBAR ──
 let _fmtSel = null; // saved selection for format toolbar
 let _fmtActiveEl = null; // editable element that owned the selection
-let _fmtTLCallback = null; // when set: fmtBar is in TL-color mode, not text-selection mode
 
 function initFmtBar(){
   const bar = document.getElementById('fmtBar');
@@ -4069,11 +4091,9 @@ function initFmtBar(){
   });
   // Hide on click outside
   document.addEventListener('mousedown', e => {
-    if(!bar.contains(e.target)) {
-      bar.classList.remove('visible');
-      bar.classList.remove('tl-mode');
-      _fmtTLCallback = null;
-    }
+    if(!bar.contains(e.target)) bar.classList.remove('visible');
+    const pop=document.getElementById('tlColorPop');
+    if(pop && !pop.contains(e.target) && !e.target.hasAttribute('data-tl-color-dot')) pop.style.display='none';
   });
 }
 
@@ -4256,16 +4276,7 @@ function fmtSize(size){
 }
 
 function fmtColor(color){
-  const _fmtBarEl = document.getElementById('fmtBar');
-  _fmtBarEl.classList.remove('visible');
-  _fmtBarEl.classList.remove('tl-mode');
-  // TL mode: apply color to ability row, not to text selection
-  if(_fmtTLCallback){
-    const cb = _fmtTLCallback;
-    _fmtTLCallback = null;
-    cb(color);
-    return;
-  }
+  document.getElementById('fmtBar').classList.remove('visible');
   if(!_fmtSel) return;
   if(_fmtActiveEl) _fmtActiveEl.focus();
   const s = window.getSelection();
@@ -8181,20 +8192,19 @@ function _tlColorReset(slug,key,rowEl){
     row.querySelectorAll('img').forEach(el=>el.style.borderColor=origColor);
   }
 }
+let _tlColorPopSlug='', _tlColorPopKey='', _tlColorPopRow=null;
 function tlPickColor(slug,key,current,rowEl,cx,cy){
-  // Use fmtBar (same as notes toolbar) instead of native color input
-  _fmtTLCallback = function(c){
-    if(c==='inherit'){
-      _tlColorReset(slug,key,rowEl);
-    } else {
-      _tlColorApply(c,slug,key,rowEl);
-    }
-  };
-  const bar=document.getElementById('fmtBar');
-  bar.classList.add('tl-mode');
-  bar.style.left=Math.min(cx||0, window.innerWidth-320)+'px';
-  bar.style.top=Math.min(cy||0, window.innerHeight-50)+'px';
-  bar.classList.add('visible');
+  _tlColorPopSlug=slug; _tlColorPopKey=key; _tlColorPopRow=rowEl;
+  const pop=document.getElementById('tlColorPop');
+  pop.style.display='flex';
+  const pw=260, ph=50;
+  pop.style.left=Math.min(cx||0, window.innerWidth-pw-8)+'px';
+  pop.style.top=Math.min((cy||0)+4, window.innerHeight-ph-8)+'px';
+}
+function _tlColorPopApply(c){
+  document.getElementById('tlColorPop').style.display='none';
+  if(c===null){ _tlColorReset(_tlColorPopSlug,_tlColorPopKey,_tlColorPopRow); }
+  else { _tlColorApply(c,_tlColorPopSlug,_tlColorPopKey,_tlColorPopRow); }
 }
 
 function tlRenderGantt(q){
