@@ -2090,7 +2090,7 @@
 </div>
 
 <!-- Floating text formatting toolbar -->
-<div id="fmtBar" class="" style="top: 835.125px; left: 1226px;">
+<div id="fmtBar" class="" style="top: 835.125px; left: 1226px;" onmousedown="event.preventDefault()">
   <button class="fmt-btn" id="fmtBold" onclick="fmtExec('bold')" title="Bold"><b>B</b></button>
   <button class="fmt-btn" id="fmtItalic" onclick="fmtExec('italic')" title="Italic"><i>I</i></button>
   <div class="fmt-sep"></div>
@@ -4239,13 +4239,28 @@ function fmtColor(color){
   fmtRestore();
   const sel = window.getSelection();
   if(!sel || sel.isCollapsed) return;
+  const range = sel.getRangeAt(0);
   if(color === 'inherit'){
-    document.execCommand('removeFormat', false, null);
+    // Unwrap any color spans inside selection
+    const frag = range.cloneContents();
+    frag.querySelectorAll('span[style*="color"]').forEach(s => {
+      s.style.color = '';
+      if(!s.getAttribute('style')) s.removeAttribute('style');
+    });
+    range.deleteContents();
+    range.insertNode(frag);
   } else {
-    document.execCommand('styleWithCSS', false, true);
-    document.execCommand('foreColor', false, color);
+    const span = document.createElement('span');
+    span.style.color = color;
+    try { range.surroundContents(span); }
+    catch(e) {
+      const frag = range.extractContents();
+      span.appendChild(frag);
+      range.insertNode(span);
+    }
   }
   if(sel.rangeCount) _fmtSel = sel.getRangeAt(0).cloneRange();
+  saveState();
 }
 
 // ── ADD / REMOVE NOTE CARDS ──
