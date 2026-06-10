@@ -8065,10 +8065,7 @@ function _tlIconImg(sid,size=18,border=''){
 // Persisted edits: {slug: {eventKey: {note, color}}}
 let _tlEdits = {};
 try{ _tlEdits = JSON.parse(localStorage.getItem('tlEdits')||'{}'); }catch(e){}
-function _tlSaveEdits(){
-  try{localStorage.setItem('tlEdits',JSON.stringify(_tlEdits));}catch(e){}
-  _tlDebouncedCloudSave();
-}
+function _tlSaveEdits(){ try{localStorage.setItem('tlEdits',JSON.stringify(_tlEdits));}catch(e){} }
 function _tlGetEdit(slug,key){ return (_tlEdits[slug]||{})[key]||{}; }
 function _tlSetEdit(slug,key,field,val){
   if(!_tlEdits[slug]) _tlEdits[slug]={};
@@ -8110,6 +8107,20 @@ function _tlInitDrag(){
   window.addEventListener('mouseup',()=>{ down=false; el.style.cursor='grab'; });
 }
 function hideTimeline(){ document.getElementById('timelinePanel').style.display='none'; }
+async function tlCloudSave(){
+  const btn=document.getElementById('tlSaveBtn');
+  const _cid=(typeof getCloudId==='function')?getCloudId():null;
+  if(!_cid){ toast('❌ Nejprve sdílej guide přes Share'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='Ukládám…'; }
+  try{
+    await _putRoster(_cid, buildPayload(typeof shareLocked!=='undefined'?shareLocked:false));
+    toast('☁️ Timeline uložena!');
+    if(btn){ btn.textContent='✓ Uloženo'; setTimeout(()=>{ btn.disabled=false; btn.textContent='☁️ Uložit'; },2000); }
+  }catch(e){
+    toast('❌ Uložení selhalo');
+    if(btn){ btn.disabled=false; btn.textContent='☁️ Uložit'; }
+  }
+}
 
 function tlSetView(v){
   _tlView=v;
@@ -8232,22 +8243,9 @@ let _tlBosses={}, _tlActiveBoss=null, _tlBossCats={};
   const defs={senn:{name:'Senn',color:'#9ca3af'},bellamy:{name:'Bellamy',color:'#4ade80'},venel:{name:'Venel',color:'#60a5fa'}};
   Object.entries(defs).forEach(([id,def])=>{ if(!_tlBosses[id]) _tlBosses[id]=def; });
 })();
-// Debounced cloud save — max 1 write per 10 seconds to avoid KV limit
-let _tlCloudSaveTimer=null;
-function _tlDebouncedCloudSave(){
-  if(_tlCloudSaveTimer) clearTimeout(_tlCloudSaveTimer);
-  _tlCloudSaveTimer=setTimeout(()=>{
-    const _cid=(typeof getCloudId==='function')?getCloudId():null;
-    if(_cid && typeof _putRoster==='function' && typeof buildPayload==='function'){
-      _putRoster(_cid, buildPayload(typeof shareLocked!=='undefined'?shareLocked:false))
-        .catch(e=>console.warn('TL cloud autosave failed:',e));
-    }
-  }, 10000);
-}
 function _tlSaveBossData(){
   try{localStorage.setItem('tlBosses',JSON.stringify(_tlBosses));}catch(e){}
   try{localStorage.setItem('tlBossCats',JSON.stringify(_tlBossCats));}catch(e){}
-  _tlDebouncedCloudSave();
 }
 function _tlRenderBossPanel(){
   const el=document.getElementById('tlBossPanelRows'); if(!el) return;
@@ -8449,6 +8447,8 @@ function _tlHideTip(){ const t=document.getElementById('tlTip'); if(t) t.style.d
       <input id="tlSearch" type="text" autocomplete="off" placeholder="🔍 Hledat..." style="padding:4px 8px;border-radius:6px;border:1px solid var(--border,#2a2d3a);background:var(--bg2,#161922);color:var(--text);font-size:12px;width:160px" oninput="tlFilter(this.value)">
       <button id="tlBtnTable" class="btn btn-green" onclick="tlSetView('table')" style="padding:4px 12px;font-size:12px">☰ Tabulka</button>
       <button id="tlBtnGantt" class="btn btn-ghost" onclick="tlSetView('gantt')" style="padding:4px 12px;font-size:12px">⏱ Osa</button>
+      <div style="width:1px;height:20px;background:var(--border,#2a2d3a)"></div>
+      <button id="tlSaveBtn" class="btn btn-ghost" onclick="tlCloudSave()" style="padding:4px 12px;font-size:12px;color:#4f8eff;border-color:rgba(79,142,255,.3)">☁ Uložit</button>
     </div>
   </div>
   <!-- Zoom row (gantt only) -->
