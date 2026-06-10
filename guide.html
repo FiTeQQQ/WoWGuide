@@ -7975,6 +7975,15 @@ const _TL_ICONS = {
   '1248451':'spell_holy_silence',
 };
 function _tlIconUrl(sid){
+  if(!sid) return '';
+  // 1. Look up in encounterSpells (user-managed spell DB)
+  if(typeof encounterSpells!=='undefined'){
+    for(const boss of encounterSpells.bosses||[]){
+      const sp=(boss.spells||[]).find(s=>String(s.id)===String(sid));
+      if(sp&&sp.icon) return `https://wow.zamimg.com/images/wow/icons/small/${sp.icon}.jpg`;
+    }
+  }
+  // 2. Fall back to hardcoded map
   const n=_TL_ICONS[sid]; if(!n) return '';
   return `https://wow.zamimg.com/images/wow/icons/small/${n}.jpg`;
 }
