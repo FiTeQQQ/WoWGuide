@@ -226,6 +226,13 @@ git push origin main<!DOCTYPE html>
   }
   .edit-mode .slide-order-btn { display: inline-block; }
   .slide-order-btn:hover { color: var(--accent); }
+  .slide-del-btn {
+    background: none; border: none; cursor: pointer; padding: 2px 5px;
+    color: var(--text-dim); font-size: 14px; line-height: 1; display: none;
+    transition: color .12s;
+  }
+  .edit-mode .slide-del-btn { display: inline-block; }
+  .slide-del-btn:hover { color: #f87171; }
   .add-slide-btn {
     display: none; width: 100%; margin-top: 10px; padding: 8px;
     border-radius: 8px; border: 1px dashed var(--border2);
@@ -3447,11 +3454,17 @@ function toggleEditMode(){
     });
     // Add slide reorder buttons to each slide-bar
     document.querySelectorAll('.slide-bar').forEach(bar=>{
-      if(bar.querySelector('.slide-order-btn')) return;
-      const up=document.createElement('button');up.className='slide-order-btn';up.type='button';up.title='Slide nahoru';up.textContent='▲';
-      const dn=document.createElement('button');dn.className='slide-order-btn';dn.type='button';dn.title='Slide dolů';dn.textContent='▼';
-      const left=bar.querySelector('.slide-bar-left');
-      if(left){bar.insertBefore(up,left);bar.insertBefore(dn,left);}
+      if(!bar.querySelector('.slide-order-btn')){
+        const up=document.createElement('button');up.className='slide-order-btn';up.type='button';up.title='Slide nahoru';up.textContent='▲';
+        const dn=document.createElement('button');dn.className='slide-order-btn';dn.type='button';dn.title='Slide dolů';dn.textContent='▼';
+        const left=bar.querySelector('.slide-bar-left');
+        if(left){bar.insertBefore(up,left);bar.insertBefore(dn,left);}
+      }
+      if(!bar.querySelector('.slide-del-btn')){
+        const dl=document.createElement('button');dl.className='slide-del-btn';dl.type='button';dl.title='Smazat slide';dl.textContent='✕';dl.onclick=()=>deleteSlide(dl);
+        const left=bar.querySelector('.slide-bar-left');
+        if(left) bar.insertBefore(dl,left);
+      }
     });
     // Add "Copy Image" button next to each "New Image" — wrap both into a flex group
     document.querySelectorAll('.clone-slide-btn').forEach(newBtn=>{
@@ -4519,8 +4532,9 @@ function addNewSlide(addBtn){
   if(bar && !bar.querySelector('.slide-order-btn')){
     const up=document.createElement('button');up.className='slide-order-btn';up.type='button';up.title='Slide nahoru';up.textContent='▲';
     const dn=document.createElement('button');dn.className='slide-order-btn';dn.type='button';dn.title='Slide dolů';dn.textContent='▼';
+    const dl=document.createElement('button');dl.className='slide-del-btn';dl.type='button';dl.title='Smazat slide';dl.textContent='✕';dl.onclick=()=>deleteSlide(dl);
     const left=bar.querySelector('.slide-bar-left');
-    if(left){bar.insertBefore(up,left);bar.insertBefore(dn,left);}
+    if(left){bar.insertBefore(up,left);bar.insertBefore(dn,left);bar.insertBefore(dl,left);}
   }
   updateSidebarTOC();
   // Focus the title
@@ -4542,6 +4556,22 @@ function makeHeadingEl(text){
   hdg.appendChild(del);
   hdg.appendChild(span);
   return {hdg, span};
+}
+
+function deleteSlide(btn){
+  const slide=btn.closest('.slide');
+  if(!slide) return;
+  if(!confirm('Smazat tento slide? Tato akce je nevratná.')) return;
+  const imgEl=slide.querySelector('.slide-img');
+  if(imgEl && imgEl.id){
+    const id=imgEl.id;
+    delete images[id];
+    delete canvasData[id];
+    delete variantCanvasData[id];
+  }
+  slide.remove();
+  saveState();
+  updateSidebarTOC();
 }
 
 function addNoteHeading(addBtn){
