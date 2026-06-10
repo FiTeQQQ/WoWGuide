@@ -5528,7 +5528,7 @@ async function cloudSave(){
     const shareUrl = _hasRParam
       ? `${location.origin}${location.pathname}?r=${finalId}&boss=${_getBossSlug()}`
       : `${location.origin}${location.pathname}?boss=${_getBossSlug()}`;
-    await navigator.clipboard.writeText(shareUrl).catch(()=>{});
+    _copyText(shareUrl);
     toast(lock ? '🔒 Uloženo! Link zkopírován.' : '☁️ Uloženo! Link zkopírován.');
     setLocked(lock);
   } catch(e) {
@@ -5549,7 +5549,7 @@ async function cloudFork(){
     history.replaceState(null,'',`${location.pathname}?r=${newId}${_bossP}`);
     updateCloudButtons();
     const shareUrl = `${location.origin}${location.pathname}?r=${newId}&boss=${_getBossSlug()}`;
-    await navigator.clipboard.writeText(shareUrl).catch(()=>{});
+    _copyText(shareUrl);
     toast('📋 Kopie vytvořena! Link zkopírován.');
   } catch(e) {
     console.error('Cloud fork error', e);
@@ -5645,7 +5645,16 @@ function exportRoster(){
 }
 
 // ── SHARE SLIDE ──
-function shareSlide(id){const u=location.origin+location.pathname+location.search+'#'+id;navigator.clipboard.writeText(u).then(()=>toast('Link copied!')).catch(()=>toast('Copy failed'));}
+function _copyText(text){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=text;ta.style.cssText='position:fixed;opacity:0;top:0;left:0;width:1px;height:1px';
+    document.body.appendChild(ta);ta.focus();ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }catch(e){navigator.clipboard.writeText(text).catch(()=>{});}
+}
+function shareSlide(id){const u=location.origin+location.pathname+location.search+'#'+id;_copyText(u);toast('Link copied!');}
 function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2800);}
 
 // ── MODAL HELPERS ──
