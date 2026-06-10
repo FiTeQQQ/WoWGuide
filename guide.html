@@ -1155,6 +1155,7 @@
   <div class="action-row">
     <!-- Share group -->
     <button class="btn btn-green" id="shareBtn" onclick="cloudSave()" title="Uloží roster a zkopíruje link">Share</button>
+    <button class="btn btn-ghost" id="mainSaveBtn" onclick="cloudSave()" title="Uloží změny do cloudu (Ctrl+S)" style="display:none;color:#4f8eff;border-color:rgba(79,142,255,.35)">☁ Uložit</button>
     <button class="btn btn-ghost" id="makeCopyBtn" onclick="cloudFork()" title="Vytvoří novou kopii s vlastním linkem">Make Copy</button>
     <button class="btn btn-ghost" id="timelineBtn" onclick="showTimeline()" title="Boss timeline – tabulka &amp; osa">⏱ Timeline</button>
     <div style="width:1px;background:var(--border2);margin:0 2px"></div>
@@ -5571,6 +5572,8 @@ function updateCloudButtons(){
   const hasR = !!getCloudId();
   const btn = document.getElementById('makeCopyBtn');
   if(btn) btn.style.display = hasR ? 'none' : '';
+  const saveBtn = document.getElementById('mainSaveBtn');
+  if(saveBtn) saveBtn.style.display = hasR ? '' : 'none';
 }
 
 function buildPayload(lock=false){
@@ -5847,6 +5850,13 @@ document.addEventListener('DOMContentLoaded',async ()=>{
 
   // ── Ctrl+E → toggle edit mode ──
   document.addEventListener('keydown', e=>{
+    if(e.ctrlKey && e.key.toLowerCase()==='s' && !e.shiftKey && !e.altKey){
+      const tag=document.activeElement?.tagName;
+      if(tag==='INPUT'||tag==='TEXTAREA') return;
+      e.preventDefault();
+      if(getCloudId()) cloudSave();
+      return;
+    }
     if(e.ctrlKey && e.key.toLowerCase()==='e' && !e.shiftKey && !e.altKey){
       const tag=document.activeElement?.tagName;
       if(tag==='INPUT'||tag==='TEXTAREA') return;
