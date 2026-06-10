@@ -2136,6 +2136,9 @@
   <div style="width:14px;height:14px;border-radius:50%;background:#60a5fa;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Modrá" onclick="_tlColorPopApply('#60a5fa')"></div>
   <div style="width:14px;height:14px;border-radius:50%;background:#9ca3af;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Šedá" onclick="_tlColorPopApply('#9ca3af')"></div>
   <div style="width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0;margin:0 1px"></div>
+  <div id="tlCustomColors" style="display:contents"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.35);cursor:pointer;flex-shrink:0;font-size:11px;display:flex;align-items:center;justify-content:center;color:#9ca3af;position:relative" title="Přidat vlastní barvu" onclick="_tlOpenCustomPicker()">+<input type="color" id="tlCustomColorInput" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none" oninput="_tlAddCustomColor(this.value)"></div>
+  <div style="width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0;margin:0 1px"></div>
   <div style="width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#333,#111);border:1px solid rgba(255,255,255,.3);cursor:pointer;flex-shrink:0;font-size:9px;display:flex;align-items:center;justify-content:center;color:#fff" title="Reset" onclick="_tlColorPopApply(null)">✕</div>
 </div>
 
@@ -8062,7 +8065,14 @@ function _tlIconImg(sid,size=18,border=''){
 // Persisted edits: {slug: {eventKey: {note, color}}}
 let _tlEdits = {};
 try{ _tlEdits = JSON.parse(localStorage.getItem('tlEdits')||'{}'); }catch(e){}
-function _tlSaveEdits(){ try{localStorage.setItem('tlEdits',JSON.stringify(_tlEdits));}catch(e){} }
+function _tlSaveEdits(){
+  try{localStorage.setItem('tlEdits',JSON.stringify(_tlEdits));}catch(e){}
+  const _cid=(typeof getCloudId==='function')?getCloudId():null;
+  if(_cid && typeof _putRoster==='function' && typeof buildPayload==='function'){
+    _putRoster(_cid, buildPayload(typeof shareLocked!=='undefined'?shareLocked:false))
+      .catch(e=>console.warn('TL edits autosave failed:',e));
+  }
+}
 function _tlGetEdit(slug,key){ return (_tlEdits[slug]||{})[key]||{}; }
 function _tlSetEdit(slug,key,field,val){
   if(!_tlEdits[slug]) _tlEdits[slug]={};
@@ -8229,6 +8239,12 @@ let _tlBosses={}, _tlActiveBoss=null, _tlBossCats={};
 function _tlSaveBossData(){
   try{localStorage.setItem('tlBosses',JSON.stringify(_tlBosses));}catch(e){}
   try{localStorage.setItem('tlBossCats',JSON.stringify(_tlBossCats));}catch(e){}
+  // Auto-sync to cloud if a cloud ID is active
+  const _cid=(typeof getCloudId==='function')?getCloudId():null;
+  if(_cid && typeof _putRoster==='function' && typeof buildPayload==='function'){
+    _putRoster(_cid, buildPayload(typeof shareLocked!=='undefined'?shareLocked:false))
+      .catch(e=>console.warn('TL boss autosave failed:',e));
+  }
 }
 function _tlRenderBossPanel(){
   const el=document.getElementById('tlBossPanelRows'); if(!el) return;
@@ -8278,6 +8294,36 @@ function _tlBossClearAll(){
   _tlSaveBossData();
   tlRenderTable(document.getElementById('tlSearch').value);
 }
+
+// ── Custom color slots ───────────────────────────────────────────────────────
+let _tlCustomColors=[];
+try{ _tlCustomColors=JSON.parse(localStorage.getItem('tlCustomColors')||'[]'); }catch(e){}
+function _tlSaveCustomColors(){ try{localStorage.setItem('tlCustomColors',JSON.stringify(_tlCustomColors));}catch(e){} }
+function _tlRenderCustomColors(){
+  const el=document.getElementById('tlCustomColors'); if(!el) return;
+  el.innerHTML=_tlCustomColors.map((c,i)=>
+    `<div style="width:14px;height:14px;border-radius:50%;background:${c};border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0;position:relative" title="${c}" onclick="_tlColorPopApply('${c}')" oncontextmenu="event.preventDefault();_tlRemoveCustomColor(${i})"></div>`
+  ).join('');
+}
+function _tlOpenCustomPicker(){
+  const inp=document.getElementById('tlCustomColorInput');
+  if(inp) inp.click();
+}
+function _tlAddCustomColor(c){
+  if(!c||_tlCustomColors.includes(c)) return;
+  _tlCustomColors.push(c);
+  if(_tlCustomColors.length>8) _tlCustomColors.shift();
+  _tlSaveCustomColors();
+  _tlRenderCustomColors();
+  _tlColorPopApply(c);
+}
+function _tlRemoveCustomColor(i){
+  _tlCustomColors.splice(i,1);
+  _tlSaveCustomColors();
+  _tlRenderCustomColors();
+}
+// Render on load
+document.addEventListener('DOMContentLoaded',()=>_tlRenderCustomColors());
 
 function tlRenderGantt(q){
   if(!_tlActive) return;
