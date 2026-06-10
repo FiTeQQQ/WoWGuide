@@ -2090,31 +2090,25 @@
 </div>
 
 <!-- Floating text formatting toolbar -->
-<div id="fmtBar" class="" style="top: 835.125px; left: 1226px;" onmousedown="event.preventDefault()">
-  <button class="fmt-btn" id="fmtBold" onclick="fmtExec('bold')" title="Bold"><b>B</b></button>
-  <button class="fmt-btn" id="fmtItalic" onclick="fmtExec('italic')" title="Italic"><i>I</i></button>
+<div id="fmtBar" class="">
+  <button class="fmt-btn" id="fmtBold" onmousedown="event.preventDefault(); fmtExec('bold')" title="Bold"><b>B</b></button>
+  <button class="fmt-btn" id="fmtItalic" onmousedown="event.preventDefault(); fmtExec('italic')" title="Italic"><i>I</i></button>
   <div class="fmt-sep"></div>
-  <!-- Class colors + common colors -->
-  <div class="fmt-color-dot" style="background:#C41E3A" title="Death Knight" onclick="fmtColor('#C41E3A')"></div>
-  <div class="fmt-color-dot" style="background:#A330C9" title="Demon Hunter" onclick="fmtColor('#A330C9')"></div>
-  <div class="fmt-color-dot" style="background:#FF7C0A" title="Druid" onclick="fmtColor('#FF7C0A')"></div>
-  <div class="fmt-color-dot" style="background:#33937F" title="Evoker" onclick="fmtColor('#33937F')"></div>
-  <div class="fmt-color-dot" style="background:#AAD372" title="Hunter" onclick="fmtColor('#AAD372')"></div>
-  <div class="fmt-color-dot" style="background:#3FC7EB" title="Mage" onclick="fmtColor('#3FC7EB')"></div>
-  <div class="fmt-color-dot" style="background:#00FF98" title="Monk" onclick="fmtColor('#00FF98')"></div>
-  <div class="fmt-color-dot" style="background:#F48CBA" title="Paladin" onclick="fmtColor('#F48CBA')"></div>
-  <div class="fmt-color-dot" style="background:#AAAAAA" title="Priest" onclick="fmtColor('#AAAAAA')"></div>
-  <div class="fmt-color-dot" style="background:#FFF468" title="Rogue" onclick="fmtColor('#FFF468')"></div>
-  <div class="fmt-color-dot" style="background:#0070DD" title="Shaman" onclick="fmtColor('#0070DD')"></div>
-  <div class="fmt-color-dot" style="background:#8788EE" title="Warlock" onclick="fmtColor('#8788EE')"></div>
-  <div class="fmt-color-dot" style="background:#C69B3A" title="Warrior" onclick="fmtColor('#C69B3A')"></div>
+  <div class="fmt-color-dot" style="background:#C41E3A" title="Death Knight" onmousedown="event.preventDefault(); fmtColor('#C41E3A')"></div>
+  <div class="fmt-color-dot" style="background:#A330C9" title="Demon Hunter" onmousedown="event.preventDefault(); fmtColor('#A330C9')"></div>
+  <div class="fmt-color-dot" style="background:#FF7C0A" title="Druid" onmousedown="event.preventDefault(); fmtColor('#FF7C0A')"></div>
+  <div class="fmt-color-dot" style="background:#33937F" title="Evoker" onmousedown="event.preventDefault(); fmtColor('#33937F')"></div>
+  <div class="fmt-color-dot" style="background:#AAD372" title="Hunter" onmousedown="event.preventDefault(); fmtColor('#AAD372')"></div>
+  <div class="fmt-color-dot" style="background:#3FC7EB" title="Mage" onmousedown="event.preventDefault(); fmtColor('#3FC7EB')"></div>
+  <div class="fmt-color-dot" style="background:#00FF98" title="Monk" onmousedown="event.preventDefault(); fmtColor('#00FF98')"></div>
+  <div class="fmt-color-dot" style="background:#F48CBA" title="Paladin" onmousedown="event.preventDefault(); fmtColor('#F48CBA')"></div>
+  <div class="fmt-color-dot" style="background:#AAAAAA" title="Priest" onmousedown="event.preventDefault(); fmtColor('#AAAAAA')"></div>
+  <div class="fmt-color-dot" style="background:#FFF468" title="Rogue" onmousedown="event.preventDefault(); fmtColor('#FFF468')"></div>
+  <div class="fmt-color-dot" style="background:#0070DD" title="Shaman" onmousedown="event.preventDefault(); fmtColor('#0070DD')"></div>
+  <div class="fmt-color-dot" style="background:#8788EE" title="Warlock" onmousedown="event.preventDefault(); fmtColor('#8788EE')"></div>
+  <div class="fmt-color-dot" style="background:#C69B3A" title="Warrior" onmousedown="event.preventDefault(); fmtColor('#C69B3A')"></div>
   <div class="fmt-sep"></div>
-  <div class="fmt-color-dot" style="background:#ffffff" title="White" onclick="fmtColor('#ffffff')"></div>
-  <div class="fmt-color-dot" style="background:#f87171" title="Red" onclick="fmtColor('#f87171')"></div>
-  <div class="fmt-color-dot" style="background:#4ade80" title="Green" onclick="fmtColor('#4ade80')"></div>
-  <div class="fmt-color-dot" style="background:#60a5fa" title="Blue" onclick="fmtColor('#60a5fa')"></div>
-  <div class="fmt-color-dot" style="background:#facc15" title="Yellow" onclick="fmtColor('#facc15')"></div>
-  <button class="fmt-btn" onclick="fmtColor('inherit')" title="Reset color" style="font-size:10px">✕</button>
+  <button class="fmt-btn" onmousedown="event.preventDefault(); fmtColor('inherit')" title="Reset color" style="font-size:10px">✕</button>
 </div>
 
 <!-- WarcraftLogs API Import -->
@@ -4221,9 +4215,12 @@ function applyWowheadHandlers(){
 }
 
 function fmtExec(cmd){
+  // Called from onmousedown — selection still alive
   document.getElementById('fmtBar').classList.remove('visible');
-  fmtRestore();
+  const sel = window.getSelection();
+  if(!sel || sel.isCollapsed) return;
   document.execCommand(cmd, false, null);
+  saveState();
 }
 
 function fmtSize(size){
@@ -4243,8 +4240,8 @@ function fmtSize(size){
 }
 
 function fmtColor(color){
+  // Called from onmousedown — selection is still alive at this point
   document.getElementById('fmtBar').classList.remove('visible');
-  fmtRestore();
   const sel = window.getSelection();
   if(!sel || sel.isCollapsed) return;
   if(color === 'inherit'){
