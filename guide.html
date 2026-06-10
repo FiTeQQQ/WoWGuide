@@ -2241,17 +2241,31 @@ AbCd1234" style="font-size:12px;font-family:monospace"></textarea>
       <h2 style="margin:0">Sdílet strategii</h2>
       <button onclick="_shareModalClose()" class="btn btn-ghost" style="padding:4px 8px">✕</button>
     </div>
-    <p style="margin:0 0 16px;font-size:12px;color:var(--text-dim)">Uloží aktuální stav do cloudu a zkopíruje odkaz do schránky.</p>
-    <div class="mb">
-      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px">Vlastní název odkazu <span style="font-weight:400;color:var(--text-dim)">(nepovinný)</span></label>
-      <input id="shareModalInput" type="text" autocomplete="off" placeholder="např. week1-vanguard" style="width:100%">
-      <div style="margin-top:6px;font-size:11px;color:var(--text-dim);line-height:1.4">
-        💡 Bez názvu se vygeneruje automatické ID — odkaz bude fungovat stejně.
+    <!-- Step 1: name input -->
+    <div id="shareModalStep1">
+      <p style="margin:0 0 16px;font-size:12px;color:var(--text-dim)">Uloží aktuální stav do cloudu.</p>
+      <div class="mb">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px">Vlastní název odkazu <span style="font-weight:400;color:var(--text-dim)">(nepovinný)</span></label>
+        <input id="shareModalInput" type="text" autocomplete="off" placeholder="např. week1-vanguard" style="width:100%">
+        <div style="margin-top:6px;font-size:11px;color:var(--text-dim);line-height:1.4">
+          💡 Bez názvu se vygeneruje automatické ID — odkaz bude fungovat stejně.
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button id="shareModalSubmitBtn" onclick="_shareModalConfirm()" class="btn btn-green" style="flex:1">🔗 Sdílet</button>
+        <button onclick="_shareModalClose()" class="btn btn-ghost">Zrušit</button>
       </div>
     </div>
-    <div class="btn-row" style="margin-top:12px">
-      <button onclick="_shareModalConfirm()" class="btn btn-green" style="flex:1">🔗 Sdílet</button>
-      <button onclick="_shareModalClose()" class="btn btn-ghost">Zrušit</button>
+    <!-- Step 2: result link -->
+    <div id="shareModalStep2" style="display:none">
+      <p style="margin:0 0 12px;font-size:12px;color:var(--text-dim)">✅ Uloženo! Zkopíruj odkaz:</p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="shareModalResult" type="text" readonly style="width:100%;font-size:12px;cursor:pointer" onclick="this.select()">
+        <button onclick="_shareModalCopyResult()" class="btn btn-green" style="white-space:nowrap">📋 Kopírovat</button>
+      </div>
+      <div style="margin-top:12px;text-align:right">
+        <button onclick="_shareModalClose()" class="btn btn-ghost">Zavřít</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2628,6 +2642,10 @@ function shareModal(){
     _shareModalResolve=resolve;
     const inp=document.getElementById('shareModalInput');
     inp.value='';
+    document.getElementById('shareModalStep1').style.display='';
+    document.getElementById('shareModalStep2').style.display='none';
+    const btn=document.getElementById('shareModalSubmitBtn');
+    btn.disabled=false; btn.textContent='🔗 Sdílet';
     openModal('shareModal');
     setTimeout(()=>inp.focus(),50);
     inp.onkeydown=e=>{if(e.key==='Enter')_shareModalConfirm();if(e.key==='Escape')_shareModalClose();};
@@ -2635,8 +2653,21 @@ function shareModal(){
 }
 function _shareModalConfirm(){
   const val=document.getElementById('shareModalInput').value.trim();
-  closeModal('shareModal');
+  const btn=document.getElementById('shareModalSubmitBtn');
+  btn.disabled=true; btn.textContent='⏳ Ukládám…';
   if(_shareModalResolve){_shareModalResolve(val);_shareModalResolve=null;}
+}
+function _shareModalShowResult(url){
+  document.getElementById('shareModalStep1').style.display='none';
+  document.getElementById('shareModalStep2').style.display='';
+  const inp=document.getElementById('shareModalResult');
+  inp.value=url; inp.select();
+}
+function _shareModalCopyResult(){
+  const url=document.getElementById('shareModalResult').value;
+  _copyText(url);
+  const btn=event.target; btn.textContent='✅ Zkopírováno!';
+  setTimeout(()=>btn.textContent='📋 Kopírovat',2000);
 }
 function _shareModalClose(){
   closeModal('shareModal');
@@ -5520,16 +5551,9 @@ async function cloudSave(){
     } else {
       finalId = await _postRoster(payload);
     }
-    const _bossParam = _getBossSlug() !== 'default' ? '&boss='+_getBossSlug() : '';
-    history.replaceState(null,'',`${location.pathname}?r=${finalId}${_bossParam}`);
-    showShareButtons();
-    // Pokud jsme na ?boss= URL bez ?r=, share link zachová boss= formát
-    const _hasRParam = new URLSearchParams(location.search).has('r');
-    const shareUrl = _hasRParam
-      ? `${location.origin}${location.pathname}?r=${finalId}&boss=${_getBossSlug()}`
-      : `${location.origin}${location.pathname}?boss=${_getBossSlug()}`;
-    _copyText(shareUrl);
-    toast(lock ? '🔒 Uloženo! Link zkopírován.' : '☁️ Uloženo! Link zkopírován.');
+    // Nezměníme URL v prohlížeči — zachováme původní odkaz
+    const shareUrl = `${location.origin}${location.pathname}?r=${finalId}`;
+    _shareModalShowResult(shareUrl);
     setLocked(lock);
   } catch(e) {
     console.error('Cloud save error', e);
