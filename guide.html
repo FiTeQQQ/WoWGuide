@@ -2090,7 +2090,7 @@
 </div>
 
 <!-- Floating text formatting toolbar -->
-<div id="fmtBar" class="" style="top: 835.125px; left: 1226px;">
+<div id="fmtBar" class="" style="top: 835.125px; left: 1226px;" onmousedown="event.preventDefault()">
   <button class="fmt-btn" id="fmtBold" onclick="fmtExec('bold')" title="Bold"><b>B</b></button>
   <button class="fmt-btn" id="fmtItalic" onclick="fmtExec('italic')" title="Italic"><i>I</i></button>
   <div class="fmt-sep"></div>
@@ -4072,9 +4072,10 @@ function initFmtBar(){
 }
 
 function fmtRestore(){
-  // Re-focus the editable first, then restore selection
-  if(_fmtActiveEl && typeof _fmtActiveEl.focus === 'function') _fmtActiveEl.focus();
-  if(_fmtSel){const s=window.getSelection();s.removeAllRanges();s.addRange(_fmtSel);}
+  if(!_fmtSel) return;
+  const s=window.getSelection();
+  // Only restore range if selection was lost (collapsed or empty)
+  if(!s.rangeCount || s.isCollapsed) { s.removeAllRanges(); s.addRange(_fmtSel); }
 }
 
 // ── GLOBAL FONT SIZES ──
@@ -4220,9 +4221,9 @@ function applyWowheadHandlers(){
 }
 
 function fmtExec(cmd){
+  document.getElementById('fmtBar').classList.remove('visible');
   fmtRestore();
   document.execCommand(cmd, false, null);
-  _fmtSel = window.getSelection().getRangeAt(0).cloneRange();
 }
 
 function fmtSize(size){
@@ -4242,30 +4243,16 @@ function fmtSize(size){
 }
 
 function fmtColor(color){
+  document.getElementById('fmtBar').classList.remove('visible');
   fmtRestore();
   const sel = window.getSelection();
   if(!sel || sel.isCollapsed) return;
-  const range = sel.getRangeAt(0);
   if(color === 'inherit'){
-    // Unwrap any color spans inside selection
-    const frag = range.cloneContents();
-    frag.querySelectorAll('span[style*="color"]').forEach(s => {
-      s.style.color = '';
-      if(!s.getAttribute('style')) s.removeAttribute('style');
-    });
-    range.deleteContents();
-    range.insertNode(frag);
+    document.execCommand('removeFormat', false, null);
   } else {
-    const span = document.createElement('span');
-    span.style.color = color;
-    try { range.surroundContents(span); }
-    catch(e) {
-      const frag = range.extractContents();
-      span.appendChild(frag);
-      range.insertNode(span);
-    }
+    document.execCommand('styleWithCSS', false, true);
+    document.execCommand('foreColor', false, color);
   }
-  if(sel.rangeCount) _fmtSel = sel.getRangeAt(0).cloneRange();
   saveState();
 }
 
