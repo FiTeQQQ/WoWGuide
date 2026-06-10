@@ -8079,9 +8079,9 @@ function tlRenderTable(q){
     html+=`<tr style="background:${bg};cursor:context-menu" data-key="${_tlEsc(eKey)}" oncontextmenu="event.preventDefault();tlPickColor('${_tlEsc(slug)}','${_tlEsc(eKey)}','${color}',this)">
       <td style="text-align:center;padding:6px 10px;color:#e2e8f0;font-family:monospace;font-size:14px;font-weight:700;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.08);white-space:nowrap">${ev.time}</td>
       <td style="padding:6px 10px;border-right:1px solid rgba(255,255,255,0.05)">
-        ${ev.spellId
-          ? `<a href="https://www.wowhead.com/spell=${ev.spellId}" data-wowhead class="tl-ability-text" style="color:${color};text-decoration:none;font-size:13px;font-weight:600">${_tlEsc(ev.ability)}</a>`
-          : `<span class="tl-ability-text" style="color:${color};font-size:13px;font-weight:600">${_tlEsc(ev.ability)}</span>`}
+        <span data-tl-color style="color:${color};font-size:13px;font-weight:600">${ev.spellId
+          ? `<a href="https://www.wowhead.com/spell=${ev.spellId}" data-wowhead style="color:inherit;text-decoration:none">${_tlEsc(ev.ability)}</a>`
+          : _tlEsc(ev.ability)}</span>
       </td>
       <td style="padding:6px 10px">
         <span class="tl-note" data-slug="${_tlEsc(slug)}" data-key="${_tlEsc(eKey)}"
@@ -8109,7 +8109,7 @@ function _tlColorApply(c,slug,key,rowEl){
   _tlSetEdit(slug,key,'color',c);
   const row=rowEl&&rowEl.tagName==='TR'?rowEl:(rowEl&&rowEl.closest?rowEl.closest('tr'):null);
   if(row){
-    row.querySelectorAll('.tl-ability-text').forEach(el=>el.style.color=c);
+    const tc=row.querySelector('[data-tl-color]'); if(tc) tc.style.color=c;
     row.querySelectorAll('img').forEach(el=>el.style.borderColor=c);
   }
 }
