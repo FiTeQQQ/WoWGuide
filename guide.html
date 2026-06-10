@@ -8067,11 +8067,7 @@ let _tlEdits = {};
 try{ _tlEdits = JSON.parse(localStorage.getItem('tlEdits')||'{}'); }catch(e){}
 function _tlSaveEdits(){
   try{localStorage.setItem('tlEdits',JSON.stringify(_tlEdits));}catch(e){}
-  const _cid=(typeof getCloudId==='function')?getCloudId():null;
-  if(_cid && typeof _putRoster==='function' && typeof buildPayload==='function'){
-    _putRoster(_cid, buildPayload(typeof shareLocked!=='undefined'?shareLocked:false))
-      .catch(e=>console.warn('TL edits autosave failed:',e));
-  }
+  _tlDebouncedCloudSave();
 }
 function _tlGetEdit(slug,key){ return (_tlEdits[slug]||{})[key]||{}; }
 function _tlSetEdit(slug,key,field,val){
@@ -8236,15 +8232,22 @@ let _tlBosses={}, _tlActiveBoss=null, _tlBossCats={};
   const defs={senn:{name:'Senn',color:'#9ca3af'},bellamy:{name:'Bellamy',color:'#4ade80'},venel:{name:'Venel',color:'#60a5fa'}};
   Object.entries(defs).forEach(([id,def])=>{ if(!_tlBosses[id]) _tlBosses[id]=def; });
 })();
+// Debounced cloud save — max 1 write per 10 seconds to avoid KV limit
+let _tlCloudSaveTimer=null;
+function _tlDebouncedCloudSave(){
+  if(_tlCloudSaveTimer) clearTimeout(_tlCloudSaveTimer);
+  _tlCloudSaveTimer=setTimeout(()=>{
+    const _cid=(typeof getCloudId==='function')?getCloudId():null;
+    if(_cid && typeof _putRoster==='function' && typeof buildPayload==='function'){
+      _putRoster(_cid, buildPayload(typeof shareLocked!=='undefined'?shareLocked:false))
+        .catch(e=>console.warn('TL cloud autosave failed:',e));
+    }
+  }, 10000);
+}
 function _tlSaveBossData(){
   try{localStorage.setItem('tlBosses',JSON.stringify(_tlBosses));}catch(e){}
   try{localStorage.setItem('tlBossCats',JSON.stringify(_tlBossCats));}catch(e){}
-  // Auto-sync to cloud if a cloud ID is active
-  const _cid=(typeof getCloudId==='function')?getCloudId():null;
-  if(_cid && typeof _putRoster==='function' && typeof buildPayload==='function'){
-    _putRoster(_cid, buildPayload(typeof shareLocked!=='undefined'?shareLocked:false))
-      .catch(e=>console.warn('TL boss autosave failed:',e));
-  }
+  _tlDebouncedCloudSave();
 }
 function _tlRenderBossPanel(){
   const el=document.getElementById('tlBossPanelRows'); if(!el) return;
