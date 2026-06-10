@@ -5540,24 +5540,30 @@ async function cloudSave(){
   const lock = shareLocked;
   const payload = buildPayload(lock);
   try {
-    // Vždy ukázat modal — vlastní název nebo random ID
-    const customName = await shareModal();
-    if(customName === null) return; // zrušeno (✕ nebo Escape)
-    const slug = customName.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
-    let finalId;
-    if(slug){
-      await _putRosterById(slug, payload);
-      finalId = slug;
+    if(id){
+      // Existující fork — jen uložit, žádný modal
+      await _putRoster(id, payload);
+      toast('☁️ Uloženo!');
+      setLocked(lock);
     } else {
-      finalId = await _postRoster(payload);
+      // Nový fork — ukázat modal pro název
+      const customName = await shareModal();
+      if(customName === null) return; // zrušeno
+      const slug = customName.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+      let finalId;
+      if(slug){
+        await _putRosterById(slug, payload);
+        finalId = slug;
+      } else {
+        finalId = await _postRoster(payload);
+      }
+      const _bossSlug = _getBossSlug();
+      const shareUrl = _bossSlug && _bossSlug !== 'default'
+        ? `${location.origin}${location.pathname}?r=${finalId}&boss=${_bossSlug}`
+        : `${location.origin}${location.pathname}?r=${finalId}`;
+      _shareModalShowResult(shareUrl);
+      setLocked(lock);
     }
-    // Nezměníme URL v prohlížeči — zachováme původní odkaz
-    const _bossSlug = _getBossSlug();
-    const shareUrl = _bossSlug && _bossSlug !== 'default'
-      ? `${location.origin}${location.pathname}?r=${finalId}&boss=${_bossSlug}`
-      : `${location.origin}${location.pathname}?r=${finalId}`;
-    _shareModalShowResult(shareUrl);
-    setLocked(lock);
   } catch(e) {
     console.error('Cloud save error', e);
     toast('❌ Uložení selhalo.');
