@@ -2458,6 +2458,7 @@ function loadState(){
     if(d.variantCanvasData) variantCanvasData=d.variantCanvasData;
     if(d.cvPresets?.length===6) cvPresets=d.cvPresets;
     if(d.deletedSlides?.length) { deletedSlides=d.deletedSlides; applyDeletedSlides(); }
+    if(d.slideBars){ Object.entries(d.slideBars).forEach(([sid,bar])=>{ const sl=document.getElementById(sid); if(!sl) return; const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title'); if(num&&bar.num!==undefined) num.textContent=bar.num; if(ttl&&bar.title!==undefined) ttl.innerHTML=bar.title; }); }
     if(d.slideNotes){
       Object.entries(d.slideNotes).forEach(([sid,html])=>{
         const sl=document.getElementById(sid);
@@ -2480,8 +2481,13 @@ function _autoCloudSync(){
 function saveState(){
   try{
     const _slideNotesSnap={};
-    document.querySelectorAll('.slide').forEach(sl=>{ const sn=sl.querySelector('.slide-notes'); if(sn) _slideNotesSnap[sl.id]=sn.innerHTML; });
-    localStorage.setItem(_lsKey(),JSON.stringify({roster,slots,images,assignmentExtras,showGroups,groupsLabel,groupsColor,canvasData,variantCanvasData,cvPresets,slideNotes:_slideNotesSnap,deletedSlides}));
+    const _slideBarsSnap={};
+    document.querySelectorAll('.slide').forEach(sl=>{
+      const sn=sl.querySelector('.slide-notes'); if(sn) _slideNotesSnap[sl.id]=sn.innerHTML;
+      const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title');
+      _slideBarsSnap[sl.id]={num:num?num.textContent:'',title:ttl?ttl.innerHTML:''};
+    });
+    localStorage.setItem(_lsKey(),JSON.stringify({roster,slots,images,assignmentExtras,showGroups,groupsLabel,groupsColor,canvasData,variantCanvasData,cvPresets,slideNotes:_slideNotesSnap,slideBars:_slideBarsSnap,deletedSlides}));
   }catch(e){ console.warn('saveState localStorage error:',e); }
   syncRosterCloud();
   _autoCloudSync();
@@ -5473,11 +5479,13 @@ function updateCloudButtons(){
 function buildPayload(lock=false){
   // Serialize per-slide notes
   const slideNotes={};
+  const slideBars={};
   document.querySelectorAll('.slide').forEach(sl=>{
-    const sn=sl.querySelector('.slide-notes');
-    if(sn) slideNotes[sl.id]=sn.innerHTML;
+    const sn=sl.querySelector('.slide-notes'); if(sn) slideNotes[sl.id]=sn.innerHTML;
+    const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title');
+    slideBars[sl.id]={num:num?num.textContent:'',title:ttl?ttl.innerHTML:''};
   });
-  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, canvasData, variantCanvasData, locked: lock, slideNotes, deletedSlides };
+  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, canvasData, variantCanvasData, locked: lock, slideNotes, slideBars, deletedSlides };
 }
 
 async function _postRoster(payload){
@@ -5572,6 +5580,7 @@ async function loadFromCloud(id){
     if(data.variantCanvasData) variantCanvasData=data.variantCanvasData;
     setLocked(data.locked||false);
     if(data.deletedSlides?.length) { deletedSlides=data.deletedSlides; applyDeletedSlides(); }
+    if(data.slideBars){ Object.entries(data.slideBars).forEach(([sid,bar])=>{ const sl=document.getElementById(sid); if(!sl) return; const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title'); if(num&&bar.num!==undefined) num.textContent=bar.num; if(ttl&&bar.title!==undefined) ttl.innerHTML=bar.title; }); }
     if(data.slideNotes){
       Object.entries(data.slideNotes).forEach(([sid,html])=>{
         const sl=document.getElementById(sid);
