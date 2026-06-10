@@ -8076,22 +8076,17 @@ function tlRenderTable(q){
     const note  = ed.note  !== undefined ? ed.note  : ev.note;
     const color = ed.color !== undefined ? ed.color : ev.color;
     const bg=i%2===0?'rgba(255,255,255,0.025)':'transparent';
-    const iconHtml=ev.spellId?_tlIconImg(ev.spellId,16,color):'';
     html+=`<tr style="background:${bg};cursor:context-menu" data-key="${_tlEsc(eKey)}" oncontextmenu="event.preventDefault();tlPickColor('${_tlEsc(slug)}','${_tlEsc(eKey)}','${color}',this)">
-      <td style="text-align:center;padding:4px 8px;color:#e2e8f0;font-family:monospace;font-size:13px;font-weight:700;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.08);white-space:nowrap">${ev.time}</td>
-      <td style="padding:4px 8px;border-right:1px solid rgba(255,255,255,0.05)">
-        <div style="display:flex;align-items:center;gap:5px">
-          ${iconHtml}
-          ${ev.spellId
-            ? `<a href="https://www.wowhead.com/spell=${ev.spellId}" data-wowhead class="tl-ability-text" style="color:${color};text-decoration:none;font-size:12px;font-weight:500">${_tlEsc(ev.ability)}</a>`
-            : `<span class="tl-ability-text" style="color:${color};font-size:12px;font-weight:500">${_tlEsc(ev.ability)}</span>`}
-
-        </div>
+      <td style="text-align:center;padding:6px 10px;color:#e2e8f0;font-family:monospace;font-size:14px;font-weight:700;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.08);white-space:nowrap">${ev.time}</td>
+      <td style="padding:6px 10px;border-right:1px solid rgba(255,255,255,0.05)">
+        ${ev.spellId
+          ? `<a href="https://www.wowhead.com/spell=${ev.spellId}" data-wowhead class="tl-ability-text" style="color:${color};text-decoration:none;font-size:13px;font-weight:600">${_tlEsc(ev.ability)}</a>`
+          : `<span class="tl-ability-text" style="color:${color};font-size:13px;font-weight:600">${_tlEsc(ev.ability)}</span>`}
       </td>
-      <td style="padding:4px 8px">
+      <td style="padding:6px 10px">
         <span class="tl-note" data-slug="${_tlEsc(slug)}" data-key="${_tlEsc(eKey)}"
           contenteditable="true" spellcheck="false"
-          style="display:inline-block;min-width:60px;color:${note?'#22d3ee':'#4b5563'};font-size:12px;outline:none;border-radius:3px;padding:1px 3px;cursor:text"
+          style="display:inline-block;min-width:60px;color:${note?'#22d3ee':'#4b5563'};font-size:13px;outline:none;border-radius:3px;padding:1px 3px;cursor:text"
           onfocus="this.style.background='rgba(255,255,255,0.05)'"
           onblur="tlSaveNote(this);this.style.background=''"
           onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
@@ -8189,9 +8184,9 @@ function tlRenderGantt(q){
       const evEd=_tlGetEdit(slug,ev.time+'|'+ev.label);
       const evColor=evEd.color||color;
       const note=evEd.note!==undefined?evEd.note:ev.note;
-      const tip=ev.label+(note?' – '+note:'');
       const iconHtml=grp.spellId?_tlIconImg(grp.spellId,22,evColor):`<div style="width:22px;height:22px;background:${evColor}33;border:1.5px solid ${evColor};border-radius:3px"></div>`;
-      html+=`<div title="${_tlEsc(tip)}" style="position:absolute;left:${x}px;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:1px;cursor:default">`;
+      const _tipTxt=ev.label+(note?' – '+note:'');
+      html+=`<div onmouseenter="_tlShowTip(event,'${_tlEsc(_tipTxt)}')" onmousemove="_tlMoveTip(event)" onmouseleave="_tlHideTip()" style="position:absolute;left:${x}px;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:1px;cursor:default">`;
       html+=iconHtml;
       html+=`<span style="font-size:9px;color:${evColor};font-family:monospace;white-space:nowrap;line-height:1">${ev.time}</span>`;
       html+=`</div>`;
@@ -8210,6 +8205,21 @@ function tlZoomChange(v){
 }
 
 function _tlEsc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function _tlShowTip(e,text){
+  if(!text) return;
+  const t=document.getElementById('tlTip'); if(!t) return;
+  t.textContent=text; t.style.display='block';
+  const x=e.clientX+14, y=e.clientY+14;
+  t.style.left=(x+260>window.innerWidth?e.clientX-270:x)+'px';
+  t.style.top=(y+60>window.innerHeight?e.clientY-70:y)+'px';
+}
+function _tlMoveTip(e){
+  const t=document.getElementById('tlTip'); if(!t||t.style.display==='none') return;
+  const x=e.clientX+14, y=e.clientY+14;
+  t.style.left=(x+260>window.innerWidth?e.clientX-270:x)+'px';
+  t.style.top=(y+60>window.innerHeight?e.clientY-70:y)+'px';
+}
+function _tlHideTip(){ const t=document.getElementById('tlTip'); if(t) t.style.display='none'; }
 // ============================================================
 
 </script>
@@ -8267,6 +8277,7 @@ function _tlEsc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').re
   <!-- Gantt View -->
   <div id="tlGanttView" style="display:none;overflow:auto;flex:1;padding:8px 0 16px;cursor:grab;user-select:none">
     <div id="tlGanttInner" style="display:flex;flex-direction:column;min-width:max-content"></div>
+  <div id="tlTip" style="position:fixed;display:none;background:#1e2130;border:1px solid #374151;border-radius:6px;padding:6px 10px;font-size:12px;color:#e2e8f0;pointer-events:none;z-index:9999;max-width:280px;line-height:1.4;box-shadow:0 4px 12px rgba(0,0,0,.5)"></div>
   </div>
 </div>
 <!-- ====== END TIMELINE PANEL ====== -->
