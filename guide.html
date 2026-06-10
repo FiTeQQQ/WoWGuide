@@ -8076,7 +8076,7 @@ function tlRenderTable(q){
     const note  = ed.note  !== undefined ? ed.note  : ev.note;
     const color = ed.color !== undefined ? ed.color : ev.color;
     const bg=i%2===0?'rgba(255,255,255,0.025)':'transparent';
-    html+=`<tr style="background:${bg};cursor:context-menu" data-key="${_tlEsc(eKey)}" oncontextmenu="event.preventDefault();tlPickColor('${_tlEsc(slug)}','${_tlEsc(eKey)}','${color}',this)">
+    html+=`<tr style="background:${bg};cursor:context-menu" data-key="${_tlEsc(eKey)}" oncontextmenu="event.preventDefault();tlPickColor('${_tlEsc(slug)}','${_tlEsc(eKey)}','${color}',this,event.clientX,event.clientY)">
       <td style="text-align:center;padding:6px 10px;color:#e2e8f0;font-family:monospace;font-size:14px;font-weight:700;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.08);white-space:nowrap">${ev.time}</td>
       <td style="padding:6px 10px;border-right:1px solid rgba(255,255,255,0.05)">
         <span data-tl-color style="color:${color};font-size:13px;font-weight:600">${ev.spellId
@@ -8113,18 +8113,20 @@ function _tlColorApply(c,slug,key,rowEl){
     row.querySelectorAll('img').forEach(el=>el.style.borderColor=c);
   }
 }
-function tlPickColor(slug,key,current,rowEl){
+function tlPickColor(slug,key,current,rowEl,cx,cy){
   let inp=document.getElementById('_tlColorPicker');
   if(!inp){
     inp=document.createElement('input');
     inp.type='color'; inp.id='_tlColorPicker';
-    inp.style.cssText='position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01';
+    inp.style.cssText='position:fixed;width:28px;height:22px;padding:0;border:none;cursor:pointer;z-index:10000;border-radius:3px';
     document.body.appendChild(inp);
-    inp.addEventListener('input',function(){ _tlColorApply(this.value,this._tlSlug,this._tlKey,this._tlRow); });
-    inp.addEventListener('change',function(){ _tlColorApply(this.value,this._tlSlug,this._tlKey,this._tlRow); });
+    inp.addEventListener('input',function(){ _tlColorApply(this.value,this._s,this._k,this._r); });
+    inp.addEventListener('change',function(){ _tlColorApply(this.value,this._s,this._k,this._r); });
   }
+  inp.style.left=Math.min(cx||0,window.innerWidth-40)+'px';
+  inp.style.top=Math.min(cy||0,window.innerHeight-30)+'px';
   inp.value=current||'#ffffff';
-  inp._tlSlug=slug; inp._tlKey=key; inp._tlRow=rowEl;
+  inp._s=slug; inp._k=key; inp._r=rowEl;
   inp.click();
 }
 
