@@ -8546,7 +8546,7 @@ function tlRenderGantt(q){
       const _tipTxt=ev.label+(note?' – '+note:'');
       html+=`<div onmouseenter="_tlShowTip(event,'${_tlEsc(_tipTxt)}')" onmousemove="_tlMoveTip(event)" onmouseleave="_tlHideTip()" style="position:absolute;left:${x}px;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:row;align-items:center;gap:3px;cursor:default">`;
       html+=iconHtml;
-      html+=`<span style="font-size:10px;color:${evColor};font-family:monospace;white-space:nowrap;line-height:1;opacity:.85">${ev.time}</span>`;
+      html+=`<span style="font-size:13px;color:${evColor};font-family:monospace;white-space:nowrap;line-height:1;font-weight:600">${ev.time}</span>`;
       html+=`</div>`;
     });
     html+=`</div></div>`;
