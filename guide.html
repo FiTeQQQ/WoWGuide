@@ -8338,18 +8338,53 @@ function _tlBossPickColor(id,e){
   pop.style.left=Math.min(e.clientX,window.innerWidth-pw-8)+'px';
   pop.style.top=Math.min(e.clientY+4,window.innerHeight-ph-8)+'px';
 }
+// Popup pro přiřazení bosse (otevírá se kliknutím na dot v tabulce)
+let _tlBossPopAbility=null;
 function tlAssignBoss(dotEl,e){
   e.stopPropagation();
   if(!_tlActive) return;
-  const ability=dotEl.dataset.ability;
+  _tlBossPopAbility=dotEl.dataset.ability;
+  _tlShowBossPop(e.clientX,e.clientY);
+}
+function _tlShowBossPop(cx,cy){
+  let pop=document.getElementById('tlBossPop');
+  if(!pop){
+    pop=document.createElement('div');
+    pop.id='tlBossPop';
+    pop.style.cssText='position:fixed;z-index:10100;background:#1a1d2a;border:1px solid rgba(255,255,255,0.18);border-radius:8px;padding:7px 8px;box-shadow:0 4px 16px rgba(0,0,0,.7);display:flex;flex-direction:column;gap:4px;min-width:130px';
+    document.body.appendChild(pop);
+    document.addEventListener('mousedown',e=>{if(!pop.contains(e.target))pop.style.display='none';},{passive:true});
+  }
+  const slug=_tlActive.slug;
+  const cats=_tlBossCats[slug]||{};
+  const currentBossId=cats[_tlBossPopAbility]||null;
+  let html='<div style="font-size:10px;color:#6b7394;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Přiřadit bosse</div>';
+  Object.entries(_tlBosses).forEach(([id,boss])=>{
+    const active=currentBossId===id;
+    html+=`<div style="display:flex;align-items:center;gap:7px;padding:4px 6px;border-radius:5px;cursor:pointer;background:${active?'rgba(255,255,255,.1)':'transparent'}" onmouseenter="this.style.background='rgba(255,255,255,.07)'" onmouseleave="this.style.background='${active?'rgba(255,255,255,.1)':'transparent'}'" onclick="_tlBossPopAssign('${id}')">
+      <span style="width:12px;height:12px;border-radius:50%;background:${boss.color};display:inline-block;flex-shrink:0;border:1.5px solid rgba(255,255,255,.3)"></span>
+      <span style="font-size:12px;color:${active?'#e2e8f0':'#a8b0c8'};font-weight:${active?600:400}">${_tlEsc(boss.name)}</span>
+      ${active?'<span style="margin-left:auto;font-size:11px;color:#4ade80">✓</span>':''}
+    </div>`;
+  });
+  if(currentBossId){
+    html+=`<div style="margin-top:2px;border-top:1px solid rgba(255,255,255,.08);padding-top:4px"><div style="display:flex;align-items:center;gap:7px;padding:3px 6px;border-radius:5px;cursor:pointer;color:#f87171" onmouseenter="this.style.background='rgba(248,113,113,.1)'" onmouseleave="this.style.background='transparent'" onclick="_tlBossPopAssign(null)">
+      <span style="font-size:12px">✕ Odebrat</span>
+    </div></div>`;
+  }
+  pop.innerHTML=html;
+  pop.style.display='flex';
+  const pw=160,ph=80;
+  pop.style.left=Math.min(cx,window.innerWidth-pw-8)+'px';
+  pop.style.top=Math.min(cy+6,window.innerHeight-ph-8)+'px';
+}
+function _tlBossPopAssign(bossId){
+  document.getElementById('tlBossPop').style.display='none';
+  if(!_tlActive||!_tlBossPopAbility) return;
   const slug=_tlActive.slug;
   if(!_tlBossCats[slug]) _tlBossCats[slug]={};
-  if(_tlActiveBoss){
-    if(_tlBossCats[slug][ability]===_tlActiveBoss) delete _tlBossCats[slug][ability];
-    else _tlBossCats[slug][ability]=_tlActiveBoss;
-  } else {
-    delete _tlBossCats[slug][ability];
-  }
+  if(bossId) _tlBossCats[slug][_tlBossPopAbility]=bossId;
+  else delete _tlBossCats[slug][_tlBossPopAbility];
   _tlSaveBossData();
   tlRenderTable(document.getElementById('tlSearch').value);
 }
