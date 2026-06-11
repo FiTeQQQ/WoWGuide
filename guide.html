@@ -8293,39 +8293,63 @@ function _tlColorPopSetMode(m){
   _tlColorPopMode=m;
   document.getElementById('tlCpModeOverlay').style.cssText=`flex:1;font-size:10px;padding:2px 4px;border-radius:4px;border:1px solid ${m==='overlay'?'rgba(79,142,255,.4)':'rgba(255,255,255,.15)'};background:${m==='overlay'?'rgba(79,142,255,.2)':'transparent'};color:${m==='overlay'?'#60a5fa':'#6b7280'};cursor:pointer;font-weight:600`;
   document.getElementById('tlCpModeBorder').style.cssText=`flex:1;font-size:10px;padding:2px 4px;border-radius:4px;border:1px solid ${m==='border'?'rgba(79,142,255,.4)':'rgba(255,255,255,.15)'};background:${m==='border'?'rgba(79,142,255,.2)':'transparent'};color:${m==='border'?'#60a5fa':'#6b7280'};cursor:pointer;font-weight:600`;
-  // Re-apply to row: use custom color OR boss color for live preview
-  if(_tlColorPopRow && _tlColorPopSlug && _tlColorPopKey){
-    const _ed=_tlGetEdit(_tlColorPopSlug,_tlColorPopKey)||{};
-    let _c=_ed.color||null;
-    if(!_c){
-      const _abl=(_tlColorPopKey||'').split('|')[1]||'';
-      const _bid=(_tlBossCats[_tlColorPopSlug]||{})[_abl];
-      if(_bid&&_tlBosses[_bid]) _c=_tlBosses[_bid].color;
-    }
-    if(_c){
-      if(_ed.color) _tlSetEdit(_tlColorPopSlug,_tlColorPopKey,'highlight',m);
-      const _sftd=_tlColorPopRow.querySelector('td');
-      if(m==='border'){
-        if(_sftd) _sftd.style.boxShadow='';
-        _tlColorPopRow.style.outline=`1px solid ${_c}`;
-        _tlColorPopRow.style.outlineOffset='-1px';
-        _tlColorPopRow.style.background='rgba(255,255,255,0.06)';
-      } else {
-        if(_sftd) _sftd.style.boxShadow=`inset 4px 0 0 0 ${_c}`;
-        _tlColorPopRow.style.outline='';
-        _tlColorPopRow.style.outlineOffset='';
-        _tlColorPopRow.style.background=_tlHexTint(_c,0.28);
-      }
-      if(_ed.color) saveState();
-    }
+  if(!_tlColorPopRow||!_tlColorPopSlug||!_tlColorPopKey) return;
+  const _ed=_tlGetEdit(_tlColorPopSlug,_tlColorPopKey)||{};
+  const _abl=(_tlColorPopKey||'').split('|')[1]||'';
+  const _bid=(_tlBossCats[_tlColorPopSlug]||{})[_abl];
+  const _c=_ed.color||(_bid&&_tlBosses[_bid]?_tlBosses[_bid].color:null);
+  if(!_c) return;
+  // Apply visual to DOM using setProperty/removeProperty for reliability
+  const _ftd=_tlColorPopRow.cells?_tlColorPopRow.cells[0]:_tlColorPopRow.querySelector('td');
+  if(m==='border'){
+    if(_ftd) _ftd.style.removeProperty('box-shadow');
+    _tlColorPopRow.style.setProperty('outline',`1px solid ${_c}`);
+    _tlColorPopRow.style.setProperty('outline-offset','-1px');
+    _tlColorPopRow.style.setProperty('background','rgba(255,255,255,0.06)');
+  } else {
+    if(_ftd) _ftd.style.setProperty('box-shadow',`inset 4px 0 0 0 ${_c}`);
+    _tlColorPopRow.style.removeProperty('outline');
+    _tlColorPopRow.style.removeProperty('outline-offset');
+    _tlColorPopRow.style.setProperty('background',_tlHexTint(_c,0.28));
+  }
+  // Persist: custom row saves to edits; boss row saves boss.highlight
+  if(_ed.color){
+    _tlSetEdit(_tlColorPopSlug,_tlColorPopKey,'highlight',m);
+    saveState();
+  } else if(_bid&&_tlBosses[_bid]){
+    _tlBosses[_bid].highlight=m;
+    _tlSaveBossData();
+    _tlRenderBossPanel();
   }
 }
+
 function tlPickColor(dotEl,cx,cy){
   _tlColorPopSlug=dotEl.dataset.slug;
   _tlColorPopKey=dotEl.dataset.key;
   _tlColorPopRow=dotEl.closest('tr');
-  const _existingHl=(_tlGetEdit(_tlColorPopSlug,_tlColorPopKey)||{}).highlight||'overlay';
-  _tlColorPopSetMode(_existingHl);
+  // Determine current highlight mode: custom edit first, then boss, then global default
+  const _ed2=_tlGetEdit(_tlColorPopSlug,_tlColorPopKey)||{};
+  let _hl=_ed2.highlight||null;
+  if(!_hl){
+    const _abl2=(_tlColorPopKey||'').split('|')[1]||'';
+    const _bid2=(_tlBossCats[_tlColorPopSlug]||{})[_abl2];
+    if(_bid2&&_tlBosses[_bid2]) _hl=_tlBosses[_bid2].highlight||'overlay';
+  }
+  _tlColorPopSetMode(_hl||'overlay');
+  const pop=document.getElementById('tlColorPop');
+  pop.style.display='flex';
+  const pw=270, ph=100;
+  const _cx=Math.min(cx||0, window.innerWidth-pw-8);
+  const _cy=(cy||0)+4+ph>window.innerHeight-8?(cy||0)-ph-4:(cy||0)+4;
+  pop.style.left=_cx+'px';
+  pop.style.top=Math.max(4,_cy)+'px';
+}l=_ed2.highlight||null;
+  if(!_hl){
+    const _abl2=(_tlColorPopKey||'').split('|')[1]||'';
+    const _bid2=(_tlBossCats[_tlColorPopSlug]||{})[_abl2];
+    if(_bid2&&_tlBosses[_bid2]) _hl=_tlBosses[_bid2].highlight||'overlay';
+  }
+  _tlColorPopSetMode(_hl||'overlay');
   const pop=document.getElementById('tlColorPop');
   pop.style.display='flex';
   const pw=270, ph=100;
