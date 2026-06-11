@@ -8293,36 +8293,27 @@ function _tlColorPopSetMode(m){
   _tlColorPopMode=m;
   document.getElementById('tlCpModeOverlay').style.cssText=`flex:1;font-size:10px;padding:2px 4px;border-radius:4px;border:1px solid ${m==='overlay'?'rgba(79,142,255,.4)':'rgba(255,255,255,.15)'};background:${m==='overlay'?'rgba(79,142,255,.2)':'transparent'};color:${m==='overlay'?'#60a5fa':'#6b7280'};cursor:pointer;font-weight:600`;
   document.getElementById('tlCpModeBorder').style.cssText=`flex:1;font-size:10px;padding:2px 4px;border-radius:4px;border:1px solid ${m==='border'?'rgba(79,142,255,.4)':'rgba(255,255,255,.15)'};background:${m==='border'?'rgba(79,142,255,.2)':'transparent'};color:${m==='border'?'#60a5fa':'#6b7280'};cursor:pointer;font-weight:600`;
-  if(!_tlColorPopRow||!_tlColorPopSlug||!_tlColorPopKey) return;
+  if(!_tlColorPopSlug||!_tlColorPopKey) return;
   const _ed=_tlGetEdit(_tlColorPopSlug,_tlColorPopKey)||{};
   const _abl=(_tlColorPopKey||'').split('|')[1]||'';
   const _bid=(_tlBossCats[_tlColorPopSlug]||{})[_abl];
-  const _c=_ed.color||(_bid&&_tlBosses[_bid]?_tlBosses[_bid].color:null);
-  if(!_c) return;
-  // Apply visual to DOM using setProperty/removeProperty for reliability
-  const _ftd=_tlColorPopRow.cells?_tlColorPopRow.cells[0]:_tlColorPopRow.querySelector('td');
-  if(m==='border'){
-    if(_ftd) _ftd.style.removeProperty('box-shadow');
-    _tlColorPopRow.style.setProperty('outline',`1px solid ${_c}`);
-    _tlColorPopRow.style.setProperty('outline-offset','-1px');
-    _tlColorPopRow.style.setProperty('background','rgba(255,255,255,0.06)');
-  } else {
-    if(_ftd) _ftd.style.setProperty('box-shadow',`inset 4px 0 0 0 ${_c}`);
-    _tlColorPopRow.style.removeProperty('outline');
-    _tlColorPopRow.style.removeProperty('outline-offset');
-    _tlColorPopRow.style.setProperty('background',_tlHexTint(_c,0.28));
+  function _reanchor(){
+    const rows=document.querySelectorAll('#tlTableBody tr[data-key]');
+    _tlColorPopRow=Array.from(rows).find(r=>r.dataset.key===_tlColorPopKey)||null;
   }
-  // Persist: custom row saves to edits; boss row saves boss.highlight
   if(_ed.color){
     _tlSetEdit(_tlColorPopSlug,_tlColorPopKey,'highlight',m);
     saveState();
+    tlRenderTable(document.getElementById('tlSearch').value);
+    _reanchor();
   } else if(_bid&&_tlBosses[_bid]){
     _tlBosses[_bid].highlight=m;
     _tlSaveBossData();
     _tlRenderBossPanel();
+    tlRenderTable(document.getElementById('tlSearch').value);
+    _reanchor();
   }
 }
-
 function tlPickColor(dotEl,cx,cy){
   _tlColorPopSlug=dotEl.dataset.slug;
   _tlColorPopKey=dotEl.dataset.key;
