@@ -2664,11 +2664,12 @@ function _promptModalCancel(){
 
 // ── Share modal ──
 let _shareModalResolve=null;
-function shareModal(defaultVal=''){
+function shareModal(defaultVal='', hintId=''){
   return new Promise(resolve=>{
     _shareModalResolve=resolve;
     const inp=document.getElementById('shareModalInput');
     inp.value=defaultVal;
+    inp.placeholder=hintId||'např. week1-vanguard';
     document.getElementById('shareModalStep1').style.display='';
     document.getElementById('shareModalStep2').style.display='none';
     const btn=document.getElementById('shareModalSubmitBtn');
@@ -5633,7 +5634,7 @@ async function cloudShare(){
   const payload = buildPayload(lock);
   const currentId = getCloudId() || '';
   try {
-    const customName = await shareModal(currentId);
+    const customName = await shareModal('', currentId);
     if(customName === null) return;
     const slug = customName.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
     let finalId;
