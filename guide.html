@@ -8254,7 +8254,7 @@ function _tlColorApply(c,slug,key,rowEl){
   const bossId=(_tlBossCats[slug]||{})[ability];
   if(!bossId){
     if(_tlColorPopMode==='border'){
-      row.style.borderLeft='';
+      row.style.borderLeft=`4px solid ${c}`;
       row.style.outline=`1px solid ${c}`;
       row.style.outlineOffset='-1px';
       row.style.background='rgba(255,255,255,0.06)';
@@ -8296,7 +8296,7 @@ function _tlColorPopSetMode(m){
     if(_c){
       _tlSetEdit(_tlColorPopSlug,_tlColorPopKey,'highlight',m);
       if(m==='border'){
-        _tlColorPopRow.style.borderLeft='';
+        _tlColorPopRow.style.borderLeft=`4px solid ${_c}`;
         _tlColorPopRow.style.outline=`1px solid ${_c}`;
         _tlColorPopRow.style.outlineOffset='-1px';
         _tlColorPopRow.style.background='rgba(255,255,255,0.06)';
