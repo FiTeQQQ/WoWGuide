@@ -8208,7 +8208,6 @@ function tlRenderTable(q){
           style="display:block;width:100%;color:#22d3ee;font-size:13px;outline:none;border-radius:3px;padding:2px 4px;cursor:text;min-height:20px"
           onfocus="_tlNoteFocus(this)"
           onblur="tlSaveNote(this);this.style.outline=''"
-          oninput="_tlNoteInput(this)"
           onkeydown="if(event.key==='Escape'){_tlNoteHideSuggest();}else if(event.key==='Enter'&&!document.getElementById('tlNoteSuggest')){event.preventDefault();this.blur();}"
         >${_tlEsc(note)}</span>
       </td>
@@ -8453,74 +8452,6 @@ function _tlNoteFocus(el){
   el.querySelectorAll('[data-tl-placeholder]').forEach(s=>s.remove());
   el.style.outline='1px solid rgba(255,255,255,0.12)';
 }
-// Autocomplete suggester
-let _tlNoteSuggestTarget=null;
-function _tlNoteInput(el){
-  _tlNoteSuggestTarget=el;
-  const sel=window.getSelection();
-  if(!sel.rangeCount){_tlNoteHideSuggest();return;}
-  const range=sel.getRangeAt(0);
-  const node=range.startContainer;
-  const text=(node.nodeType===3?node.textContent:'');
-  const before=text.slice(0,range.startOffset);
-  const m=before.match(/([A-Za-zÀ-ɏ]{2,})$/);
-  if(!m){_tlNoteHideSuggest();return;}
-  const q=m[1].toLowerCase();
-  const hits=roster.filter(p=>p.name&&p.name.toLowerCase().startsWith(q)).slice(0,6);
-  if(!hits.length){_tlNoteHideSuggest();return;}
-  _tlNoteShowSuggest(el,hits,m[1]);
-}
-function _tlNoteShowSuggest(el,hits,partial){
-  let pop=document.getElementById('tlNoteSuggest');
-  if(!pop){
-    pop=document.createElement('div');
-    pop.id='tlNoteSuggest';
-    pop.style.cssText='position:fixed;z-index:9999;background:#1e2130;border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:4px 0;box-shadow:0 4px 16px rgba(0,0,0,.5);min-width:130px';
-    pop.addEventListener('mousedown',e=>e.preventDefault());
-    document.body.appendChild(pop);
-  }
-  const rect=el.getBoundingClientRect();
-  pop.style.left=rect.left+'px';
-  pop.style.top=(rect.bottom+2)+'px';
-  pop.style.display='block';
-  pop.innerHTML=hits.map(p=>{
-    const cc=CC[p.class]||'#9ca3af';
-    return `<div style="display:flex;align-items:center;gap:7px;padding:4px 10px;cursor:pointer;font-size:12px"
-      onmousedown="event.preventDefault();_tlNoteInsert(${JSON.stringify(p.name)},${JSON.stringify(partial)})"
-      onmouseenter="this.style.background='rgba(255,255,255,.07)'"
-      onmouseleave="this.style.background=''">
-      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${cc};flex-shrink:0"></span>
-      <span style="color:${cc};font-weight:600">${p.name}</span>
-      <span style="color:#4b5563;font-size:11px">${p.class}</span>
-    </div>`;
-  }).join('');
-}
-function _tlNoteHideSuggest(){
-  const p=document.getElementById('tlNoteSuggest');if(p) p.style.display='none';
-}
-function _tlNoteInsert(name,partial){
-  _tlNoteHideSuggest();
-  const el=_tlNoteSuggestTarget; if(!el) return;
-  el.focus();
-  const sel=window.getSelection();
-  if(!sel.rangeCount) return;
-  const range=sel.getRangeAt(0);
-  const node=range.startContainer;
-  if(node.nodeType!==3) return;
-  const text=node.textContent;
-  const pos=range.startOffset;
-  const before=text.slice(0,pos);
-  const after=text.slice(pos);
-  const start=before.search(/[A-Za-zÀ-ɏ]{2,}$/);
-  if(start<0) return;
-  node.textContent=text.slice(0,start)+name+after;
-  const newRange=document.createRange();
-  newRange.setStart(node,start+name.length);
-  newRange.collapse(true);
-  sel.removeAllRanges();
-  sel.addRange(newRange);
-}
-document.addEventListener('click',e=>{if(!e.target.closest('#tlNoteSuggest,.tl-note')) _tlNoteHideSuggest();});
 
 function _tlBossClearAll(){
   if(!_tlActive) return;
