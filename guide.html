@@ -1154,7 +1154,7 @@
 
   <div class="action-row">
     <!-- Share group -->
-    <button class="btn btn-green" id="shareBtn" onclick="cloudSave()" title="Uloží roster a zkopíruje link">Share</button>
+    <button class="btn btn-green" id="shareBtn" onclick="cloudShare()" title="Sdílet s vlastním ID">Share</button>
     <button class="btn btn-ghost" id="mainSaveBtn" onclick="cloudSave()" title="Uloží změny do cloudu (Ctrl+S)" style="display:none;color:#4f8eff;border-color:rgba(79,142,255,.35)">☁ Uložit</button>
     <button class="btn btn-ghost" id="makeCopyBtn" onclick="cloudFork()" title="Vytvoří novou kopii s vlastním linkem">Make Copy</button>
     <button class="btn btn-ghost" id="timelineBtn" onclick="showTimeline()" title="Boss timeline – tabulka &amp; osa">⏱ Timeline</button>
@@ -2664,11 +2664,11 @@ function _promptModalCancel(){
 
 // ── Share modal ──
 let _shareModalResolve=null;
-function shareModal(){
+function shareModal(defaultVal=''){
   return new Promise(resolve=>{
     _shareModalResolve=resolve;
     const inp=document.getElementById('shareModalInput');
-    inp.value='';
+    inp.value=defaultVal;
     document.getElementById('shareModalStep1').style.display='';
     document.getElementById('shareModalStep2').style.display='none';
     const btn=document.getElementById('shareModalSubmitBtn');
@@ -5607,37 +5607,50 @@ async function _putRosterById(id, payload){
 }
 
 async function cloudSave(){
+  // Tiché uložení — pokud je ?r= ID, uloží do cloudu; jinak jen lokálně
   const id = getCloudId();
   const lock = shareLocked;
   const payload = buildPayload(lock);
   try {
     if(id){
-      // Existující fork — jen uložit, žádný modal
       await _putRoster(id, payload);
       toast('☁️ Uloženo!');
       setLocked(lock);
     } else {
-      // Nový fork — ukázat modal pro název
-      const customName = await shareModal();
-      if(customName === null) return; // zrušeno
-      const slug = customName.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
-      let finalId;
-      if(slug){
-        await _putRosterById(slug, payload);
-        finalId = slug;
-      } else {
-        finalId = await _postRoster(payload);
-      }
-      const _bossSlug = _getBossSlug();
-      const shareUrl = _bossSlug && _bossSlug !== 'default'
-        ? `${location.origin}${location.pathname}?r=${finalId}&boss=${_bossSlug}`
-        : `${location.origin}${location.pathname}?r=${finalId}`;
-      _shareModalShowResult(shareUrl);
-      setLocked(lock);
+      saveState();
+      toast('💾 Uloženo lokálně.');
     }
   } catch(e) {
     console.error('Cloud save error', e);
     toast('❌ Uložení selhalo.');
+  }
+}
+
+async function cloudShare(){
+  // Vždy otevře modal pro vlastní ID — sdílení s linkem
+  const lock = shareLocked;
+  const payload = buildPayload(lock);
+  const currentId = getCloudId() || '';
+  try {
+    const customName = await shareModal(currentId);
+    if(customName === null) return;
+    const slug = customName.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+    let finalId;
+    if(slug){
+      await _putRosterById(slug, payload);
+      finalId = slug;
+    } else {
+      finalId = await _postRoster(payload);
+    }
+    const _bossSlug = _getBossSlug();
+    const shareUrl = _bossSlug && _bossSlug !== 'default'
+      ? `${location.origin}${location.pathname}?r=${finalId}&boss=${_bossSlug}`
+      : `${location.origin}${location.pathname}?r=${finalId}`;
+    _shareModalShowResult(shareUrl);
+    setLocked(lock);
+  } catch(e) {
+    console.error('Cloud share error', e);
+    toast('❌ Sdílení selhalo.');
   }
 }
 
@@ -8262,13 +8275,54 @@ function _tlRenderBossPanel(){
   let html='';
   Object.entries(_tlBosses).forEach(([id,boss])=>{
     const active=_tlActiveBoss===id;
-    html+=`<div style="display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:6px;cursor:pointer;margin-bottom:2px;${active?'background:rgba(255,255,255,.08);outline:1.5px solid '+boss.color+';outline-offset:-1px':'background:transparent'}" onclick="_tlSetActiveBoss('${id}')">
-      <span style="display:inline-block;width:13px;height:13px;border-radius:50%;background:${boss.color};border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer" title="Změnit barvu bosse" onclick="event.stopPropagation();_tlBossPickColor('${id}',event)"></span>
-      <span style="font-size:12px;color:${active?'#e2e8f0':'#a8b0c8'};flex:1;font-weight:${active?700:400};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_tlEsc(boss.name)}</span>
-      ${active?'<span style="font-size:9px;color:#6b7394;flex-shrink:0">◄</span>':''}
+    html+=`<div style="display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:6px;cursor:pointer;margin-bottom:2px;${active?'background:rgba(255,255,255,.08);outline:1.5px solid '+boss.color+';outline-offset:-1px':'background:transparent'}" onclick="_tlSetActiveBoss('${id}')">
+      <span style="display:inline-block;width:13px;height:13px;border-radius:50%;background:${boss.color};border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer" title="Změnit barvu" onclick="event.stopPropagation();_tlBossPickColor('${id}',event)"></span>
+      <span data-boss-id="${id}" style="font-size:12px;color:${active?'#e2e8f0':'#a8b0c8'};flex:1;font-weight:${active?700:400};overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="2× klik = přejmenovat" ondblclick="event.stopPropagation();_tlBossRename('${id}',this)">${_tlEsc(boss.name)}</span>
+      <span style="font-size:13px;line-height:1;color:#4b5563;cursor:pointer;flex-shrink:0;padding:0 2px" title="Smazat" onclick="event.stopPropagation();_tlBossDelete('${id}')">×</span>
     </div>`;
   });
   el.innerHTML=html;
+}
+function _tlBossRename(id,spanEl){
+  const boss=_tlBosses[id]; if(!boss) return;
+  const inp=document.createElement('input');
+  inp.type='text'; inp.value=boss.name;
+  inp.style.cssText='width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:4px;color:#e2e8f0;font-size:12px;padding:1px 5px;outline:none;min-width:0';
+  spanEl.replaceWith(inp);
+  inp.focus(); inp.select();
+  const commit=()=>{
+    const v=inp.value.trim(); if(v) boss.name=v;
+    _tlSaveBossData(); _tlRenderBossPanel();
+    if(_tlView==='table') tlRenderTable(document.getElementById('tlSearch').value);
+  };
+  inp.onblur=commit;
+  inp.onkeydown=e=>{
+    if(e.key==='Enter'){e.preventDefault();inp.onblur=null;commit();}
+    if(e.key==='Escape'){inp.onblur=null;_tlRenderBossPanel();}
+    e.stopPropagation();
+  };
+}
+function _tlBossAdd(){
+  const id='boss_'+Date.now();
+  const palette=['#fb923c','#60a5fa','#4ade80','#f87171','#a78bfa','#fbbf24','#34d399','#f472b6','#e879f9','#22d3ee'];
+  const used=new Set(Object.values(_tlBosses).map(b=>b.color));
+  const color=palette.find(c=>!used.has(c))||palette[Object.keys(_tlBosses).length%palette.length];
+  _tlBosses[id]={name:'Boss '+(Object.keys(_tlBosses).length+1),color};
+  _tlSaveBossData(); _tlRenderBossPanel();
+  const rows=document.getElementById('tlBossPanelRows');
+  const lastRow=rows.lastElementChild;
+  if(lastRow){const ns=lastRow.querySelector('[data-boss-id]'); if(ns) _tlBossRename(id,ns);}
+}
+function _tlBossDelete(id){
+  const name=(_tlBosses[id]&&_tlBosses[id].name)||id;
+  if(!confirm('Smazat bosse "'+name+'"?')) return;
+  delete _tlBosses[id];
+  if(_tlActiveBoss===id) _tlActiveBoss=null;
+  Object.keys(_tlBossCats).forEach(slug=>{
+    Object.keys(_tlBossCats[slug]||{}).forEach(ab=>{if(_tlBossCats[slug][ab]===id) delete _tlBossCats[slug][ab];});
+  });
+  _tlSaveBossData(); _tlRenderBossPanel();
+  if(_tlView==='table') tlRenderTable(document.getElementById('tlSearch').value);
 }
 function _tlSetActiveBoss(id){
   _tlActiveBoss=(_tlActiveBoss===id)?null:id;
@@ -8492,8 +8546,9 @@ function _tlHideTip(){ const t=document.getElementById('tlTip'); if(t) t.style.d
     <div id="tlBossPanel" style="width:148px;flex-shrink:0;border-left:1px solid var(--border,#2a2d3a);background:var(--bg2,#161922);padding:10px 8px;display:flex;flex-direction:column;gap:4px;overflow-y:auto">
       <div style="font-size:10px;color:var(--text-dim,#8b8fa8);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">Boss kategorie</div>
       <div id="tlBossPanelRows"></div>
-      <div style="margin-top:auto;padding-top:10px;border-top:1px solid var(--border,#2a2d3a)">
-        <div style="font-size:10px;color:#4b5563;margin-bottom:6px;line-height:1.5">Vyber bosse → klikni na ● v tabulce.</div>
+      <div style="margin-top:auto;padding-top:8px;border-top:1px solid var(--border,#2a2d3a)">
+        <button class="btn btn-ghost" style="width:100%;font-size:11px;padding:4px 0;margin-bottom:5px;color:#4f8eff;border-color:rgba(79,142,255,.3)" onclick="_tlBossAdd()">+ Přidat bosse</button>
+        <div style="font-size:10px;color:#4b5563;margin-bottom:5px;line-height:1.4">Vyber → klikni ● v tabulce.<br>2× klik = přejmenovat.</div>
         <button class="btn btn-ghost" style="width:100%;font-size:10px;padding:3px 0" onclick="_tlBossClearAll()">Vymazat přiřazení</button>
       </div>
     </div>
