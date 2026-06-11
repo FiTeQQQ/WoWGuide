@@ -2115,7 +2115,7 @@
 </div>
 
 <!-- TL Ability Color Popup -->
-<div id="tlColorPop" style="display:none;position:fixed;z-index:10001;background:#1a1d2a;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:5px 7px;box-shadow:0 4px 16px rgba(0,0,0,.7);align-items:center;gap:4px;flex-wrap:wrap;max-width:260px">
+<div id="tlColorPop" style="display:none;position:fixed;z-index:10001;background:#1a1d2a;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:5px 7px;box-shadow:0 4px 16px rgba(0,0,0,.7);align-items:center;gap:4px;flex-wrap:wrap;width:270px">
   <div style="width:14px;height:14px;border-radius:50%;background:#C41E3A;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Death Knight" onclick="_tlColorPopApply('#C41E3A')"></div>
   <div style="width:14px;height:14px;border-radius:50%;background:#A330C9;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Demon Hunter" onclick="_tlColorPopApply('#A330C9')"></div>
   <div style="width:14px;height:14px;border-radius:50%;background:#FF7C0A;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Druid" onclick="_tlColorPopApply('#FF7C0A')"></div>
@@ -8199,7 +8199,7 @@ function tlRenderTable(q){
     const _hlMode=boss?(boss.highlight||'overlay'):(ed.highlight||_tlHighlightMode);
     const rowStyle=_hlColor
       ?(_hlMode==='border'
-        ?`box-shadow:inset 0 0 0 2px ${_hlColor};background:${bg}`
+        ?`outline:2px solid ${_hlColor};outline-offset:-1px;background:${bg}`
         :`border-left:4px solid ${_hlColor};background:${_tlHexTint(_hlColor,0.28)}`)
       :`background:${bg};border-left:3px solid transparent`;
     html+=`<tr style="${rowStyle}" data-key="${_tlEsc(eKey)}">
@@ -8255,10 +8255,11 @@ function _tlColorApply(c,slug,key,rowEl){
   if(!bossId){
     if(_tlColorPopMode==='border'){
       row.style.borderLeft='';
-      row.style.boxShadow=`inset 0 0 0 2px ${c}`;
+      row.style.outline=`2px solid ${c}`;
+      row.style.outlineOffset='-1px';
       row.style.background='rgba(255,255,255,0.06)';
     } else {
-      row.style.boxShadow='';
+      row.style.outline='';
       row.style.borderLeft=`4px solid ${c}`;
       row.style.background=_tlHexTint(c,0.28);
     }
@@ -8278,7 +8279,8 @@ function _tlColorReset(slug,key,rowEl){
   if(row){
     const dot=row.querySelector('[data-tl-color-dot]'); if(dot) dot.style.background=origColor;
     row.style.borderLeft='3px solid transparent';
-    row.style.background='rgba(255,255,255,0.04)';
+    row.style.outline='';
+    row.style.background='rgba(255,255,255,0.06)';
   }
 }
 let _tlColorPopSlug='', _tlColorPopKey='', _tlColorPopRow=null;
@@ -8296,9 +8298,11 @@ function tlPickColor(dotEl,cx,cy){
   _tlColorPopSetMode(_existingHl);
   const pop=document.getElementById('tlColorPop');
   pop.style.display='flex';
-  const pw=260, ph=50;
-  pop.style.left=Math.min(cx||0, window.innerWidth-pw-8)+'px';
-  pop.style.top=Math.min((cy||0)+4, window.innerHeight-ph-8)+'px';
+  const pw=270, ph=100;
+  const _cx=Math.min(cx||0, window.innerWidth-pw-8);
+  const _cy=(cy||0)+4+ph>window.innerHeight-8?(cy||0)-ph-4:(cy||0)+4;
+  pop.style.left=_cx+'px';
+  pop.style.top=Math.max(4,_cy)+'px';
 }
 function _tlColorPopApply(c){
   document.getElementById('tlColorPop').style.display='none';
