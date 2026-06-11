@@ -8185,12 +8185,12 @@ function tlRenderTable(q){
     const bossId=cats[ev.ability];
     const boss=bossId?_tlBosses[bossId]:null;
     const color = boss ? boss.color : (ed.color !== undefined ? ed.color : ev.color);
-    const bg='rgba(255,255,255,0.04)';
+    const bg='rgba(255,255,255,0.06)';
     const bossInitial=boss?boss.name.trim().charAt(0).toUpperCase():'';
     const bossLabel=boss
       ?`<span style="display:inline-block;padding:1px 7px;border-radius:4px;background:${boss.color};color:${_tlDarkText(boss.color)};font-size:11px;font-weight:700;cursor:pointer;line-height:18px;white-space:nowrap;letter-spacing:0.3px" title="${_tlEsc(boss.name)}" data-tl-boss-dot data-ability="${_tlEsc(ev.ability)}" onclick="tlAssignBoss(this,event)">${bossInitial}</span>`
       :`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:transparent;border:1px dashed rgba(255,255,255,.2);cursor:pointer;vertical-align:middle;font-size:9px;color:#4b5563;line-height:12px;text-align:center" data-tl-boss-dot data-ability="${_tlEsc(ev.ability)}" onclick="tlAssignBoss(this,event)" title="Přiřadit bosse">○</span>`;
-    const rowStyle=boss?`border-left:3px solid ${boss.color};background:${_tlHexTint(boss.color,0.20)}`:`background:${bg};border-left:3px solid transparent`;
+    const rowStyle=boss?`border-left:4px solid ${boss.color};background:${_tlHexTint(boss.color,0.28)}`:`background:${bg};border-left:3px solid transparent`;
     html+=`<tr style="${rowStyle}" data-key="${_tlEsc(eKey)}">
       <td style="text-align:center;padding:6px 10px;color:#e2e8f0;font-family:monospace;font-size:14px;font-weight:700;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.08);white-space:nowrap">${ev.time}</td>
       <td style="padding:6px 10px;border-right:1px solid rgba(255,255,255,0.05)">
