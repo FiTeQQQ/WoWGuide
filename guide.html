@@ -8293,12 +8293,17 @@ function _tlColorPopSetMode(m){
   _tlColorPopMode=m;
   document.getElementById('tlCpModeOverlay').style.cssText=`flex:1;font-size:10px;padding:2px 4px;border-radius:4px;border:1px solid ${m==='overlay'?'rgba(79,142,255,.4)':'rgba(255,255,255,.15)'};background:${m==='overlay'?'rgba(79,142,255,.2)':'transparent'};color:${m==='overlay'?'#60a5fa':'#6b7280'};cursor:pointer;font-weight:600`;
   document.getElementById('tlCpModeBorder').style.cssText=`flex:1;font-size:10px;padding:2px 4px;border-radius:4px;border:1px solid ${m==='border'?'rgba(79,142,255,.4)':'rgba(255,255,255,.15)'};background:${m==='border'?'rgba(79,142,255,.2)':'transparent'};color:${m==='border'?'#60a5fa':'#6b7280'};cursor:pointer;font-weight:600`;
-  // Immediately re-apply to row if it already has a color
+  // Re-apply to row: use custom color OR boss color for live preview
   if(_tlColorPopRow && _tlColorPopSlug && _tlColorPopKey){
     const _ed=_tlGetEdit(_tlColorPopSlug,_tlColorPopKey)||{};
-    const _c=_ed.color||null;
+    let _c=_ed.color||null;
+    if(!_c){
+      const _abl=(_tlColorPopKey||'').split('|')[1]||'';
+      const _bid=(_tlBossCats[_tlColorPopSlug]||{})[_abl];
+      if(_bid&&_tlBosses[_bid]) _c=_tlBosses[_bid].color;
+    }
     if(_c){
-      _tlSetEdit(_tlColorPopSlug,_tlColorPopKey,'highlight',m);
+      if(_ed.color) _tlSetEdit(_tlColorPopSlug,_tlColorPopKey,'highlight',m);
       const _sftd=_tlColorPopRow.querySelector('td');
       if(m==='border'){
         if(_sftd) _sftd.style.boxShadow='';
@@ -8311,7 +8316,7 @@ function _tlColorPopSetMode(m){
         _tlColorPopRow.style.outlineOffset='';
         _tlColorPopRow.style.background=_tlHexTint(_c,0.28);
       }
-      saveState();
+      if(_ed.color) saveState();
     }
   }
 }
