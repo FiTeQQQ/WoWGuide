@@ -2141,6 +2141,10 @@
   <div style="width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.35);cursor:pointer;flex-shrink:0;font-size:11px;display:flex;align-items:center;justify-content:center;color:#9ca3af;position:relative" title="Přidat vlastní barvu" onclick="_tlOpenCustomPicker()">+<input type="color" id="tlCustomColorInput" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none" oninput="_tlAddCustomColor(this.value)"></div>
   <div style="width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0;margin:0 1px"></div>
   <div style="width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#333,#111);border:1px solid rgba(255,255,255,.3);cursor:pointer;flex-shrink:0;font-size:9px;display:flex;align-items:center;justify-content:center;color:#fff" title="Reset" onclick="_tlColorPopApply(null)">✕</div>
+  <div style="width:100%;border-top:1px solid rgba(255,255,255,.1);margin:3px 0 1px;display:flex;gap:4px;padding-top:4px">
+    <button id="tlCpModeOverlay" onclick="_tlColorPopSetMode('overlay')" style="flex:1;font-size:10px;padding:2px 4px;border-radius:4px;border:1px solid rgba(79,142,255,.4);background:rgba(79,142,255,.2);color:#60a5fa;cursor:pointer;font-weight:600">▬ Overlay</button>
+    <button id="tlCpModeBorder" onclick="_tlColorPopSetMode('border')" style="flex:1;font-size:10px;padding:2px 4px;border-radius:4px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#6b7280;cursor:pointer;font-weight:600">□ Border</button>
+  </div>
 </div>
 
 <!-- WarcraftLogs API Import -->
@@ -8192,10 +8196,10 @@ function tlRenderTable(q){
       ?`<span style="display:inline-block;padding:1px 7px;border-radius:4px;background:${boss.color};color:${_tlDarkText(boss.color)};font-size:11px;font-weight:700;cursor:pointer;line-height:18px;white-space:nowrap;letter-spacing:0.3px" title="${_tlEsc(boss.name)}" data-tl-boss-dot data-ability="${_tlEsc(ev.ability)}" onclick="tlAssignBoss(this,event)">${bossInitial}</span>`
       :`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:transparent;border:1px dashed rgba(255,255,255,.2);cursor:pointer;vertical-align:middle;font-size:9px;color:#4b5563;line-height:12px;text-align:center" data-tl-boss-dot data-ability="${_tlEsc(ev.ability)}" onclick="tlAssignBoss(this,event)" title="Přiřadit bosse">○</span>`;
     const _hlColor=boss?boss.color:(ed.color||null);
-    const _hlMode=boss?(boss.highlight||'overlay'):_tlHighlightMode;
+    const _hlMode=boss?(boss.highlight||'overlay'):(ed.highlight||_tlHighlightMode);
     const rowStyle=_hlColor
       ?(_hlMode==='border'
-        ?`border-left:4px solid ${_hlColor};background:${bg}`
+        ?`box-shadow:inset 0 0 0 2px ${_hlColor};background:${bg}`
         :`border-left:4px solid ${_hlColor};background:${_tlHexTint(_hlColor,0.28)}`)
       :`background:${bg};border-left:3px solid transparent`;
     html+=`<tr style="${rowStyle}" data-key="${_tlEsc(eKey)}">
@@ -8242,14 +8246,22 @@ function _tlDarkText(hex){
 }
 function _tlColorApply(c,slug,key,rowEl){
   _tlSetEdit(slug,key,'color',c);
+  _tlSetEdit(slug,key,'highlight',_tlColorPopMode);
   const row=rowEl&&rowEl.tagName==='TR'?rowEl:(rowEl&&rowEl.closest?rowEl.closest('tr'):null);
   if(!row) return;
   const dot=row.querySelector('[data-tl-color-dot]'); if(dot) dot.style.background=c;
   const ability=row.dataset.key?.split('|')[1]||'';
   const bossId=(_tlBossCats[slug]||{})[ability];
   if(!bossId){
-    row.style.borderLeft=`4px solid ${c}`;
-    row.style.background=_tlHighlightMode==='border'?'rgba(255,255,255,0.06)':_tlHexTint(c,0.28);
+    if(_tlColorPopMode==='border'){
+      row.style.borderLeft='';
+      row.style.boxShadow=`inset 0 0 0 2px ${c}`;
+      row.style.background='rgba(255,255,255,0.06)';
+    } else {
+      row.style.boxShadow='';
+      row.style.borderLeft=`4px solid ${c}`;
+      row.style.background=_tlHexTint(c,0.28);
+    }
   }
   saveState();
 }
@@ -8270,10 +8282,18 @@ function _tlColorReset(slug,key,rowEl){
   }
 }
 let _tlColorPopSlug='', _tlColorPopKey='', _tlColorPopRow=null;
+let _tlColorPopMode='overlay';
+function _tlColorPopSetMode(m){
+  _tlColorPopMode=m;
+  document.getElementById('tlCpModeOverlay').style.cssText=`flex:1;font-size:10px;padding:2px 4px;border-radius:4px;border:1px solid ${m==='overlay'?'rgba(79,142,255,.4)':'rgba(255,255,255,.15)'};background:${m==='overlay'?'rgba(79,142,255,.2)':'transparent'};color:${m==='overlay'?'#60a5fa':'#6b7280'};cursor:pointer;font-weight:600`;
+  document.getElementById('tlCpModeBorder').style.cssText=`flex:1;font-size:10px;padding:2px 4px;border-radius:4px;border:1px solid ${m==='border'?'rgba(79,142,255,.4)':'rgba(255,255,255,.15)'};background:${m==='border'?'rgba(79,142,255,.2)':'transparent'};color:${m==='border'?'#60a5fa':'#6b7280'};cursor:pointer;font-weight:600`;
+}
 function tlPickColor(dotEl,cx,cy){
   _tlColorPopSlug=dotEl.dataset.slug;
   _tlColorPopKey=dotEl.dataset.key;
   _tlColorPopRow=dotEl.closest('tr');
+  const _existingHl=(_tlGetEdit(_tlColorPopSlug,_tlColorPopKey)||{}).highlight||'overlay';
+  _tlColorPopSetMode(_existingHl);
   const pop=document.getElementById('tlColorPop');
   pop.style.display='flex';
   const pw=260, ph=50;
@@ -8321,7 +8341,7 @@ function _tlRenderBossPanel(){
     html+=`<div style="display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:6px;cursor:pointer;margin-bottom:2px;${active?'background:rgba(255,255,255,.08);outline:1.5px solid '+boss.color+';outline-offset:-1px':'background:transparent'}" onclick="_tlSetActiveBoss('${id}')">
       <span style="display:inline-block;width:13px;height:13px;border-radius:50%;background:${boss.color};border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer" title="Změnit barvu" onclick="event.stopPropagation();_tlBossPickColor('${id}',event)"></span>
       <span data-boss-id="${id}" style="font-size:12px;color:${active?'#e2e8f0':'#a8b0c8'};flex:1;font-weight:${active?700:400};overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="2× klik = přejmenovat" ondblclick="event.stopPropagation();_tlBossRename('${id}',this)">${_tlEsc(boss.name)}</span>
-      <span title="${boss.highlight==='border'?'Mód: jen border (klik = overlay)':'Mód: overlay (klik = border)'}" onclick="event.stopPropagation();_tlBossToggleHighlight('${id}')" style="font-size:10px;color:${boss.highlight==='border'?'#60a5fa':'#4ade80'};cursor:pointer;flex-shrink:0;padding:0 3px;line-height:1;font-weight:700;user-select:none">${boss.highlight==='border'?'│B':'▬O'}</span>
+      <span title="${boss.highlight==='border'?'Mód: outline border (klik = overlay)':'Mód: overlay (klik = border)'}" onclick="event.stopPropagation();_tlBossToggleHighlight('${id}')" style="font-size:10px;color:${boss.highlight==='border'?'#60a5fa':'#4ade80'};cursor:pointer;flex-shrink:0;padding:0 3px;line-height:1;font-weight:700;user-select:none">${boss.highlight==='border'?'□B':'▬O'}</span>
       <span style="font-size:13px;line-height:1;color:#4b5563;cursor:pointer;flex-shrink:0;padding:0 2px" title="Smazat" onclick="event.stopPropagation();_tlBossDelete('${id}')">×</span>
     </div>`;
   });
