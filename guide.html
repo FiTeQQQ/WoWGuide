@@ -8297,21 +8297,30 @@ function _tlColorPopSetMode(m){
   const _ed=_tlGetEdit(_tlColorPopSlug,_tlColorPopKey)||{};
   const _abl=(_tlColorPopKey||'').split('|')[1]||'';
   const _bid=(_tlBossCats[_tlColorPopSlug]||{})[_abl];
-  function _reanchor(){
-    const rows=document.querySelectorAll('#tlTableBody tr[data-key]');
-    _tlColorPopRow=Array.from(rows).find(r=>r.dataset.key===_tlColorPopKey)||null;
-  }
   if(_ed.color){
+    // Custom color: save + update DOM directly (no re-render, keeps _tlColorPopRow valid)
     _tlSetEdit(_tlColorPopSlug,_tlColorPopKey,'highlight',m);
     saveState();
-    tlRenderTable(document.getElementById('tlSearch').value);
-    _reanchor();
+    const row=_tlColorPopRow;
+    if(row){
+      const _ftd=row.querySelector('td');
+      if(m==='border'){
+        row.style.outline=`1px solid ${_ed.color}`;
+        row.style.outlineOffset='-1px';
+        row.style.background='rgba(255,255,255,0.06)';
+        if(_ftd) _ftd.style.removeProperty('box-shadow');
+      } else {
+        row.style.outline='none';
+        row.style.outlineOffset='';
+        row.style.background=_tlHexTint(_ed.color,0.28);
+        if(_ftd) _ftd.style.setProperty('box-shadow',`inset 4px 0 0 0 ${_ed.color}`);
+      }
+    }
   } else if(_bid&&_tlBosses[_bid]){
     _tlBosses[_bid].highlight=m;
     _tlSaveBossData();
     _tlRenderBossPanel();
     tlRenderTable(document.getElementById('tlSearch').value);
-    _reanchor();
   }
 }
 function tlPickColor(dotEl,cx,cy){
