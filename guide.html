@@ -8202,7 +8202,7 @@ function tlRenderTable(q){
         ?`outline:1px solid ${_hlColor};outline-offset:-1px;background:${bg}`
         :`background:${_tlHexTint(_hlColor,0.28)}`)
       :`background:${bg}`;
-    const _firstTdBL=_hlColor&&_hlMode!=='border'?`border-left:4px solid ${_hlColor}`:_hlColor?``:`border-left:3px solid transparent`;
+    const _firstTdBL=_hlColor&&_hlMode!=='border'?`box-shadow:inset 4px 0 0 0 ${_hlColor}`:``;
     html+=`<tr style="${rowStyle}" data-key="${_tlEsc(eKey)}">
       <td style="text-align:center;padding:6px 10px;color:#e2e8f0;font-family:monospace;font-size:14px;font-weight:700;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.08);white-space:nowrap;${_firstTdBL}">${ev.time}</td>
       <td style="padding:6px 10px;border-right:1px solid rgba(255,255,255,0.05)">
@@ -8256,12 +8256,12 @@ function _tlColorApply(c,slug,key,rowEl){
   if(!bossId){
     const _ftd=row.querySelector('td');
     if(_tlColorPopMode==='border'){
-      if(_ftd){ _ftd.style.borderLeft='3px solid transparent'; }
+      if(_ftd){ _ftd.style.boxShadow=''; }
       row.style.outline=`1px solid ${c}`;
       row.style.outlineOffset='-1px';
       row.style.background='rgba(255,255,255,0.06)';
     } else {
-      if(_ftd){ _ftd.style.borderLeft=`4px solid ${c}`; }
+      if(_ftd){ _ftd.style.boxShadow=`inset 4px 0 0 0 ${c}`; }
       row.style.outline='';
       row.style.outlineOffset='';
       row.style.background=_tlHexTint(c,0.28);
@@ -8281,7 +8281,7 @@ function _tlColorReset(slug,key,rowEl){
   const row=rowEl&&rowEl.tagName==='TR'?rowEl:(rowEl&&rowEl.closest?rowEl.closest('tr'):null);
   if(row){
     const dot=row.querySelector('[data-tl-color-dot]'); if(dot) dot.style.background=origColor;
-    const _rftd=row.querySelector('td'); if(_rftd) _rftd.style.borderLeft='3px solid transparent';
+    const _rftd=row.querySelector('td'); if(_rftd) _rftd.style.boxShadow='';
     row.style.outline='';
     row.style.outlineOffset='';
     row.style.background='rgba(255,255,255,0.06)';
@@ -8301,12 +8301,12 @@ function _tlColorPopSetMode(m){
       _tlSetEdit(_tlColorPopSlug,_tlColorPopKey,'highlight',m);
       const _sftd=_tlColorPopRow.querySelector('td');
       if(m==='border'){
-        if(_sftd) _sftd.style.borderLeft='3px solid transparent';
+        if(_sftd) _sftd.style.boxShadow='';
         _tlColorPopRow.style.outline=`1px solid ${_c}`;
         _tlColorPopRow.style.outlineOffset='-1px';
         _tlColorPopRow.style.background='rgba(255,255,255,0.06)';
       } else {
-        if(_sftd) _sftd.style.borderLeft=`4px solid ${_c}`;
+        if(_sftd) _sftd.style.boxShadow=`inset 4px 0 0 0 ${_c}`;
         _tlColorPopRow.style.outline='';
         _tlColorPopRow.style.outlineOffset='';
         _tlColorPopRow.style.background=_tlHexTint(_c,0.28);
