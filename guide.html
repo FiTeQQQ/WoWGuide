@@ -8199,7 +8199,7 @@ function tlRenderTable(q){
     const _hlMode=boss?(boss.highlight||'overlay'):(ed.highlight||_tlHighlightMode);
     const rowStyle=_hlColor
       ?(_hlMode==='border'
-        ?`outline:2px solid ${_hlColor};outline-offset:-1px;background:${bg}`
+        ?`outline:1px solid ${_hlColor};outline-offset:-1px;background:${bg}`
         :`border-left:4px solid ${_hlColor};background:${_tlHexTint(_hlColor,0.28)}`)
       :`background:${bg};border-left:3px solid transparent`;
     html+=`<tr style="${rowStyle}" data-key="${_tlEsc(eKey)}">
@@ -8255,7 +8255,7 @@ function _tlColorApply(c,slug,key,rowEl){
   if(!bossId){
     if(_tlColorPopMode==='border'){
       row.style.borderLeft='';
-      row.style.outline=`2px solid ${c}`;
+      row.style.outline=`1px solid ${c}`;
       row.style.outlineOffset='-1px';
       row.style.background='rgba(255,255,255,0.06)';
     } else {
@@ -8289,6 +8289,26 @@ function _tlColorPopSetMode(m){
   _tlColorPopMode=m;
   document.getElementById('tlCpModeOverlay').style.cssText=`flex:1;font-size:10px;padding:2px 4px;border-radius:4px;border:1px solid ${m==='overlay'?'rgba(79,142,255,.4)':'rgba(255,255,255,.15)'};background:${m==='overlay'?'rgba(79,142,255,.2)':'transparent'};color:${m==='overlay'?'#60a5fa':'#6b7280'};cursor:pointer;font-weight:600`;
   document.getElementById('tlCpModeBorder').style.cssText=`flex:1;font-size:10px;padding:2px 4px;border-radius:4px;border:1px solid ${m==='border'?'rgba(79,142,255,.4)':'rgba(255,255,255,.15)'};background:${m==='border'?'rgba(79,142,255,.2)':'transparent'};color:${m==='border'?'#60a5fa':'#6b7280'};cursor:pointer;font-weight:600`;
+  // Immediately re-apply to row if it already has a color
+  if(_tlColorPopRow && _tlColorPopSlug && _tlColorPopKey){
+    const _ed=_tlGetEdit(_tlColorPopSlug,_tlColorPopKey)||{};
+    const _c=_ed.color||null;
+    if(_c){
+      _tlSetEdit(_tlColorPopSlug,_tlColorPopKey,'highlight',m);
+      if(m==='border'){
+        _tlColorPopRow.style.borderLeft='';
+        _tlColorPopRow.style.outline=`1px solid ${_c}`;
+        _tlColorPopRow.style.outlineOffset='-1px';
+        _tlColorPopRow.style.background='rgba(255,255,255,0.06)';
+      } else {
+        _tlColorPopRow.style.outline='';
+        _tlColorPopRow.style.outlineOffset='';
+        _tlColorPopRow.style.borderLeft=`4px solid ${_c}`;
+        _tlColorPopRow.style.background=_tlHexTint(_c,0.28);
+      }
+      saveState();
+    }
+  }
 }
 function tlPickColor(dotEl,cx,cy){
   _tlColorPopSlug=dotEl.dataset.slug;
