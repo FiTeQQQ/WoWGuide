@@ -8253,14 +8253,15 @@ function _tlColorApply(c,slug,key,rowEl){
   const ability=row.dataset.key?.split('|')[1]||'';
   const bossId=(_tlBossCats[slug]||{})[ability];
   if(!bossId){
+    const _ftd=row.querySelector('td');
+    if(_ftd) _ftd.style.borderLeft=`4px solid ${c}`;
     if(_tlColorPopMode==='border'){
-      row.style.borderLeft=`4px solid ${c}`;
       row.style.outline=`1px solid ${c}`;
       row.style.outlineOffset='-1px';
       row.style.background='rgba(255,255,255,0.06)';
     } else {
       row.style.outline='';
-      row.style.borderLeft=`4px solid ${c}`;
+      row.style.outlineOffset='';
       row.style.background=_tlHexTint(c,0.28);
     }
   }
@@ -8278,7 +8279,7 @@ function _tlColorReset(slug,key,rowEl){
   const row=rowEl&&rowEl.tagName==='TR'?rowEl:(rowEl&&rowEl.closest?rowEl.closest('tr'):null);
   if(row){
     const dot=row.querySelector('[data-tl-color-dot]'); if(dot) dot.style.background=origColor;
-    row.style.borderLeft='3px solid transparent';
+    const _rftd=row.querySelector('td'); if(_rftd) _rftd.style.borderLeft='3px solid transparent';
     row.style.outline='';
     row.style.background='rgba(255,255,255,0.06)';
   }
@@ -8295,15 +8296,15 @@ function _tlColorPopSetMode(m){
     const _c=_ed.color||null;
     if(_c){
       _tlSetEdit(_tlColorPopSlug,_tlColorPopKey,'highlight',m);
+      const _sftd=_tlColorPopRow.querySelector('td');
+      if(_sftd) _sftd.style.borderLeft=`4px solid ${_c}`;
       if(m==='border'){
-        _tlColorPopRow.style.borderLeft=`4px solid ${_c}`;
         _tlColorPopRow.style.outline=`1px solid ${_c}`;
         _tlColorPopRow.style.outlineOffset='-1px';
         _tlColorPopRow.style.background='rgba(255,255,255,0.06)';
       } else {
         _tlColorPopRow.style.outline='';
         _tlColorPopRow.style.outlineOffset='';
-        _tlColorPopRow.style.borderLeft=`4px solid ${_c}`;
         _tlColorPopRow.style.background=_tlHexTint(_c,0.28);
       }
       saveState();
