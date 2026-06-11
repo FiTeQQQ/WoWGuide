@@ -5587,7 +5587,7 @@ function buildPayload(lock=false){
     const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title');
     slideBars[sl.id]={num:num?num.textContent:'',title:ttl?ttl.innerHTML:''};
   });
-  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, canvasData, variantCanvasData, locked: lock, slideNotes, slideBars, deletedSlides, tlEdits: _tlEdits, tlBosses: _tlBosses, tlBossCats: _tlBossCats };
+  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, canvasData, variantCanvasData, locked: lock, slideNotes, slideBars, deletedSlides, tlEdits: _tlEdits, tlBosses: _tlBosses, tlBossCats: _tlBossCats, tlHighlightMode: _tlHighlightMode };
 }
 
 async function _postRoster(payload){
@@ -5705,6 +5705,7 @@ async function loadFromCloud(id){
     if(data.tlEdits){ _tlEdits=data.tlEdits; try{localStorage.setItem('tlEdits',JSON.stringify(_tlEdits));}catch(e){} }
     if(data.tlBosses){ _tlBosses=data.tlBosses; try{localStorage.setItem('tlBosses',JSON.stringify(_tlBosses));}catch(e){} }
     if(data.tlBossCats){ _tlBossCats=data.tlBossCats; try{localStorage.setItem('tlBossCats',JSON.stringify(_tlBossCats));}catch(e){} }
+    if(data.tlHighlightMode){ _tlHighlightMode=data.tlHighlightMode; try{localStorage.setItem('tlHighlightMode',_tlHighlightMode);}catch(e){} }
     saveState(); renderAll(); applyImages(); renderAllCvOverlays();
     updateCloudButtons();
     toast('☁️ Roster načten!');
@@ -8105,8 +8106,6 @@ function showTimeline(){
   _tlActive=_TL_DATA;
   _tlRenderBossPanel();
   document.getElementById('tlBossName').textContent='⏱ '+_tlActive.boss;
-  document.getElementById('tlHlOverlay').className='btn '+(_tlHighlightMode==='overlay'?'btn-green':'btn-ghost');
-  document.getElementById('tlHlBorder').className='btn '+(_tlHighlightMode==='border'?'btn-green':'btn-ghost');
   document.getElementById('tlSearch').value='';
   document.getElementById('tlZoom').value=_tlZoom;
   document.getElementById('tlZoomVal').textContent=_tlZoom+'×';
@@ -8193,8 +8192,9 @@ function tlRenderTable(q){
       ?`<span style="display:inline-block;padding:1px 7px;border-radius:4px;background:${boss.color};color:${_tlDarkText(boss.color)};font-size:11px;font-weight:700;cursor:pointer;line-height:18px;white-space:nowrap;letter-spacing:0.3px" title="${_tlEsc(boss.name)}" data-tl-boss-dot data-ability="${_tlEsc(ev.ability)}" onclick="tlAssignBoss(this,event)">${bossInitial}</span>`
       :`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:transparent;border:1px dashed rgba(255,255,255,.2);cursor:pointer;vertical-align:middle;font-size:9px;color:#4b5563;line-height:12px;text-align:center" data-tl-boss-dot data-ability="${_tlEsc(ev.ability)}" onclick="tlAssignBoss(this,event)" title="Přiřadit bosse">○</span>`;
     const _hlColor=boss?boss.color:(ed.color||null);
+    const _hlMode=boss?(boss.highlight||'overlay'):_tlHighlightMode;
     const rowStyle=_hlColor
-      ?(_tlHighlightMode==='border'
+      ?(_hlMode==='border'
         ?`border-left:4px solid ${_hlColor};background:${bg}`
         :`border-left:4px solid ${_hlColor};background:${_tlHexTint(_hlColor,0.28)}`)
       :`background:${bg};border-left:3px solid transparent`;
@@ -8300,8 +8300,6 @@ let _tlHighlightMode=localStorage.getItem('tlHighlightMode')||'overlay';
 function _tlSetHighlightMode(m){
   _tlHighlightMode=m;
   localStorage.setItem('tlHighlightMode',m);
-  document.getElementById('tlHlOverlay').className='btn '+(m==='overlay'?'btn-green':'btn-ghost');
-  document.getElementById('tlHlBorder').className='btn '+(m==='border'?'btn-green':'btn-ghost');
   if(_tlView==='table') tlRenderTable(document.getElementById('tlSearch').value);
 }
 let _tlBosses={}, _tlActiveBoss=null, _tlBossCats={};
@@ -8323,10 +8321,18 @@ function _tlRenderBossPanel(){
     html+=`<div style="display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:6px;cursor:pointer;margin-bottom:2px;${active?'background:rgba(255,255,255,.08);outline:1.5px solid '+boss.color+';outline-offset:-1px':'background:transparent'}" onclick="_tlSetActiveBoss('${id}')">
       <span style="display:inline-block;width:13px;height:13px;border-radius:50%;background:${boss.color};border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer" title="Změnit barvu" onclick="event.stopPropagation();_tlBossPickColor('${id}',event)"></span>
       <span data-boss-id="${id}" style="font-size:12px;color:${active?'#e2e8f0':'#a8b0c8'};flex:1;font-weight:${active?700:400};overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="2× klik = přejmenovat" ondblclick="event.stopPropagation();_tlBossRename('${id}',this)">${_tlEsc(boss.name)}</span>
+      <span title="${boss.highlight==='border'?'Mód: jen border (klik = overlay)':'Mód: overlay (klik = border)'}" onclick="event.stopPropagation();_tlBossToggleHighlight('${id}')" style="font-size:10px;color:${boss.highlight==='border'?'#60a5fa':'#4ade80'};cursor:pointer;flex-shrink:0;padding:0 3px;line-height:1;font-weight:700;user-select:none">${boss.highlight==='border'?'│B':'▬O'}</span>
       <span style="font-size:13px;line-height:1;color:#4b5563;cursor:pointer;flex-shrink:0;padding:0 2px" title="Smazat" onclick="event.stopPropagation();_tlBossDelete('${id}')">×</span>
     </div>`;
   });
   el.innerHTML=html;
+}
+function _tlBossToggleHighlight(id){
+  if(!_tlBosses[id]) return;
+  _tlBosses[id].highlight=(_tlBosses[id].highlight||'overlay')==='overlay'?'border':'overlay';
+  _tlSaveBossData();
+  _tlRenderBossPanel();
+  if(_tlView==='table') tlRenderTable(document.getElementById('tlSearch').value);
 }
 function _tlBossRename(id,spanEl){
   const boss=_tlBosses[id]; if(!boss) return;
@@ -8623,9 +8629,6 @@ function _tlHideTip(){ const t=document.getElementById('tlTip'); if(t) t.style.d
       <input id="tlSearch" type="text" autocomplete="off" placeholder="🔍 Hledat..." style="padding:4px 8px;border-radius:6px;border:1px solid var(--border,#2a2d3a);background:var(--bg2,#161922);color:var(--text);font-size:12px;width:160px" oninput="tlFilter(this.value)">
       <button id="tlBtnTable" class="btn btn-green" onclick="tlSetView('table')" style="padding:4px 12px;font-size:12px">☰ Tabulka</button>
       <button id="tlBtnGantt" class="btn btn-ghost" onclick="tlSetView('gantt')" style="padding:4px 12px;font-size:12px">⏱ Osa</button>
-      <div style="width:1px;height:20px;background:var(--border,#2a2d3a)"></div>
-      <button id="tlHlOverlay" class="btn btn-green" onclick="_tlSetHighlightMode('overlay')" style="padding:4px 10px;font-size:11px" title="Highlight: barevný overlay">▬ Overlay</button>
-      <button id="tlHlBorder" class="btn btn-ghost" onclick="_tlSetHighlightMode('border')" style="padding:4px 10px;font-size:11px" title="Highlight: jen border">│ Border</button>
       <div style="width:1px;height:20px;background:var(--border,#2a2d3a)"></div>
       <button id="tlSaveBtn" class="btn btn-ghost" onclick="tlCloudSave()" style="padding:4px 12px;font-size:12px;color:#4f8eff;border-color:rgba(79,142,255,.3)">☁ Uložit</button>
     </div>
