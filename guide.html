@@ -8205,7 +8205,7 @@ function tlRenderTable(q){
       <td style="padding:6px 10px">
         <span class="tl-note" data-slug="${_tlEsc(slug)}" data-key="${_tlEsc(eKey)}"
           contenteditable="true" spellcheck="false"
-          style="display:block;width:100%;color:#22d3ee;font-size:13px;outline:none;border-radius:3px;padding:2px 4px;cursor:text;min-height:20px"
+          style="display:block;width:100%;color:#22d3ee;font-size:13px;font-weight:700;outline:none;border-radius:3px;padding:2px 4px;cursor:text;min-height:20px"
           onfocus="_tlNoteFocus(this)"
           onblur="tlSaveNote(this);this.style.outline=''"
           onkeydown="if(event.key==='Escape'){_tlNoteHideSuggest();}else if(event.key==='Enter'&&!document.getElementById('tlNoteSuggest')){event.preventDefault();this.blur();}"
