@@ -297,6 +297,75 @@ GH_IMG_BASE = 'https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/Images/'
 
 
 
+## 📦 Session 7 — Přehled změn (12. červen 2026)
+
+### Fix: Real-time overlay/border toggle pro custom color rows
+
+**Problém:** Přepínání border/overlay v color pickeru pro custom-color řádky nefungovalo real-time — na rozdíl od boss řádků.
+
+**Root cause:** Předchozí fix (session 6) používal přímou DOM manipulaci (`row.style.outline = ...`). Browser quirk: dynamické nastavení `outline` přes JS na existující `<tr>` element se někdy nevykreslí správně (oproti `outline` nastavenému přes `innerHTML`).
+
+**Řešení:** Custom color path nyní volá `tlRenderTable` (stejně jako boss path) + re-anchoring `_tlColorPopRow`:
+```javascript
+_tlSetEdit(slug, key, 'highlight', m);  // save first
+saveState();
+tlRenderTable(q);                        // re-render reads updated data
+// Re-anchor to new <tr> after re-render
+_tlColorPopRow = Array.from(document.querySelectorAll('#tlTableBody tr'))
+    .find(tr => tr.dataset.key === _savedKey);
+```
+
+### Feature: 4 nové overlay styly
+
+**Nové módy** (v color pickeru):
+- **▬ Fill** (byl Overlay) — tinted background + levý accent strip
+- **□ Border** — outline kolem řádku  
+- **▨ Stripe** — diagonální pruhy (caution tape styl), průhledné + custom color
+- **◧ Fade** — gradient zleva (plná barva) doprava (průhledné)
+
+**Implementace:**
+- Přidána funkce `_tlRowStyle(hex, mode)` — single source of truth pro row styling
+- `tlRenderTable` a `_tlColorPopSetMode` obě volají `_tlRowStyle`
+- Accent strip (`box-shadow: inset 4px 0 0 0 color` na první `<td>`) jen pro Fill mode
+
+**CSS pro stripe:** `repeating-linear-gradient(45deg, color 0-8px, transparent 8-16px)`
+**CSS pro fade:** `linear-gradient(to right, color 0%, transparent 100%)`
+
+**Soubory změněny:** `guide.html`
+
+---
+
+## 📦 Session 6 — Přehled změn (12. červen 2026)
+
+### Oprava: Overlay/Border toggle v custom color pickeru
+
+**Problém:** Kliknutí na Overlay/Border tlačítka v color pickeru nefungovalo pro custom-colored řádky. U boss-assigned řádků toggle fungoval, u custom rows ne — i přesto, že kód vypadal identicky.
+
+**Root cause:** `_tlColorPopSetMode` volal `tlRenderTable()` (full re-render tbody). Tento re-render byl spuštěn i při otevření pickeru (`tlPickColor` → `_tlColorPopSetMode`). Po re-renderu `_reanchor()` aktualizoval `_tlColorPopRow` na nový `<tr>`. Ale při následném kliknutí na toggle se stalo něco co způsobilo, že re-render neaplikoval změnu — přesný root cause v re-render path se nepodařilo izolovat.
+
+**Řešení:** Pro custom color rows přepnuto na **přímou DOM manipulaci** místo re-renderu:
+- `m === 'border'` → `row.style.outline = '1px solid color'`, odebere `box-shadow` z prvního `<td>`, nastaví `background = rgba(255,255,255,0.06)`
+- `m === 'overlay'` → `row.style.outline = 'none'`, přidá `box-shadow: inset 4px 0 0 0 color` na první `<td>`, nastaví tinted background přes `_tlHexTint`
+- Data se stále ukládají přes `_tlSetEdit` + `saveState()` → přetrvají přes re-rendery
+- Boss path zůstal beze změny (stále používá `tlRenderTable`)
+
+**Výhoda:** `_tlColorPopRow` nikdy není invalidováno zbytečným re-renderem, takže přímý DOM update vždy cílí na správný element.
+
+**Soubory změněny:** `guide.html` (funkce `_tlColorPopSetMode`)
+
+**Git commit:** `Fix overlay/border toggle for custom color rows - direct DOM update instead of re-render`
+
+---
+
+### Technické poznatky z debugování
+
+- `border-collapse:collapse` ignoruje `border-left` na `<tr>` — musí se použít `box-shadow:inset` na první `<td>`
+- `outline:1px solid` na `<tr>` není ovlivněno `border-collapse`
+- `style.removeProperty('box-shadow')` je spolehlivější než `style.boxShadow = ''`
+- Globální `mousedown` handler (řádek ~4108) zavírá `tlColorPop` pokud klik není uvnitř popup — ale tlačítka JSOU uvnitř, takže popup se nezavírá při kliknutí na toggle
+
+---
+
 ## 📦 Session 5 — Přehled změn (10. červen 2026)
 
 ### Oprava: Text formatting toolbar (`#fmtBar`) — obarvování textu v notes
@@ -369,53 +438,4 @@ cd "C:\Users\Filip\Desktop\Claude Projects\RaidGuideWOW" && git add guide.html &
 ### Groups logika
 - **assignPlayer** — hráč může být v G1–G4 pouze jednou; přiřazení do jiné skupiny ho automaticky odebere ze staré
 
-### Dead code cleanup (~126 řádků odstraněno)
-- `initImgZoomPan`, `updateImgTransform`, `restoreImgSettings`
-- Scale/X/Y toolbar controls
-- `downloadHTML` + dlBtn
-- 4 `img-hotspot` divů ze slidu 5
-- CSS `--img-scale/offset` vars
-
----
-
-## ⚠️ Známé problémy / omezení
-
-- **Triangle resize handles** — sdílí rect logiku (funguje ale vizuálně handle body neodpovídají rohům trojúhelníku)
-- **Font-size v % pro polygon** — SVG `polygon points` nepodporuje %, trojúhelník počítá px přes `getBoundingClientRect()`
-- **Toolbar drag** — při prvním chycení čte pozici před odstraněním CSS `transform: translateY(-50%)`
-- **Slidy a canvas nejsou v cloudu** — pouze localStorage; při vymazání prohlížeče se ztratí. Pro zálohu použij export tlačítko nebo commit do gitu.
-- **Sandbox nemůže commitovat** — git credentials jsou ve Windows Credential Manageru, push vždy dělá uživatel ručně.
-
----
-
-## 🛠️ Pravidlo: NIKDY nepoužívat Edit tool na index.html
-
-Edit tool **opakovaně truncuje `index.html`** — soubor se zkrátí uprostřed věty, chybí stovky řádků. Projevuje se jako `toggleEditMode is not defined` v konzoli nebo soubor nekončí `</html>`.
-
-### Řešení: vždy Python přes Bash
-```python
-python3 << 'PYEOF'
-with open('/sessions/inspiring-tender-bell/mnt/RaidGuideWOW/index.html', 'r', encoding='utf-8') as f:
-    html = f.read()
-
-html = html.replace('STARÝ_TEXT', 'NOVÝ_TEXT')
-
-with open('/sessions/inspiring-tender-bell/mnt/RaidGuideWOW/index.html', 'w', encoding='utf-8') as f:
-    f.write(html)
-
-print('Done, lines:', html.count('\n'))
-PYEOF
-```
-
-### Kontrola po každé změně
-```bash
-tail -1 /sessions/inspiring-tender-bell/mnt/RaidGuideWOW/index.html  # musí být </html>
-wc -l /sessions/inspiring-tender-bell/mnt/RaidGuideWOW/index.html    # musí být ~7000+ řádků
-```
-
-### Sandbox cesta k souboru
-```
-Windows:  C:\Users\Filip\Desktop\Claude Projects\RaidGuideWOW\guide.html
-Sandbox:  /sessions/<session-id>/mnt/RaidGuideWOW/guide.html
-```
-> Poznámka: session-id se mění při každém chatu. Zjisti ho přes `ls /sessions/` nebo z kontextu systémového promptu.
+### Dead code cl
