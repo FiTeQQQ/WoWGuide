@@ -967,11 +967,19 @@
       </div>
     </div>
 
-    <!-- VEL. (player/group/marker/boss) -->
-    <div id="cvS_iconSize" class="cv-row" style="display:none">
-      <span class="cv-lbl">Vel.</span>
-      <input type="range" id="cvIconSize" min="16" max="80" value="32" style="width:70px" oninput="cvApplyProp('iconSize',this.value);document.getElementById('cvIconSizeV').textContent=this.value">
-      <span class="cv-val" id="cvIconSizeV">32</span>
+    <!-- VEL. (player/group/marker/boss/spell) -->
+    <div id="cvS_iconSize" style="display:none;flex-direction:column;gap:2px">
+      <div class="cv-row">
+        <span class="cv-lbl">Vel.</span>
+        <input type="range" id="cvIconSize" min="16" max="80" value="32" style="width:60px" oninput="cvApplyProp('iconSize',this.value);cvSyncSizeInputs(this.value)">
+        <input type="number" id="cvIconSizeNum" min="4" max="400" value="32" title="Přepiš velikost vybraného prvku na vlastní hodnotu" style="width:48px;background:rgba(255,255,255,.07);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;padding:2px 4px;outline:none" oninput="cvApplyProp('iconSize',this.value);cvSyncSizeInputs(this.value)">
+        <span class="cv-val" id="cvIconSizeV" style="display:none">32</span>
+      </div>
+      <div class="cv-row" style="margin-top:1px">
+        <span class="cv-lbl" title="Výchozí velikost pro tento typ prvku – uloží se do cloudu a použije se pro nově vkládané prvky">Default</span>
+        <input type="number" id="cvIconSizeDefault" min="4" max="400" placeholder="–" title="Výchozí velikost pro tento typ prvku (uloží se do cloudu pro budoucí prvky)" style="width:48px;background:rgba(255,255,255,.07);border:1px solid var(--accent-border,#3b82f6);border-radius:4px;color:var(--text);font-size:11px;padding:2px 4px;outline:none" oninput="cvSetTypeDefault(this.value)">
+        <button class="btn btn-ghost" style="font-size:9px;padding:2px 6px" title="Nastav velikost vybraného prvku na výchozí" onclick="cvApplyTypeDefaultToSelected()">použít</button>
+      </div>
     </div>
 
     <!-- LABEL (pouze player) -->
@@ -2447,6 +2455,12 @@ let showGroups  = true;
 let groupsLabel = 'Execution Sentence Groups';
 let groupsColor = '#F48CBA';
 let canvasData  = {};    // { slideId: [canvasObj, ...] }
+let cvTypeDefaults = {}; // { player:25, group:36, marker:36, boss:40, spell:40 } — per-type default icon size (cloud-synced)
+const CV_SIZE_FALLBACK = { player:25, group:36, marker:36, boss:40, spell:40, text:16 };
+function cvDefaultSize(type){
+  if(cvTypeDefaults && cvTypeDefaults[type]!=null) return cvTypeDefaults[type];
+  return CV_SIZE_FALLBACK[type] || 32;
+}
 let encounterSpells = { bosses: [] }; // { bosses: [{name, spells:[{id,name,icon}]}] }
 let cvPresets   = ['#3b82f6','#ef4444','#22c55e','#f59e0b','#e879f9','#e8e8e8']; // 6 user-customizable color presets
 let deletedSlides = []; // slide IDs permanently removed by user
@@ -2545,6 +2559,7 @@ function loadState(){
     if(d.canvasData) canvasData=d.canvasData;
     if(d.variantCanvasData) variantCanvasData=d.variantCanvasData;
     if(d.cvPresets?.length===6) cvPresets=d.cvPresets;
+    if(d.cvTypeDefaults) cvTypeDefaults=d.cvTypeDefaults;
     if(d.deletedSlides?.length) { deletedSlides=d.deletedSlides; applyDeletedSlides(); }
     if(d.slideBars){ Object.entries(d.slideBars).forEach(([sid,bar])=>{ const sl=document.getElementById(sid); if(!sl) return; const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title'); if(num&&bar.num!==undefined) num.textContent=bar.num; if(ttl&&bar.title!==undefined) ttl.innerHTML=bar.title; }); }
     if(d.slideNotes){
@@ -2575,7 +2590,7 @@ function saveState(){
       const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title');
       _slideBarsSnap[sl.id]={num:num?num.textContent:'',title:ttl?ttl.innerHTML:''};
     });
-    localStorage.setItem(_lsKey(),JSON.stringify({roster,slots,images,assignmentExtras,showGroups,groupsLabel,groupsColor,canvasData,variantCanvasData,cvPresets,slideNotes:_slideNotesSnap,slideBars:_slideBarsSnap,deletedSlides}));
+    localStorage.setItem(_lsKey(),JSON.stringify({roster,slots,images,assignmentExtras,showGroups,groupsLabel,groupsColor,canvasData,variantCanvasData,cvPresets,cvTypeDefaults,slideNotes:_slideNotesSnap,slideBars:_slideBarsSnap,deletedSlides}));
   }catch(e){ console.warn('saveState localStorage error:',e); }
   syncRosterCloud();
   _autoCloudSync();
@@ -5348,7 +5363,7 @@ function cvMiniPlaceSpell(spell){
     id:'cv_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
     type:'spell',
     x:42, y:42,
-    iconSize:36,
+    iconSize:cvDefaultSize('spell'),
     spellId:spell.id,
     spellIcon:spell.icon||'inv_misc_questionmark',
     spellName:spell.name
@@ -5638,7 +5653,7 @@ function buildPayload(lock=false){
     const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title');
     slideBars[sl.id]={num:num?num.textContent:'',title:ttl?ttl.innerHTML:''};
   });
-  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, canvasData, variantCanvasData, locked: lock, slideNotes, slideBars, deletedSlides, tlEdits: _tlEdits, tlBosses: _tlBosses, tlBossCats: _tlBossCats, tlHighlightMode: _tlHighlightMode };
+  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, canvasData, variantCanvasData, cvTypeDefaults, locked: lock, slideNotes, slideBars, deletedSlides, tlEdits: _tlEdits, tlBosses: _tlBosses, tlBossCats: _tlBossCats, tlHighlightMode: _tlHighlightMode };
 }
 
 async function _postRoster(payload){
@@ -5741,6 +5756,7 @@ async function loadFromCloud(id){
     if(data.groupsColor) groupsColor=data.groupsColor;
     if(data.canvasData) canvasData=data.canvasData;
     if(data.variantCanvasData) variantCanvasData=data.variantCanvasData;
+    if(data.cvTypeDefaults) cvTypeDefaults=data.cvTypeDefaults;
     setLocked(data.locked||false);
     if(data.deletedSlides?.length) { deletedSlides=data.deletedSlides; applyDeletedSlides(); }
     if(data.slideBars){ Object.entries(data.slideBars).forEach(([sid,bar])=>{ const sl=document.getElementById(sid); if(!sl) return; const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title'); if(num&&bar.num!==undefined) num.textContent=bar.num; if(ttl&&bar.title!==undefined) ttl.innerHTML=bar.title; }); }
@@ -6782,7 +6798,7 @@ function cvMouseDown(e,slideId){
   if(_cvTool==='rect'||_cvTool==='circle'||_cvTool==='triangle'){ base.x=px; base.y=py; base.w=0; base.h=0; }
   if(_cvTool==='arrow'){ base.x1=px; base.y1=py; base.x2=px; base.y2=py; }
   if(_cvTool==='player'){
-    base.x=px; base.y=py; base.iconSize=32; base.labelMode='full'; base.labelLayout='right';
+    base.x=px; base.y=py; base.iconSize=cvDefaultSize('player'); base.labelMode='full'; base.labelLayout='right';
     base.name=''; base.cls='warrior'; base.showIcon=true;
     const rosterNames=Object.keys(window.roster||{});
     if(rosterNames.length){
@@ -6808,7 +6824,7 @@ function cvMouseDown(e,slideId){
     return;
   }
   if(_cvTool==='group'){
-    base.x=px; base.y=py; base.iconSize=32; base.labelMode='none'; base.labelLayout='right';
+    base.x=px; base.y=py; base.iconSize=cvDefaultSize('group'); base.labelMode='none'; base.labelLayout='right';
     const gn=prompt('Skupina (1-4):','1');
     if(!gn) return;
     base.groupNum=parseInt(gn)||1;
@@ -6818,7 +6834,7 @@ function cvMouseDown(e,slideId){
     return;
   }
   if(_cvTool==='marker'){
-    base.x=px; base.y=py; base.iconSize=32; base.labelMode='none'; base.labelLayout='right';
+    base.x=px; base.y=py; base.iconSize=cvDefaultSize('marker'); base.labelMode='none'; base.labelLayout='right';
     const markerNames=['Star','Circle','Diamond','Triangle','Moon','Square','Cross','Skull'];
     const opts=markerNames.map(function(n,i){return (i+1)+'. '+n;}).join('\n');
     const sel=prompt('Vyber marker:\n'+opts,'1');
@@ -7176,9 +7192,11 @@ function syncPropsPanel(obj){
     const fs=document.getElementById('cvFontSize'); if(fs) fs.value=obj.fontSize||16;
   }
   // Icon size
-  if(isPlayer||isGroup||isMarker||isBoss){
-    const iz=document.getElementById('cvIconSize'); const izv=document.getElementById('cvIconSizeV');
-    if(iz){iz.value=obj.iconSize||25;if(izv)izv.textContent=obj.iconSize||25;}
+  if(isPlayer||isGroup||isMarker||isBoss||isSpell){
+    const cur=obj.iconSize||cvDefaultSize(obj.type);
+    cvSyncSizeInputs(cur);
+    const izd=document.getElementById('cvIconSizeDefault');
+    if(izd) izd.value=(cvTypeDefaults && cvTypeDefaults[obj.type]!=null)?cvTypeDefaults[obj.type]:'';
   }
   // Player label
   if(isPlayer){
@@ -7329,6 +7347,35 @@ function cvApplyProp(prop,val){
   if(prop==='bossLabelSize') obj.bossLabelSize=val;
   if(prop==='bossLabelOutline') obj.bossLabelOutline=val;
   if(prop==='rot') obj.rot=parseFloat(val);
+  saveState(); renderCvOverlay(_cvSelSlide);
+}
+
+// ── Velikost: sync posuvníku + číselného pole + výchozí (per-typ, cloud) ──
+function cvSyncSizeInputs(val){
+  const v=parseInt(val); if(isNaN(v)) return;
+  const s=document.getElementById('cvIconSize');
+  const n=document.getElementById('cvIconSizeNum');
+  const sv=document.getElementById('cvIconSizeV');
+  if(s){ const cl=Math.max(+s.min,Math.min(+s.max,v)); if(+s.value!==cl) s.value=cl; }
+  if(n && +n.value!==v) n.value=v;
+  if(sv) sv.textContent=v;
+}
+function cvCurrentSelObj(){
+  if(!_cvSelSlide||!_cvSelId) return null;
+  return (canvasData[_cvSelSlide]||[]).find(function(o){return o.id===_cvSelId;})||null;
+}
+function cvSetTypeDefault(val){
+  const o=cvCurrentSelObj(); if(!o) return;
+  const v=parseInt(val);
+  if(!v||v<=0){ delete cvTypeDefaults[o.type]; }
+  else { cvTypeDefaults[o.type]=v; }
+  saveState();
+}
+function cvApplyTypeDefaultToSelected(){
+  const o=cvCurrentSelObj(); if(!o) return;
+  const d=cvDefaultSize(o.type);
+  o.iconSize=d;
+  cvSyncSizeInputs(d);
   saveState(); renderCvOverlay(_cvSelSlide);
 }
 
@@ -7597,7 +7644,7 @@ function cvMiniPlaceRoster(){
     const cls=(p.class||'warrior').toLowerCase().replace(/\s/g,'');
     const obj={id:cvUid(),type:'player',x:50,y:50,
       name,cls,fill:CC[cls]||'#aaa',specIcon:p.specIcon||'',
-      iconSize:25,labelMode:'full',labelLayout:'right',showIcon:true};
+      iconSize:cvDefaultSize('player'),labelMode:'full',labelLayout:'right',showIcon:true};
     canvasData[slideId].push(obj);
   });
   saveState(); renderCvOverlay(slideId); setCvTool('select');
@@ -7612,7 +7659,7 @@ function cvMiniPlaceGroups(){
   if(!slideId){ toast('Najeď myší na slide.'); return; }
   if(!canvasData[slideId]) canvasData[slideId]=[];
   checked.forEach((gn,i)=>{
-    const obj={id:cvUid(),type:'group',x:50,y:50,groupNum:gn,iconSize:36,labelMode:'none',labelLayout:'right'};
+    const obj={id:cvUid(),type:'group',x:50,y:50,groupNum:gn,iconSize:cvDefaultSize('group'),labelMode:'none',labelLayout:'right'};
     canvasData[slideId].push(obj);
   });
   saveState(); renderCvOverlay(slideId);
@@ -7631,7 +7678,7 @@ function cvMiniPlaceAssign(){
   checked.forEach((cb,i)=>{
     const obj={id:cvUid(),type:'group',x:50,y:50,
       groupNum:0,assignLabel:cb.dataset.label,assignColor:cb.dataset.color,
-      iconSize:36,iconShape:'circle',labelMode:'full',labelLayout:'right',
+      iconSize:cvDefaultSize('group'),iconShape:'circle',labelMode:'full',labelLayout:'right',
       fill:cb.dataset.color||'#4f8eff'};
     canvasData[slideId].push(obj);
   });
@@ -7666,7 +7713,7 @@ function cvMiniPlaceMarker(idx){
   const slideId=_cvLastSlide||(document.querySelector('.slide-img')&&document.querySelector('.slide-img').id);
   if(!slideId){ toast('Najeď myší na slide.'); return; }
   if(!canvasData[slideId]) canvasData[slideId]=[];
-  const obj={id:cvUid(),type:'marker',x:50,y:50,markerIdx:idx,iconSize:36,labelMode:'none',labelLayout:'right'};
+  const obj={id:cvUid(),type:'marker',x:50,y:50,markerIdx:idx,iconSize:cvDefaultSize('marker'),labelMode:'none',labelLayout:'right'};
   canvasData[slideId].push(obj);
   saveState(); renderCvOverlay(slideId);
   setCvTool('select'); cvSelectObj(slideId,obj.id);
@@ -7912,7 +7959,7 @@ function cvMiniPlaceBoss(url, name){
   const slideId=_cvLastSlide||(document.querySelector('.slide-img')&&document.querySelector('.slide-img').id);
   if(!slideId){ toast('Najeď myší na slide.'); return; }
   if(!canvasData[slideId]) canvasData[slideId]=[];
-  const obj={id:cvUid(),type:'boss',x:45,y:45,bossUrl:url,bossName:name||'boss',iconSize:40,labelMode:'none',labelLayout:'right'};
+  const obj={id:cvUid(),type:'boss',x:45,y:45,bossUrl:url,bossName:name||'boss',iconSize:cvDefaultSize('boss'),labelMode:'none',labelLayout:'right'};
   canvasData[slideId].push(obj);
   saveState(); renderCvOverlay(slideId);
   setCvTool('select'); cvSelectObj(slideId,obj.id);
@@ -7929,7 +7976,7 @@ function cvMiniPlaceBossGeneric(type){
   if(!slideId){ toast('Najeď myší na slide.'); return; }
   if(!canvasData[slideId]) canvasData[slideId]=[];
   const obj={id:cvUid(),type:'boss',x:50,y:50,bossUrl:info.url||'',bossEmoji:info.emoji,bossName:info.label,
-    fill:info.color,iconSize:40,labelMode:'none',labelLayout:'right'};
+    fill:info.color,iconSize:cvDefaultSize('boss'),labelMode:'none',labelLayout:'right'};
   canvasData[slideId].push(obj);
   saveState(); renderCvOverlay(slideId); setCvTool('select'); cvSelectObj(slideId,obj.id);
 }
