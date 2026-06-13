@@ -8164,6 +8164,18 @@ function showTimeline(){
   panel.style.display='flex';
   _tlInitDrag();
   tlSetView('table');
+  _tlSyncEditBtn();
+}
+// Edit mód přepínač v timeline hlavičce
+function tlToggleEdit(){
+  if(typeof toggleEditMode==='function') toggleEditMode();
+  _tlSyncEditBtn();
+}
+function _tlSyncEditBtn(){
+  const b=document.getElementById('tlEditBtn'); if(!b) return;
+  const on=(typeof editMode!=='undefined') && editMode;
+  b.className='btn '+(on?'btn-green':'btn-ghost');
+  b.textContent=on?'✏ Úpravy: ZAP':'✏ Edit';
 }
 function _tlInitDrag(){
   const el=document.getElementById('tlGanttView');
@@ -8251,11 +8263,11 @@ function tlRenderTable(q){
       <td style="text-align:center;padding:6px 10px;color:#e2e8f0;font-family:monospace;font-size:14px;font-weight:700;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.08);white-space:nowrap;${_firstTdBL}">${ev.time}</td>
       <td style="padding:6px 10px;border-right:1px solid rgba(255,255,255,0.05)">
         <span style="display:inline-flex;align-items:center;gap:6px">
-          <span data-tl-color-dot data-slug="${_tlEsc(slug)}" data-key="${_tlEsc(eKey)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;border:1px solid rgba(255,255,255,0.25);cursor:pointer" title="Změnit barvu" onclick="tlPickColor(this,event.clientX,event.clientY)"></span>
+          <span class="edit-only" data-tl-color-dot data-slug="${_tlEsc(slug)}" data-key="${_tlEsc(eKey)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;border:1px solid rgba(255,255,255,0.25);cursor:pointer" title="Změnit barvu řádku" onclick="tlPickColor(this,event.clientX,event.clientY)"></span>
           <span data-tl-color style="font-size:13px;font-weight:400;color:${tcolor};padding:1px 6px 1px 4px">${ev.spellId
             ? `<a href="https://www.wowhead.com/spell=${ev.spellId}" data-wowhead style="color:inherit;text-decoration:none;cursor:default" onclick="return false">${_tlEsc(ev.ability)}</a>`
             : _tlEsc(ev.ability)}</span>
-          <span data-tl-tcolor-dot data-slug="${_tlEsc(slug)}" data-key="${_tlEsc(eKey)}" title="Barva textu" onclick="tlPickTextColor(this,event.clientX,event.clientY)" style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:3px;flex-shrink:0;border:1px solid rgba(255,255,255,0.2);cursor:pointer;font-size:10px;font-weight:800;line-height:1;color:${tcolor};background:rgba(255,255,255,0.06)">A</span>
+          <span class="edit-only" data-tl-tcolor-dot data-slug="${_tlEsc(slug)}" data-key="${_tlEsc(eKey)}" title="Barva textu" onclick="tlPickTextColor(this,event.clientX,event.clientY)" style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:3px;flex-shrink:0;border:1px solid rgba(255,255,255,0.2);cursor:pointer;font-size:10px;font-weight:800;line-height:1;color:${tcolor};background:rgba(255,255,255,0.06)">A</span>
         </span>
       </td>
       <td style="text-align:center;padding:6px 4px;border-right:1px solid rgba(255,255,255,0.05)">${bossLabel}</td>
@@ -8775,6 +8787,8 @@ function _tlHideTip(){ const t=document.getElementById('tlTip'); if(t) t.style.d
       <input id="tlSearch" type="text" autocomplete="off" placeholder="🔍 Hledat..." style="padding:4px 8px;border-radius:6px;border:1px solid var(--border,#2a2d3a);background:var(--bg2,#161922);color:var(--text);font-size:12px;width:160px" oninput="tlFilter(this.value)">
       <button id="tlBtnTable" class="btn btn-green" onclick="tlSetView('table')" style="padding:4px 12px;font-size:12px">☰ Tabulka</button>
       <button id="tlBtnGantt" class="btn btn-ghost" onclick="tlSetView('gantt')" style="padding:4px 12px;font-size:12px">⏱ Osa</button>
+      <div style="width:1px;height:20px;background:var(--border,#2a2d3a)"></div>
+      <button id="tlEditBtn" class="btn btn-ghost" onclick="tlToggleEdit()" title="Zapnout/vypnout úpravy (barvy, poznámky)" style="padding:4px 12px;font-size:12px">✏ Edit</button>
       <div style="width:1px;height:20px;background:var(--border,#2a2d3a)"></div>
       <button id="tlSaveBtn" class="btn btn-ghost" onclick="tlCloudSave()" style="padding:4px 12px;font-size:12px;color:#4f8eff;border-color:rgba(79,142,255,.3)">☁ Uložit</button>
     </div>
