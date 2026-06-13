@@ -68,6 +68,11 @@
     color: inherit !important;
     border-bottom-color: rgba(255,255,255,0.3);
   }
+  /* ── Timeline spell link — zdědí barvu buňky (data-tl-color), tooltip funguje dál ── */
+  [data-tl-color] a[href*="wowhead.com"],
+  [data-tl-color] a[href*="wowhead.com"]:hover {
+    color: inherit !important;
+  }
 
   /* ── Marker icons (inline in text) ── */
   .mk {
@@ -2157,6 +2162,36 @@
   </div>
 </div>
 
+<!-- Timeline TEXT color picker (jen barva názvu spellu) -->
+<div id="tlTextColorPop" style="display:none;position:fixed;z-index:10001;background:#1a1d2a;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:5px 7px;box-shadow:0 4px 16px rgba(0,0,0,.7);align-items:center;gap:4px;flex-wrap:wrap;width:270px">
+  <div style="width:100%;font-size:10px;color:#6b7280;font-weight:600;margin-bottom:1px">Barva textu</div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#C41E3A;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Death Knight" onclick="_tlTextColorPopApply('#C41E3A')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#A330C9;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Demon Hunter" onclick="_tlTextColorPopApply('#A330C9')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#FF7C0A;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Druid" onclick="_tlTextColorPopApply('#FF7C0A')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#33937F;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Evoker" onclick="_tlTextColorPopApply('#33937F')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#AAD372;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Hunter" onclick="_tlTextColorPopApply('#AAD372')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#3FC7EB;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Mage" onclick="_tlTextColorPopApply('#3FC7EB')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#00FF98;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Monk" onclick="_tlTextColorPopApply('#00FF98')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#F48CBA;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Paladin" onclick="_tlTextColorPopApply('#F48CBA')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#FFFFFF;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Priest" onclick="_tlTextColorPopApply('#FFFFFF')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#FFF468;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Rogue" onclick="_tlTextColorPopApply('#FFF468')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#0070DD;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Shaman" onclick="_tlTextColorPopApply('#0070DD')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#8788EE;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Warlock" onclick="_tlTextColorPopApply('#8788EE')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#C69B3A;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Warrior" onclick="_tlTextColorPopApply('#C69B3A')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#fb923c;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Oranžová" onclick="_tlTextColorPopApply('#fb923c')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#f87171;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Červená" onclick="_tlTextColorPopApply('#f87171')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#facc15;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Žlutá" onclick="_tlTextColorPopApply('#facc15')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#4ade80;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Zelená" onclick="_tlTextColorPopApply('#4ade80')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#22d3ee;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Cyan" onclick="_tlTextColorPopApply('#22d3ee')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#60a5fa;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Modrá" onclick="_tlTextColorPopApply('#60a5fa')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#e2e8f0;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Bílá" onclick="_tlTextColorPopApply('#e2e8f0')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#ffd100;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Zlatá (výchozí)" onclick="_tlTextColorPopApply('#ffd100')"></div>
+  <div style="width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0;margin:0 1px"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.35);cursor:pointer;flex-shrink:0;font-size:11px;display:flex;align-items:center;justify-content:center;color:#9ca3af;position:relative" title="Vlastní barva" onclick="this.querySelector('input').click()">+<input type="color" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none" oninput="_tlTextColorPopApply(this.value)"></div>
+  <div style="width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0;margin:0 1px"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#333,#111);border:1px solid rgba(255,255,255,.3);cursor:pointer;flex-shrink:0;font-size:9px;display:flex;align-items:center;justify-content:center;color:#fff" title="Reset na výchozí" onclick="_tlTextColorPopApply(null)">✕</div>
+</div>
+
 <!-- WarcraftLogs API Import -->
 <div id="wclModal" class="modal-bg">
   <div class="modal" style="max-width:500px">
@@ -4116,6 +4151,8 @@ function initFmtBar(){
     if(!bar.contains(e.target)) bar.classList.remove('visible');
     const pop=document.getElementById('tlColorPop');
     if(pop && !pop.contains(e.target) && !e.target.hasAttribute('data-tl-color-dot')) pop.style.display='none';
+    const tpop=document.getElementById('tlTextColorPop');
+    if(tpop && !tpop.contains(e.target) && !e.target.hasAttribute('data-tl-tcolor-dot')) tpop.style.display='none';
   });
 }
 
@@ -8200,6 +8237,7 @@ function tlRenderTable(q){
     const bossId=cats[ev.ability];
     const boss=bossId?_tlBosses[bossId]:null;
     const color = boss ? boss.color : (ed.color !== undefined ? ed.color : ev.color);
+    const tcolor = ed.tcolor || '#ffd100';
     const bg='rgba(255,255,255,0.06)';
     const bossInitial=boss?boss.name.trim().charAt(0).toUpperCase():'';
     const bossLabel=boss
@@ -8214,9 +8252,10 @@ function tlRenderTable(q){
       <td style="padding:6px 10px;border-right:1px solid rgba(255,255,255,0.05)">
         <span style="display:inline-flex;align-items:center;gap:6px">
           <span data-tl-color-dot data-slug="${_tlEsc(slug)}" data-key="${_tlEsc(eKey)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;border:1px solid rgba(255,255,255,0.25);cursor:pointer" title="Změnit barvu" onclick="tlPickColor(this,event.clientX,event.clientY)"></span>
-          <span data-tl-color style="font-size:13px;font-weight:400;color:#e2e8f0;padding:1px 6px 1px 4px">${ev.spellId
+          <span data-tl-color style="font-size:13px;font-weight:400;color:${tcolor};padding:1px 6px 1px 4px">${ev.spellId
             ? `<a href="https://www.wowhead.com/spell=${ev.spellId}" data-wowhead style="color:inherit;text-decoration:none;cursor:default" onclick="return false">${_tlEsc(ev.ability)}</a>`
             : _tlEsc(ev.ability)}</span>
+          <span data-tl-tcolor-dot data-slug="${_tlEsc(slug)}" data-key="${_tlEsc(eKey)}" title="Barva textu" onclick="tlPickTextColor(this,event.clientX,event.clientY)" style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:3px;flex-shrink:0;border:1px solid rgba(255,255,255,0.2);cursor:pointer;font-size:10px;font-weight:800;line-height:1;color:${tcolor};background:rgba(255,255,255,0.06)">A</span>
         </span>
       </td>
       <td style="text-align:center;padding:6px 4px;border-right:1px solid rgba(255,255,255,0.05)">${bossLabel}</td>
@@ -8366,6 +8405,38 @@ function _tlColorPopApply(c){
   }
   if(c===null){ _tlColorReset(_tlColorPopSlug,_tlColorPopKey,_tlColorPopRow); }
   else { _tlColorApply(c,_tlColorPopSlug,_tlColorPopKey,_tlColorPopRow); }
+}
+
+// ── Barva TEXTU (název spellu) — nezávislá na highlightu pozadí ──
+let _tlTextPopSlug='', _tlTextPopKey='', _tlTextPopRow=null;
+function tlPickTextColor(el,cx,cy){
+  _tlTextPopSlug=el.dataset.slug;
+  _tlTextPopKey=el.dataset.key;
+  _tlTextPopRow=el.closest('tr');
+  const pop=document.getElementById('tlTextColorPop');
+  pop.style.display='flex';
+  const pw=270, ph=120;
+  const _cx=Math.min(cx||0, window.innerWidth-pw-8);
+  const _cy=(cy||0)+4+ph>window.innerHeight-8?(cy||0)-ph-4:(cy||0)+4;
+  pop.style.left=Math.max(4,_cx)+'px';
+  pop.style.top=Math.max(4,_cy)+'px';
+}
+function _tlTextColorPopApply(c){
+  document.getElementById('tlTextColorPop').style.display='none';
+  if(!_tlTextPopSlug||!_tlTextPopKey) return;
+  const val = c===null ? '#ffd100' : c;
+  if(c===null){
+    if(_tlEdits[_tlTextPopSlug]&&_tlEdits[_tlTextPopSlug][_tlTextPopKey]) delete _tlEdits[_tlTextPopSlug][_tlTextPopKey]['tcolor'];
+    _tlSaveEdits();
+  } else {
+    _tlSetEdit(_tlTextPopSlug,_tlTextPopKey,'tcolor',c);
+  }
+  const row=_tlTextPopRow;
+  if(row){
+    const nameSpan=row.querySelector('[data-tl-color]'); if(nameSpan) nameSpan.style.color=val;
+    const dot=row.querySelector('[data-tl-tcolor-dot]'); if(dot) dot.style.color=val;
+  }
+  if(typeof saveState==='function') saveState();
 }
 
 // ── Boss category system ─────────────────────────────────────────────────────
