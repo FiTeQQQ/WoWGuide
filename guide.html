@@ -61,6 +61,13 @@
     color: #ffe566 !important;
     opacity: 1;
   }
+  /* ── Obarvený spell link — když je uvnitř barevného obalu, zdědí tvou barvu,
+        tooltip (data-wowhead) funguje dál beze změny ── */
+  [data-user-fmt] a[href*="wowhead.com"],
+  [data-user-fmt] a[href*="wowhead.com"]:hover {
+    color: inherit !important;
+    border-bottom-color: rgba(255,255,255,0.3);
+  }
 
   /* ── Marker icons (inline in text) ── */
   .mk {
