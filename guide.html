@@ -5886,7 +5886,9 @@ async function loadFromCloud(id, silent){
     const data = await res.json();
     if(data.assignmentExtras){ assignmentExtras=data.assignmentExtras; initSlots(); }
     if(data.slots){ Object.keys(slots).forEach(g=>slots[g].fill(null)); slots=data.slots; }
-    if(data.roster) roster=data.roster;
+    // Roster je GLOBÁLNÍ (jeden pro všechny bossy/raidy) — bere se z /api/roster/main přes loadRosterJson(),
+    // proto per-boss kopii rosteru ignorujeme. Místo toho znovu načteme globální roster.
+    if(typeof loadRosterJson==='function') loadRosterJson();
     if(data.images) images=data.images;
     if(data.showGroups!=null) showGroups=data.showGroups;
     if(data.groupsLabel) groupsLabel=data.groupsLabel;
