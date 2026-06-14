@@ -7567,6 +7567,29 @@ function _presentVariantObjs(realImg){
   if(_presentVarIdx===norm.activeIdx) return canvasData[realImg.id]||[];
   return (variantCanvasData[realImg.id]&&variantCanvasData[realImg.id][_presentVarIdx])||[];
 }
+// Přejmenuje všechna SVG id v klonu (a jejich url(#id) odkazy), aby nekolidovala s originálem
+// — jinak se clipPath/maska resolvuje na živý overlay a ikony (boss/player) se oříznou pryč.
+function _presentUniquifyIds(root){
+  const suffix='__p'+Math.floor(Math.random()*1e9).toString(36);
+  const map={};
+  root.querySelectorAll('[id]').forEach(el=>{ const old=el.id; const nw=old+suffix; el.id=nw; map[old]=nw; });
+  if(!Object.keys(map).length) return;
+  const urlAttrs=['clip-path','fill','stroke','mask','filter','marker-start','marker-end','marker-mid'];
+  root.querySelectorAll('*').forEach(el=>{
+    if(!el.getAttribute) return;
+    urlAttrs.forEach(a=>{
+      const v=el.getAttribute(a);
+      if(v && v.indexOf('url(#')>=0){
+        let nv=v; for(const old in map){ nv=nv.split('url(#'+old+')').join('url(#'+map[old]+')'); }
+        if(nv!==v) el.setAttribute(a,nv);
+      }
+    });
+    ['href','xlink:href'].forEach(a=>{
+      const v=el.getAttribute(a);
+      if(v && v.charAt(0)==='#' && map[v.slice(1)]) el.setAttribute(a,'#'+map[v.slice(1)]);
+    });
+  });
+}
 function _presentSlides(){
   const host=_slidesHost();
   if(!host) return Array.from(document.querySelectorAll('#phase1 .slide'));
@@ -7626,7 +7649,7 @@ function presentOpen(){
   const title=document.querySelector('.page-header h1');
   const t=document.getElementById('presentTitle'); if(t) t.textContent=title?title.textContent:'';
   presentBuildNums();
-  document.getElementById('presentNotes')?.classList.remove('open');
+  document.getElementById('presentNotes')?.classList.add('open'); // notes viditelné defaultně
   document.getElementById('presentMode').classList.add('open');
   document.body.style.overflow='hidden';
   presentGo(Math.min(_presentIdx, slides.length-1));
@@ -7687,6 +7710,7 @@ function presentRenderStage(){
   // klon pro zvolenou variantu (přerenderuje overlay na aktuální velikosti)
   const clone=_presentCloneVariant(realImg, _presentVarIdx);
   clone.removeAttribute('id');
+  _presentUniquifyIds(clone); // zabraň kolizi clipPath/mask id s živým overlayem
   clone.querySelectorAll('.cv-handle, .img-resize-handle, .img-set-btn, .img-add-variant-btn, .img-dot-bar').forEach(e=>e.remove());
   clone.style.width=natW+'px'; clone.style.height=natH+'px'; clone.style.margin='0'; clone.style.maxWidth='none'; clone.style.flex='none';
   const scaler=document.createElement('div'); scaler.className='present-scaler';
@@ -7704,17 +7728,22 @@ function presentRenderStage(){
       gEl.addEventListener('mouseleave',()=>hideCvGroupTip());
     }
   });
-  // scale na fit
+  // scale na fit (s ohledem na otevřený notes panel)
   const sRect=stage.getBoundingClientRect();
   const pad=20;
-  const scale=Math.max(0.05, Math.min((sRect.width-pad*2)/natW, (sRect.height-pad*2)/natH));
+  const notesEl=document.getElementById('presentNotes');
+  const notesOpen=notesEl&&notesEl.classList.contains('open');
+  const notesW=notesOpen?Math.min(380, window.innerWidth*0.8):0;
+  const scale=Math.max(0.05, Math.min((sRect.width-pad*2-notesW)/natW, (sRect.height-pad*2)/natH));
   clone.style.transform='scale('+scale+')';
   scaler.style.width=(natW*scale)+'px';
   scaler.style.height=(natH*scale)+'px';
+  scaler.style.marginRight=notesW+'px';
   // přepínač variant (více obrázků v jednom slidu)
   const nVars=realImg.id?_imgNormalize(realImg.id).variants.length:1;
   if(nVars>1){
     const db=document.createElement('div'); db.className='present-vardots';
+    if(notesW) db.style.left='calc(50% - '+(notesW/2)+'px)';
     for(let i=0;i<nVars;i++){
       const d=document.createElement('button');
       d.className='present-vardot'+(i===_presentVarIdx?' active':'');
@@ -7726,7 +7755,7 @@ function presentRenderStage(){
     stage.appendChild(db);
   }
 }
-function presentToggleNotes(){ document.getElementById('presentNotes')?.classList.toggle('open'); }
+function presentToggleNotes(){ document.getElementById('presentNotes')?.classList.toggle('open'); presentRenderStage(); }
 function presentFs(){
   const pm=document.getElementById('presentMode'); if(!pm) return;
   if(!document.fullscreenElement){ pm.requestFullscreen?.().catch(()=>{}); }
