@@ -792,6 +792,35 @@
   /* ── inline ref chips (small, in notes) ── */
   .mini-ref { font-size: 11px; color: var(--text-dim); }
   .mini-ref strong { color: var(--text-mid); }
+
+  /* ── PRESENTATION MODE ── */
+  #presentMode { position: fixed; inset: 0; z-index: 5000; background: #06070b; display: none; flex-direction: column; }
+  #presentMode.open { display: flex; }
+  .present-top { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: rgba(10,12,18,.92); border-bottom: 1px solid rgba(255,255,255,.08); flex-wrap: nowrap; overflow-x: auto; }
+  .present-title { font-size: 14px; font-weight: 800; color: var(--accent); white-space: nowrap; margin-right: 6px; }
+  .present-nums { display: flex; gap: 5px; flex: 1; flex-wrap: wrap; }
+  .present-num { min-width: 26px; height: 26px; padding: 0 6px; border-radius: 6px; border: 1px solid var(--border2); background: var(--surface2); color: var(--text-mid); font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all .12s; }
+  .present-num:hover { border-color: var(--accent-border); color: var(--accent); }
+  .present-num.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .present-top-btns { display: flex; gap: 6px; margin-left: auto; }
+  .present-stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
+  .present-scaler { position: relative; }
+  .present-scaler > .slide-img { position: relative; transform-origin: top left; }
+  .present-scaler > .slide-img .img-resize-handle,
+  .present-scaler > .slide-img .img-set-btn,
+  .present-scaler > .slide-img .img-add-variant-btn,
+  .present-scaler > .slide-img .img-dot-bar { display: none !important; }
+  .present-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 54px; height: 88px; border: none; border-radius: 10px; background: rgba(0,0,0,.4); color: #fff; font-size: 30px; cursor: pointer; opacity: .55; transition: opacity .15s, background .15s; z-index: 5; }
+  .present-nav:hover { opacity: 1; background: rgba(0,0,0,.65); }
+  .present-nav.prev { left: 14px; }
+  .present-nav.next { right: 14px; }
+  .present-bottom { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 9px 14px; background: rgba(10,12,18,.92); border-top: 1px solid rgba(255,255,255,.08); }
+  .present-slidetitle { font-size: 14px; font-weight: 700; color: #e6e9f2; }
+  .present-counter { font-size: 12px; color: var(--text-dim); min-width: 64px; text-align: center; }
+  .present-notes { position: absolute; top: 0; right: 0; bottom: 0; width: 380px; max-width: 80vw; background: rgba(12,14,22,.97); border-left: 1px solid rgba(255,255,255,.1); padding: 18px 20px; overflow-y: auto; transform: translateX(100%); transition: transform .2s; z-index: 10; }
+  .present-notes.open { transform: translateX(0); }
+  .present-notes .slide-notes { display: block; }
+  .present-notes .rc-add-btn, .present-notes .rc-add-choice, .present-notes .rc-remove-btn, .present-notes .role-switch-btn, .present-notes .rc-order-btns, .present-notes .hdg-del, .present-notes .hdg-order-btns, .present-notes .notes-title .hdg-del { display: none !important; }
 </style>
 
 <!-- Inline SVG icons -->
@@ -1192,6 +1221,7 @@
     <button class="btn btn-ghost" id="mainSaveBtn" onclick="cloudSave()" title="Uloží změny do cloudu (Ctrl+S)" style="display:none;color:#4f8eff;border-color:rgba(79,142,255,.35)">☁ Uložit</button>
     <button class="btn btn-ghost" id="makeCopyBtn" onclick="cloudFork()" title="Vytvoří novou kopii s vlastním linkem">Make Copy</button>
     <button class="btn btn-ghost" id="timelineBtn" onclick="showTimeline()" title="Boss timeline – tabulka &amp; osa">⏱ Timeline</button>
+    <button class="btn btn-ghost" id="presentBtn" onclick="presentOpen()" title="Fullscreen prezentace slidů (obrázky + canvas)">▶ Prezentace</button>
     <div style="width:1px;background:var(--border2);margin:0 2px"></div>
     <!-- Lock -->
     <div class="lock-toggle-wrap" id="lockToggle" onclick="toggleShareLock()" title="Zamknout — po uložení nebude možné editovat">
@@ -7484,6 +7514,147 @@ function renderAllCvOverlays(){
     if(canvasData[sid]&&canvasData[sid].length) renderCvOverlay(sid);
   });
 }
+
+// ═══════════════ PREZENTAČNÍ (FULLSCREEN) MÓD ═══════════════
+let _presentIdx = 0;
+let _presentResizeBound = false;
+function _presentSlides(){
+  const host=_slidesHost();
+  if(!host) return Array.from(document.querySelectorAll('#phase1 .slide'));
+  return _slideEls(host);
+}
+function presentBuild(){
+  if(document.getElementById('presentMode')) return;
+  const pm=document.createElement('div');
+  pm.id='presentMode';
+  pm.innerHTML=`
+    <div class="present-top">
+      <span class="present-title" id="presentTitle"></span>
+      <div class="present-nums" id="presentNums"></div>
+      <div class="present-top-btns">
+        <button class="btn btn-ghost" onclick="presentToggleNotes()" title="Zobrazit poznámky">📝 Notes</button>
+        <button class="btn btn-ghost" onclick="presentFs()" title="Celá obrazovka">⛶</button>
+        <button class="btn btn-ghost" onclick="presentClose()" title="Zavřít (Esc)">✕</button>
+      </div>
+    </div>
+    <div class="present-stage" id="presentStage">
+      <button class="present-nav prev" onclick="presentPrev()" title="Předchozí (←)">‹</button>
+      <button class="present-nav next" onclick="presentNext()" title="Další (→)">›</button>
+      <div class="present-notes" id="presentNotes"></div>
+    </div>
+    <div class="present-bottom">
+      <button class="btn btn-ghost" onclick="presentPrev()">◀ Předchozí</button>
+      <span class="present-slidetitle" id="presentSlideTitle"></span>
+      <span class="present-counter" id="presentCounter"></span>
+      <button class="btn btn-ghost" onclick="presentNext()">Další ▶</button>
+    </div>`;
+  document.body.appendChild(pm);
+  if(!_presentResizeBound){
+    window.addEventListener('resize',()=>{ if(document.getElementById('presentMode')?.classList.contains('open')) presentRenderStage(); });
+    _presentResizeBound=true;
+  }
+}
+function presentBuildNums(){
+  const bar=document.getElementById('presentNums'); if(!bar) return;
+  bar.innerHTML='';
+  _presentSlides().forEach((slide,i)=>{
+    const num=slide.querySelector('.slide-num');
+    const label=(num&&num.textContent.trim())||String(i+1);
+    const b=document.createElement('button');
+    b.className='present-num'; b.textContent=label;
+    b.onclick=()=>presentGo(i);
+    bar.appendChild(b);
+  });
+}
+function presentOpen(){
+  presentBuild();
+  const slides=_presentSlides();
+  if(!slides.length){ toast('Žádné slidy.'); return; }
+  // Zajisti rozbalenou sekci se slidy (kvůli měření canvas overlay)
+  const host=_slidesHost();
+  const body=host?host.closest('.sec-body'):null;
+  if(body){ body.style.maxHeight='99999px'; const hdr=body.parentElement?.querySelector('.sec-header'); if(hdr) hdr.classList.remove('closed'); }
+  const title=document.querySelector('.page-header h1');
+  const t=document.getElementById('presentTitle'); if(t) t.textContent=title?title.textContent:'';
+  presentBuildNums();
+  document.getElementById('presentNotes')?.classList.remove('open');
+  document.getElementById('presentMode').classList.add('open');
+  document.body.style.overflow='hidden';
+  presentGo(Math.min(_presentIdx, slides.length-1));
+}
+function presentClose(){
+  const pm=document.getElementById('presentMode'); if(pm) pm.classList.remove('open');
+  document.body.style.overflow='';
+  if(document.fullscreenElement){ try{ document.exitFullscreen(); }catch(e){} }
+}
+function presentPrev(){ presentGo(_presentIdx-1); }
+function presentNext(){ presentGo(_presentIdx+1); }
+function presentGo(idx){
+  const slides=_presentSlides();
+  if(!slides.length) return;
+  idx=Math.max(0, Math.min(idx, slides.length-1));
+  _presentIdx=idx;
+  // active number button
+  document.querySelectorAll('#presentNums .present-num').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  // titulek + counter
+  const slide=slides[idx];
+  const numTxt=(slide.querySelector('.slide-num')?.textContent||'').trim();
+  const ttlTxt=(slide.querySelector('.slide-title')?.textContent||'').trim();
+  const st=document.getElementById('presentSlideTitle'); if(st) st.textContent=(numTxt?numTxt+' · ':'')+ttlTxt;
+  const c=document.getElementById('presentCounter'); if(c) c.textContent=(idx+1)+' / '+slides.length;
+  // notes
+  const notesHost=document.getElementById('presentNotes');
+  if(notesHost){
+    const sn=slide.querySelector('.slide-notes');
+    notesHost.innerHTML='';
+    const h=document.createElement('div'); h.style.cssText='font-size:15px;font-weight:800;color:var(--accent);margin-bottom:12px';
+    h.textContent=(numTxt?numTxt+' · ':'')+ttlTxt; notesHost.appendChild(h);
+    if(sn){ const cl=sn.cloneNode(true); cl.querySelectorAll('[contenteditable]').forEach(e=>e.removeAttribute('contenteditable')); notesHost.appendChild(cl); }
+  }
+  presentRenderStage();
+  if(typeof applyWowheadHandlers==='function') setTimeout(applyWowheadHandlers,60);
+}
+function presentRenderStage(){
+  const stage=document.getElementById('presentStage'); if(!stage) return;
+  const slides=_presentSlides();
+  const slide=slides[_presentIdx]; if(!slide) return;
+  const realImg=slide.querySelector('.slide-img');
+  stage.querySelector('.present-scaler')?.remove();
+  if(!realImg) return;
+  // refresh overlay na aktuální velikosti (px souřadnice kruhů/textu/ikon)
+  if(realImg.id){ try{ renderCvOverlay(realImg.id); }catch(e){} }
+  const rect=realImg.getBoundingClientRect();
+  let natW=rect.width||realImg.offsetWidth||900;
+  if(natW<10) natW=Math.min(window.innerWidth*0.7, 1280);
+  const natH=natW*8.6/16; // vynucený poměr 16:8.6 (robustní i při sbalené sekci)
+  const clone=realImg.cloneNode(true);
+  clone.removeAttribute('id');
+  clone.querySelectorAll('.cv-handle, .img-resize-handle, .img-set-btn, .img-add-variant-btn, .img-dot-bar').forEach(e=>e.remove());
+  clone.style.width=natW+'px'; clone.style.height=natH+'px'; clone.style.margin='0'; clone.style.maxWidth='none'; clone.style.flex='none';
+  const scaler=document.createElement('div'); scaler.className='present-scaler';
+  scaler.appendChild(clone);
+  stage.insertBefore(scaler, stage.firstChild);
+  // scale na fit
+  const sRect=stage.getBoundingClientRect();
+  const pad=20;
+  const scale=Math.max(0.05, Math.min((sRect.width-pad*2)/natW, (sRect.height-pad*2)/natH));
+  clone.style.transform='scale('+scale+')';
+  scaler.style.width=(natW*scale)+'px';
+  scaler.style.height=(natH*scale)+'px';
+}
+function presentToggleNotes(){ document.getElementById('presentNotes')?.classList.toggle('open'); }
+function presentFs(){
+  const pm=document.getElementById('presentMode'); if(!pm) return;
+  if(!document.fullscreenElement){ pm.requestFullscreen?.().catch(()=>{}); }
+  else { document.exitFullscreen?.(); }
+}
+document.addEventListener('keydown',e=>{
+  const pm=document.getElementById('presentMode');
+  if(!pm || !pm.classList.contains('open')) return;
+  if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); presentClose(); }
+  else if(e.key==='ArrowRight'||e.key==='PageDown'){ e.preventDefault(); e.stopPropagation(); presentNext(); }
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); e.stopPropagation(); presentPrev(); }
+}, true);
 
 const GH_IMG_BASE='https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/Images/';
 const GH_IMG_COUNT=26;
