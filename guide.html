@@ -2574,6 +2574,12 @@ function loadState(){
     if(d.variantCanvasData) variantCanvasData=d.variantCanvasData;
     if(d.cvPresets?.length===6) cvPresets=d.cvPresets;
     if(d.cvTypeDefaults) cvTypeDefaults=d.cvTypeDefaults;
+    // Dynamické slidy: rebuild z uložené struktury; nový boss bez dat → 1 prázdný slide
+    if(Array.isArray(d.slidesHTML) && d.slidesHTML.length){
+      rebuildSlides(d.slidesHTML);
+    } else if(!_isSeedBoss()){
+      resetToSingleSlide();
+    }
     if(d.deletedSlides?.length) { deletedSlides=d.deletedSlides; applyDeletedSlides(); }
     if(d.slideBars){ Object.entries(d.slideBars).forEach(([sid,bar])=>{ const sl=document.getElementById(sid); if(!sl) return; const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title'); if(num&&bar.num!==undefined) num.textContent=bar.num; if(ttl&&bar.title!==undefined) ttl.innerHTML=bar.title; }); }
     if(d.slideNotes){
@@ -2604,7 +2610,7 @@ function saveState(){
       const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title');
       _slideBarsSnap[sl.id]={num:num?num.textContent:'',title:ttl?ttl.innerHTML:''};
     });
-    localStorage.setItem(_lsKey(),JSON.stringify({roster,slots,images,assignmentExtras,showGroups,groupsLabel,groupsColor,canvasData,variantCanvasData,cvPresets,cvTypeDefaults,slideNotes:_slideNotesSnap,slideBars:_slideBarsSnap,deletedSlides}));
+    localStorage.setItem(_lsKey(),JSON.stringify({roster,slots,images,assignmentExtras,showGroups,groupsLabel,groupsColor,canvasData,variantCanvasData,cvPresets,cvTypeDefaults,slideNotes:_slideNotesSnap,slideBars:_slideBarsSnap,deletedSlides,slidesHTML:serializeSlides()}));
   }catch(e){ console.warn('saveState localStorage error:',e); }
   syncRosterCloud();
   _autoCloudSync();
@@ -4669,6 +4675,77 @@ function cloneSlide(btn){
 }
 
 
+// ── DYNAMICKÉ SLIDY: per-boss ukládání struktury ──
+// Lightblinded Vanguard je "seed" — jeho slidy jsou napevno v HTML jako výchozí.
+// Každý jiný boss startuje prázdný (1 slide) a svou strukturu si ukládá do storage/cloudu.
+const SEED_BOSS_SLUGS = ['lightblinded-vanguard','default'];
+function _isSeedBoss(){ return SEED_BOSS_SLUGS.includes(_getBossSlug()); }
+function _slidesHost(){
+  const b=document.querySelector('.add-slide-btn');
+  return b ? b.closest('.sec-inner') : document.querySelector('#phase1 .sec-inner');
+}
+function _slideEls(host){
+  host = host || _slidesHost();
+  if(!host) return [];
+  return Array.from(host.children).filter(el=>el.classList && el.classList.contains('slide'));
+}
+// Serializace všech slidů na pole outerHTML (zdroj pravdy pro strukturu i obsah)
+function serializeSlides(){
+  const host=_slidesHost(); if(!host) return null;
+  const els=_slideEls(host);
+  return els.length ? els.map(el=>el.outerHTML) : null;
+}
+// HTML prázdného slidu (bez notes karet)
+function _emptySlideHTML(){
+  const id='s-'+Date.now();
+  const imgId='img-'+id;
+  return `
+<div class="slide" id="${id}">
+<div class="slide-wrap">
+  <div class="slide-bar">
+    <button class="slide-order-btn" type="button" title="Slide nahoru">▲</button><button class="slide-order-btn" type="button" title="Slide dolů">▼</button><div class="slide-bar-left"><div class="slide-num" contenteditable="true" style="min-width:22px">1</div><span class="slide-title" contenteditable="true">Nový slide</span></div>
+    <button class="share-btn" onclick="shareSlide('${id}')">Share <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M11 17H7q-2.075 0-3.537-1.463T2 12t1.463-3.537T7 7h4v2H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h4zm-3-4v-2h8v2zm5 4v-2h4q1.25 0 2.125-.875T20 12t-.875-2.125T17 9h-4V7h4q2.075 0 3.538 1.463T22 12t-1.463 3.537T17 17h-4z"/></svg></button>
+    <button class="clone-slide-btn edit-only" onclick="cloneSlide(this)" title="Duplikovat slide" style="display:none;font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--text-mid);cursor:pointer;margin-left:4px">⊕ New Image</button>
+  </div>
+  <div class="slide-body">
+    <div class="slide-img" id="${imgId}" onclick="clickImage('${imgId}')">
+      <div class="img-placeholder-inner"><svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-1 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg><span style="font-size:12px">Click to add image</span></div>
+      <div class="img-resize-handle"></div></div>
+    <div class="slide-notes">
+      <button class="rc-add-btn" type="button">+ Přidat kartu</button>
+      <div class="rc-add-choice">
+        <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;flex:1" onclick="addNoteHeading(this.closest('.slide-notes').querySelector('.rc-add-btn'))">🔤 Nadpis</button>
+      </div>
+    </div>
+  </div>
+</div><div class="slide-width-handle"></div></div>`;
+}
+// Nahradí všechny slidy obsahem z pole outerHTML
+function rebuildSlides(htmlArr){
+  if(!Array.isArray(htmlArr) || !htmlArr.length) return false;
+  const host=_slidesHost(); if(!host) return false;
+  const addBtn=host.querySelector('.add-slide-btn');
+  _slideEls(host).forEach(el=>el.remove());
+  htmlArr.forEach(html=>{
+    const tmp=document.createElement('div'); tmp.innerHTML=html;
+    const sl=tmp.firstElementChild;
+    if(sl){ host.insertBefore(sl, addBtn); }
+  });
+  if(typeof updateSidebarTOC==='function') updateSidebarTOC();
+  if(typeof initNotesDrag==='function') initNotesDrag();
+  return true;
+}
+// Reset na jeden prázdný slide (nový boss bez uložených dat)
+function resetToSingleSlide(){
+  const host=_slidesHost(); if(!host) return;
+  const addBtn=host.querySelector('.add-slide-btn');
+  _slideEls(host).forEach(el=>el.remove());
+  const tmp=document.createElement('div'); tmp.innerHTML=_emptySlideHTML();
+  const sl=tmp.firstElementChild;
+  if(sl && addBtn){ host.insertBefore(sl, addBtn); }
+  if(typeof updateSidebarTOC==='function') updateSidebarTOC();
+}
+
 // ── ADD NEW SLIDE ──
 function addNewSlide(addBtn){
   const secInner = addBtn.closest('.sec-inner');
@@ -5667,7 +5744,7 @@ function buildPayload(lock=false){
     const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title');
     slideBars[sl.id]={num:num?num.textContent:'',title:ttl?ttl.innerHTML:''};
   });
-  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, canvasData, variantCanvasData, cvTypeDefaults, locked: lock, slideNotes, slideBars, deletedSlides, tlEdits: _tlEdits, tlBosses: _tlBosses, tlBossCats: _tlBossCats, tlHighlightMode: _tlHighlightMode };
+  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, canvasData, variantCanvasData, cvTypeDefaults, locked: lock, slideNotes, slideBars, deletedSlides, slidesHTML: serializeSlides(), tlEdits: _tlEdits, tlBosses: _tlBosses, tlBossCats: _tlBossCats, tlHighlightMode: _tlHighlightMode };
 }
 
 async function _postRoster(payload){
@@ -5756,10 +5833,10 @@ async function cloudFork(){
   }
 }
 
-async function loadFromCloud(id){
+async function loadFromCloud(id, silent){
   try {
     const res = await fetch(`${API_BASE}/api/roster/${id}`);
-    if(!res.ok){ toast('❌ Roster nenalezen.'); return; }
+    if(!res.ok){ if(!silent) toast('❌ Roster nenalezen.'); return; }
     const data = await res.json();
     if(data.assignmentExtras){ assignmentExtras=data.assignmentExtras; initSlots(); }
     if(data.slots){ Object.keys(slots).forEach(g=>slots[g].fill(null)); slots=data.slots; }
@@ -5772,6 +5849,8 @@ async function loadFromCloud(id){
     if(data.variantCanvasData) variantCanvasData=data.variantCanvasData;
     if(data.cvTypeDefaults) cvTypeDefaults=data.cvTypeDefaults;
     setLocked(data.locked||false);
+    // Dynamické slidy z cloudu — rebuild struktury (jinak nový boss zůstane na prázdném slidu)
+    if(Array.isArray(data.slidesHTML) && data.slidesHTML.length){ rebuildSlides(data.slidesHTML); }
     if(data.deletedSlides?.length) { deletedSlides=data.deletedSlides; applyDeletedSlides(); }
     if(data.slideBars){ Object.entries(data.slideBars).forEach(([sid,bar])=>{ const sl=document.getElementById(sid); if(!sl) return; const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title'); if(num&&bar.num!==undefined) num.textContent=bar.num; if(ttl&&bar.title!==undefined) ttl.innerHTML=bar.title; }); }
     if(data.slideNotes){
@@ -5789,7 +5868,7 @@ async function loadFromCloud(id){
     if(data.tlHighlightMode){ _tlHighlightMode=data.tlHighlightMode; try{localStorage.setItem('tlHighlightMode',_tlHighlightMode);}catch(e){} }
     saveState(); renderAll(); applyImages(); renderAllCvOverlays();
     updateCloudButtons();
-    toast('☁️ Roster načten!');
+    if(!silent) toast('☁️ Roster načten!');
   } catch(e) {
     console.error('Cloud load error',e);
     toast('❌ Načtení selhalo.');
@@ -5799,8 +5878,9 @@ async function loadFromCloud(id){
 function shareAssignments(lock=false){ cloudSave(); }
 
 function loadFromURL(){
+  const hasExplicitR = !!new URLSearchParams(location.search).get('r');
   const cloudId = getCloudId();
-  if(cloudId){ loadFromCloud(cloudId); return; }
+  if(cloudId){ loadFromCloud(cloudId, !hasExplicitR); return; }
   // Legacy #d= formát
   const hash=location.hash;
   if(!hash.startsWith('#d='))return;
