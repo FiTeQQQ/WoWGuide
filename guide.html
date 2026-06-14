@@ -2562,6 +2562,12 @@ function _lsKey(){ return 'lvg4_' + _getBossSlug(); }
 function loadState(){
   try{
     const d=JSON.parse(localStorage.getItem(_lsKey())||'{}');
+    // Nový boss (ne-seed) bez uložených dat → generický assignment default: jen "Groups", žádné extra kategorie
+    if(!_isSeedBoss() && !Array.isArray(d.assignmentExtras)){
+      assignmentExtras = [];
+      groupsLabel = 'Groups';
+      groupsColor = '#4ade80';
+    }
     roster=d.roster||[];
     if(Array.isArray(d.assignmentExtras)) assignmentExtras=d.assignmentExtras;
     if(d.showGroups!==undefined) showGroups=d.showGroups;
