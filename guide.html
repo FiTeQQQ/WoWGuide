@@ -819,8 +819,10 @@
   .present-vardot:hover { border-color: var(--accent); color: #fff; }
   .present-vardot.active { background: var(--accent); border-color: var(--accent); color: #fff; }
   .present-bottom { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 9px 14px; background: rgba(10,12,18,.92); border-top: 1px solid rgba(255,255,255,.08); }
-  .present-slidetitle { font-size: 14px; font-weight: 700; color: #e6e9f2; }
-  .present-counter { font-size: 12px; color: var(--text-dim); min-width: 64px; text-align: center; }
+  .present-pbtn { flex: 0 0 auto; white-space: nowrap; }
+  .present-mid { flex: 0 0 460px; width: 460px; max-width: 50vw; display: flex; align-items: center; justify-content: center; gap: 12px; overflow: hidden; }
+  .present-slidetitle { font-size: 14px; font-weight: 700; color: #e6e9f2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .present-counter { font-size: 12px; color: var(--text-dim); min-width: 48px; text-align: center; flex: 0 0 auto; }
   .present-notes { position: absolute; top: 0; right: 0; bottom: 0; width: 380px; max-width: 80vw; background: rgba(12,14,22,.97); border-left: 1px solid rgba(255,255,255,.1); padding: 18px 20px; overflow-y: auto; transform: translateX(100%); transition: transform .2s; z-index: 10; }
   .present-notes.open { transform: translateX(0); }
   .present-notes .slide-notes { display: block; }
@@ -7615,10 +7617,12 @@ function presentBuild(){
       <div class="present-notes" id="presentNotes"></div>
     </div>
     <div class="present-bottom">
-      <button class="btn btn-ghost" onclick="presentPrev()">◀ Předchozí</button>
-      <span class="present-slidetitle" id="presentSlideTitle"></span>
-      <span class="present-counter" id="presentCounter"></span>
-      <button class="btn btn-ghost" onclick="presentNext()">Další ▶</button>
+      <button class="btn btn-ghost present-pbtn" onclick="presentPrev()">◀ Předchozí</button>
+      <div class="present-mid">
+        <span class="present-slidetitle" id="presentSlideTitle"></span>
+        <span class="present-counter" id="presentCounter"></span>
+      </div>
+      <button class="btn btn-ghost present-pbtn" onclick="presentNext()">Další ▶</button>
     </div>`;
   document.body.appendChild(pm);
   if(!_presentResizeBound){
