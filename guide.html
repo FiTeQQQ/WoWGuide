@@ -4474,7 +4474,10 @@ function addRcCard(addBtn){
   title.style.cssText = 'font-size:10px;color:var(--text-dim);padding:3px 8px;text-transform:uppercase;letter-spacing:.06em;';
   title.textContent = 'Typ karty';
   pk.appendChild(title);
+  // Assignment-specifické typy karet (Heal Absorb Soakers / Senn Baiter) jen pokud daná kategorie existuje
+  const _assignRoleKeys=['soakers','sennbait'];
   ROLE_DEFS.forEach(def => {
+    if(_assignRoleKeys.includes(def.key) && !assignmentExtras.some(ex=>ex.label===def.label)) return;
     const btn = document.createElement('button');
     btn.style.cssText = `display:flex;align-items:center;gap:7px;padding:5px 9px;border-radius:5px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;color:${def.color};width:100%;text-align:left;`;
     btn.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${def.color};flex-shrink:0"></span>${def.label}`;
@@ -4495,8 +4498,9 @@ function addRcCard(addBtn){
   // ── Assignment reference option ──
   const sep=document.createElement('div');sep.style.cssText='height:1px;background:var(--border);margin:3px 0;';pk.appendChild(sep);
   const refBtn=document.createElement('button');
-  refBtn.style.cssText='display:flex;align-items:center;gap:7px;padding:5px 9px;border-radius:5px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;color:#c8ccd8;width:100%;text-align:left;';
-  refBtn.innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:#c8ccd8;flex-shrink:0"></span>Assignments';
+  const _grpClr=groupsColor||'#c8ccd8';
+  refBtn.style.cssText=`display:flex;align-items:center;gap:7px;padding:5px 9px;border-radius:5px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:600;color:${_grpClr};width:100%;text-align:left;`;
+  refBtn.innerHTML=`<span style="width:8px;height:8px;border-radius:50%;background:${_grpClr};flex-shrink:0"></span>Group`;
   refBtn.onclick=()=>{ pk.remove(); openAssignRefPicker(notesPanel, addBtn); };
   pk.appendChild(refBtn);
   const rect = addBtn.getBoundingClientRect();
@@ -4517,7 +4521,7 @@ function openAssignRefPicker(notesPanel, addBtn){
   pk.style.cssText='position:fixed;z-index:250;background:#1a1d2a;border:1px solid var(--border2);border-radius:8px;padding:5px;box-shadow:0 6px 20px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:2px;min-width:160px;';
   const title=document.createElement('div');title.style.cssText='font-size:10px;color:var(--text-dim);padding:3px 8px;text-transform:uppercase;letter-spacing:.06em;';title.textContent='Vyber skupinu';pk.appendChild(title);
   const groups=[];
-  if(showGroups) groups.push({id:'groups',label:'Execution Groups (G1-G4)',color:groupsColor});
+  if(showGroups) groups.push({id:'groups',label:(groupsLabel||'Groups')+' (G1-G4)',color:groupsColor});
   assignmentExtras.forEach(ex=>groups.push({id:ex.id,label:ex.label,color:ex.color}));
   groups.forEach(({id,label,color})=>{
     const btn=document.createElement('button');
