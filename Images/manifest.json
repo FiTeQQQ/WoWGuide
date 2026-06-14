@@ -11,6 +11,18 @@
           "image": "Images/Voidspire/LightblindedVaguard.png"
         }
       ]
+    },
+    {
+      "slug": "sporefall",
+      "name": "Sporefall",
+      "bosses": [
+        {
+          "slug": "rotmire",
+          "name": "Rotmire",
+          "thumbnail": "Images/Sporefall/Rotmire.png",
+          "image": "Images/Sporefall/Rotmire.png"
+        }
+      ]
     }
   ]
 }
