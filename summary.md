@@ -1,5 +1,5 @@
 # 📋 Raid Guide WoW — Development Summary
-**Datum posledního updatu:** 9. červen 2026 (session 4)
+**Datum posledního updatu:** 14. červen 2026 (session 8)
 
 ---
 
@@ -168,7 +168,7 @@ variantCanvasData[slideId] = {
 | Fill (barva + alpha) | rect, circle, triangle |
 | Border (barva + alpha + šírka) | rect, circle, arrow, text |
 | Text (barva + fontSize) | text |
-| Vel. (iconSize slider) | player, group, marker, boss |
+| Vel. (slider + číselné pole + per-typ Default) | player, group, marker, boss, spell |
 | Label (Full/2L/— + →/↓) | **pouze player** |
 | Barva + alpha + tvar | group/assignment |
 | Kruh barva + alpha + text popisek | boss |
@@ -296,6 +296,40 @@ GH_IMG_BASE = 'https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/Images/'
 ---
 
 
+
+## 📦 Session 8 — Přehled změn (14. červen 2026)
+
+### Feature: Barva textu spellů v Timeline tabulce (nezávislá na pozadí)
+
+**Problém:** Názvy spellů v timeline tabulce byly vždy zlaté. CSS `a[href*="wowhead.com"] { color:#ffd100 !important }` přebíjelo inline `color:inherit` na linku. Barevný puntík u ability barvil jen pozadí řádku (Fill/Border/Stripe/Fade), ne text.
+
+**Řešení:**
+- CSS override: `[data-tl-color] a[href*="wowhead.com"] { color:inherit !important }` — link teď dědí barvu buňky. **Tooltip funguje dál** (jede přes `data-wowhead`, ne přes barvu).
+- Nový per-ability picker barvy textu — puntík **„A"** vedle názvu spellu otevře `tlTextColorPop`. Ukládá se do `_tlEdits[slug][key].tcolor`, default zlatá `#ffd100`.
+- Nové funkce: `tlPickTextColor`, `_tlTextColorPopApply`. Render čte `ed.tcolor`.
+- Stejný princip i v notes kartách: `[data-user-fmt] a[href*="wowhead.com"] { color:inherit !important }` (funguje s existující `fmtColor`).
+
+### Feature: Edit-mode-only ovládání + Edit tlačítko v Timeline
+
+- Barevný puntík řádku i „A" puntík mají třídu `edit-only` → viditelné jen v edit módu (přes existující `body:not(.edit-mode) .edit-only { display:none }`).
+- V hlavičce timeline panelu nové tlačítko **✏ Edit** (`tlEditBtn`) → `tlToggleEdit()` přepíná globální edit mód. `_tlSyncEditBtn()` synchronizuje vzhled (zelená = ZAP), volá se i v `showTimeline()`.
+
+### Feature: Velikost prvků v Canvas editoru — číslo + per-typ Default (cloud)
+
+- Řádek „Vel." si nechal posuvník, přidáno **číselné pole** `cvIconSizeNum` pro přímé přepsání hodnoty (rozsah 4–400, i mimo slider). Slider + pole se synchronizují přes `cvSyncSizeInputs()`.
+- Nové pole **„Default"** `cvIconSizeDefault` — výchozí velikost pro daný typ prvku, ukládá se **do cloudu** (`cvTypeDefaults`). Tlačítko „použít" nastaví vybraný prvek na default.
+- `cvTypeDefaults` persistován v `saveState` (localStorage), `buildPayload` (cloud), `loadState` i cloud apply — stejně jako ostatní data.
+- Helper `cvDefaultSize(type)` + fallback `CV_SIZE_FALLBACK {player:25, group:36, marker:36, boss:40, spell:40, text:16}`.
+- Všech 9 míst vytváření prvků (player/group/assign/marker/boss/spell, mini i drag-create) nyní používá `cvDefaultSize(type)` → nové prvky respektují uložený default.
+- Nové funkce: `cvSyncSizeInputs`, `cvCurrentSelObj`, `cvSetTypeDefault`, `cvApplyTypeDefaultToSelected`.
+
+### Oprava: Obnova oříznutého `guide.html`
+
+Pracovní soubor byl uříznutý (~116 řádků — chyběl celý markup timeline panelu + `</body></html>`). Obnoveno z posledního commitu (`git show HEAD:guide.html`), pak doplněny nové featury. Pozn.: Linux mount občas zobrazuje konec souboru zastarale (cache lag) — autoritativní je Windows soubor / Read tool.
+
+**Soubory změněny:** `guide.html`, `summary.md`
+
+---
 
 ## 📦 Session 7 — Přehled změn (12. červen 2026)
 
