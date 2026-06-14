@@ -814,6 +814,10 @@
   .present-nav:hover { opacity: 1; background: rgba(0,0,0,.65); }
   .present-nav.prev { left: 14px; }
   .present-nav.next { right: 14px; }
+  .present-vardots { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 7px; background: rgba(0,0,0,.5); padding: 6px 10px; border-radius: 20px; z-index: 6; }
+  .present-vardot { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #cfd6e6; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .present-vardot:hover { border-color: var(--accent); color: #fff; }
+  .present-vardot.active { background: var(--accent); border-color: var(--accent); color: #fff; }
   .present-bottom { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 9px 14px; background: rgba(10,12,18,.92); border-top: 1px solid rgba(255,255,255,.08); }
   .present-slidetitle { font-size: 14px; font-weight: 700; color: #e6e9f2; }
   .present-counter { font-size: 12px; color: var(--text-dim); min-width: 64px; text-align: center; }
@@ -6188,8 +6192,21 @@ function renderCvOverlay(slideId){
 
 // ─── Build SVG element for one canvas object ───
 // ── Canvas group tooltip ──
+function _ensureCvGroupTip(){
+  let tip=document.getElementById('cvGroupTip');
+  if(tip) return tip;
+  tip=document.createElement('div');
+  tip.id='cvGroupTip';
+  tip.style.cssText='position:fixed;display:none;z-index:6000;min-width:140px;max-width:280px;background:rgba(10,12,20,.97);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:8px 11px;box-shadow:0 6px 22px rgba(0,0,0,.55);pointer-events:none';
+  const ttl=document.createElement('div'); ttl.id='cvGroupTipTitle';
+  ttl.style.cssText='font-size:12px;font-weight:800;margin-bottom:5px';
+  const lst=document.createElement('div'); lst.id='cvGroupTipList';
+  tip.appendChild(ttl); tip.appendChild(lst);
+  document.body.appendChild(tip);
+  return tip;
+}
 function showCvGroupTip(obj, e){
-  const tip=document.getElementById('cvGroupTip'); if(!tip)return;
+  const tip=_ensureCvGroupTip(); if(!tip)return;
   const title=document.getElementById('cvGroupTipTitle');
   const list=document.getElementById('cvGroupTipList');
   let slotKey=null, label='', gc='var(--accent)';
@@ -7517,7 +7534,39 @@ function renderAllCvOverlays(){
 
 // ═══════════════ PREZENTAČNÍ (FULLSCREEN) MÓD ═══════════════
 let _presentIdx = 0;
+let _presentVarIdx = 0;
 let _presentResizeBound = false;
+// Naklonuje slide-img pro danou variantu (non-destruktivně, bez saveState)
+function _presentCloneVariant(realImg, varIdx){
+  const id=realImg.id;
+  if(!id) return realImg.cloneNode(true);
+  const norm=_imgNormalize(id);
+  const curIdx=norm.activeIdx;
+  if(varIdx==null) varIdx=curIdx;
+  if(varIdx===curIdx){
+    try{ renderCvOverlay(id); }catch(e){}
+    return realImg.cloneNode(true);
+  }
+  if(!variantCanvasData[id]) variantCanvasData[id]={};
+  const savedCanvas=canvasData[id];
+  variantCanvasData[id][curIdx]=savedCanvas;
+  norm.activeIdx=varIdx; images[id]=norm;
+  canvasData[id]=variantCanvasData[id][varIdx]||[];
+  try{ _applySlideVariant(realImg); }catch(e){}
+  try{ renderCvOverlay(id); }catch(e){}
+  const clone=realImg.cloneNode(true);
+  norm.activeIdx=curIdx; images[id]=norm;
+  canvasData[id]=savedCanvas;
+  try{ _applySlideVariant(realImg); }catch(e){}
+  try{ renderCvOverlay(id); }catch(e){}
+  return clone;
+}
+function _presentVariantObjs(realImg){
+  if(!realImg.id) return [];
+  const norm=_imgNormalize(realImg.id);
+  if(_presentVarIdx===norm.activeIdx) return canvasData[realImg.id]||[];
+  return (variantCanvasData[realImg.id]&&variantCanvasData[realImg.id][_presentVarIdx])||[];
+}
 function _presentSlides(){
   const host=_slidesHost();
   if(!host) return Array.from(document.querySelectorAll('#phase1 .slide'));
@@ -7602,6 +7651,9 @@ function presentGo(idx){
   const ttlTxt=(slide.querySelector('.slide-title')?.textContent||'').trim();
   const st=document.getElementById('presentSlideTitle'); if(st) st.textContent=(numTxt?numTxt+' · ':'')+ttlTxt;
   const c=document.getElementById('presentCounter'); if(c) c.textContent=(idx+1)+' / '+slides.length;
+  // reset varianty na aktivní variantu daného slidu
+  const _ri=slide.querySelector('.slide-img');
+  _presentVarIdx = (_ri && _ri.id) ? (_imgNormalize(_ri.id).activeIdx||0) : 0;
   // notes
   const notesHost=document.getElementById('presentNotes');
   if(notesHost){
@@ -7609,7 +7661,13 @@ function presentGo(idx){
     notesHost.innerHTML='';
     const h=document.createElement('div'); h.style.cssText='font-size:15px;font-weight:800;color:var(--accent);margin-bottom:12px';
     h.textContent=(numTxt?numTxt+' · ':'')+ttlTxt; notesHost.appendChild(h);
-    if(sn){ const cl=sn.cloneNode(true); cl.querySelectorAll('[contenteditable]').forEach(e=>e.removeAttribute('contenteditable')); notesHost.appendChild(cl); }
+    if(sn){
+      const cl=sn.cloneNode(true);
+      cl.querySelectorAll('[contenteditable]').forEach(e=>e.removeAttribute('contenteditable'));
+      notesHost.appendChild(cl);
+      // Přepočítej dynamické assignment/group widgety z živých dat (roster + slots)
+      cl.querySelectorAll('[data-assign-ref]').forEach(w=>{ try{ renderAssignRef(w, w.getAttribute('data-assign-ref')); }catch(err){} });
+    }
   }
   presentRenderStage();
   if(typeof applyWowheadHandlers==='function') setTimeout(applyWowheadHandlers,60);
@@ -7620,20 +7678,32 @@ function presentRenderStage(){
   const slide=slides[_presentIdx]; if(!slide) return;
   const realImg=slide.querySelector('.slide-img');
   stage.querySelector('.present-scaler')?.remove();
+  stage.querySelector('.present-vardots')?.remove();
   if(!realImg) return;
-  // refresh overlay na aktuální velikosti (px souřadnice kruhů/textu/ikon)
-  if(realImg.id){ try{ renderCvOverlay(realImg.id); }catch(e){} }
   const rect=realImg.getBoundingClientRect();
   let natW=rect.width||realImg.offsetWidth||900;
   if(natW<10) natW=Math.min(window.innerWidth*0.7, 1280);
   const natH=natW*8.6/16; // vynucený poměr 16:8.6 (robustní i při sbalené sekci)
-  const clone=realImg.cloneNode(true);
+  // klon pro zvolenou variantu (přerenderuje overlay na aktuální velikosti)
+  const clone=_presentCloneVariant(realImg, _presentVarIdx);
   clone.removeAttribute('id');
   clone.querySelectorAll('.cv-handle, .img-resize-handle, .img-set-btn, .img-add-variant-btn, .img-dot-bar').forEach(e=>e.remove());
   clone.style.width=natW+'px'; clone.style.height=natH+'px'; clone.style.margin='0'; clone.style.maxWidth='none'; clone.style.flex='none';
   const scaler=document.createElement('div'); scaler.className='present-scaler';
   scaler.appendChild(clone);
   stage.insertBefore(scaler, stage.firstChild);
+  // Znovu napoj group/assignment tooltipy (cloneNode ztratí JS listenery)
+  const objs=_presentVariantObjs(realImg);
+  clone.querySelectorAll('.cv-obj[data-obj-id]').forEach(gEl=>{
+    const obj=objs.find(o=>o.id===gEl.dataset.objId); if(!obj) return;
+    const isGroup=obj.type==='group';
+    if(isGroup||obj.groupTag){
+      gEl.style.cursor='pointer'; gEl.style.pointerEvents='auto';
+      gEl.addEventListener('mouseover',e=>{e.stopPropagation(); (isGroup?showCvGroupTip:showCvGroupTipForTag)(obj,e);});
+      gEl.addEventListener('mousemove',e=>positionCvGroupTip(e));
+      gEl.addEventListener('mouseleave',()=>hideCvGroupTip());
+    }
+  });
   // scale na fit
   const sRect=stage.getBoundingClientRect();
   const pad=20;
@@ -7641,6 +7711,20 @@ function presentRenderStage(){
   clone.style.transform='scale('+scale+')';
   scaler.style.width=(natW*scale)+'px';
   scaler.style.height=(natH*scale)+'px';
+  // přepínač variant (více obrázků v jednom slidu)
+  const nVars=realImg.id?_imgNormalize(realImg.id).variants.length:1;
+  if(nVars>1){
+    const db=document.createElement('div'); db.className='present-vardots';
+    for(let i=0;i<nVars;i++){
+      const d=document.createElement('button');
+      d.className='present-vardot'+(i===_presentVarIdx?' active':'');
+      d.textContent=String(i+1);
+      d.title='Verze obrázku '+(i+1);
+      d.onclick=()=>{ _presentVarIdx=i; presentRenderStage(); };
+      db.appendChild(d);
+    }
+    stage.appendChild(db);
+  }
 }
 function presentToggleNotes(){ document.getElementById('presentNotes')?.classList.toggle('open'); }
 function presentFs(){
