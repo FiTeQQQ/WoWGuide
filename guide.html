@@ -1226,6 +1226,7 @@
     <button class="btn btn-green" id="shareBtn" onclick="cloudShare()" title="Sdílet s vlastním ID">Share</button>
     <button class="btn btn-ghost" id="mainSaveBtn" onclick="cloudSave()" title="Uloží změny do cloudu (Ctrl+S)" style="display:none;color:#4f8eff;border-color:rgba(79,142,255,.35)">☁ Uložit</button>
     <button class="btn btn-ghost" id="makeCopyBtn" onclick="cloudFork()" title="Vytvoří novou kopii s vlastním linkem">Make Copy</button>
+    <button class="btn btn-ghost" id="timelineBtn" onclick="showTimeline()" title="Boss timeline – tabulka &amp; osa">⏱ Timeline</button>
     <button class="btn btn-ghost" id="presentBtn" onclick="presentOpen()" title="Fullscreen prezentace slidů (obrázky + canvas)">▶ Prezentace</button>
     <div style="width:1px;background:var(--border2);margin:0 2px"></div>
     <!-- Lock -->
@@ -5903,10 +5904,10 @@ async function loadFromCloud(id, silent){
     } else if(data.notesHtml){
       // legacy: old saves stored a single notes block — ignore silently
     }
-    if(data.tlEdits){ _tlEdits=data.tlEdits; try{localStorage.setItem('tlEdits',JSON.stringify(_tlEdits));}catch(e){} }
-    if(data.tlBosses){ _tlBosses=data.tlBosses; try{localStorage.setItem('tlBosses',JSON.stringify(_tlBosses));}catch(e){} }
-    if(data.tlBossCats){ _tlBossCats=data.tlBossCats; try{localStorage.setItem('tlBossCats',JSON.stringify(_tlBossCats));}catch(e){} }
-    if(data.tlHighlightMode){ _tlHighlightMode=data.tlHighlightMode; try{localStorage.setItem('tlHighlightMode',_tlHighlightMode);}catch(e){} }
+    if(data.tlEdits){ _tlEdits=data.tlEdits; try{localStorage.setItem(_tlKey('tlEdits'),JSON.stringify(_tlEdits));}catch(e){} }
+    if(data.tlBosses){ _tlBosses=data.tlBosses; try{localStorage.setItem(_tlKey('tlBosses'),JSON.stringify(_tlBosses));}catch(e){} }
+    if(data.tlBossCats){ _tlBossCats=data.tlBossCats; try{localStorage.setItem(_tlKey('tlBossCats'),JSON.stringify(_tlBossCats));}catch(e){} }
+    if(data.tlHighlightMode){ _tlHighlightMode=data.tlHighlightMode; try{localStorage.setItem(_tlKey('tlHighlightMode'),_tlHighlightMode);}catch(e){} }
     saveState(); renderAll(); applyImages(); renderAllCvOverlays();
     updateCloudButtons();
     if(!silent) toast('☁️ Roster načten!');
@@ -8573,10 +8574,17 @@ function _tlIconImg(sid,size=18,border=''){
   return `<img src="${url}" width="${size}" height="${size}" style="border-radius:3px;object-fit:cover${border?';border:1.5px solid '+border:''};flex-shrink:0" onerror="this.style.opacity=0">`;
 }
 
+// Timeline data je per-boss (scoped podle ?boss=slug). Nový boss → prázdná timeline.
+function _tlKey(base){ return base+'_'+_getBossSlug(); }
+function _tlRead(base){
+  let v=localStorage.getItem(_tlKey(base));
+  if(v==null && _isSeedBoss()) v=localStorage.getItem(base); // migrace starého globálního klíče (Lightblinded)
+  return v;
+}
 // Persisted edits: {slug: {eventKey: {note, color}}}
 let _tlEdits = {};
-try{ _tlEdits = JSON.parse(localStorage.getItem('tlEdits')||'{}'); }catch(e){}
-function _tlSaveEdits(){ try{localStorage.setItem('tlEdits',JSON.stringify(_tlEdits));}catch(e){} }
+try{ _tlEdits = JSON.parse(_tlRead('tlEdits')||'{}'); }catch(e){}
+function _tlSaveEdits(){ try{localStorage.setItem(_tlKey('tlEdits'),JSON.stringify(_tlEdits));}catch(e){} }
 function _tlGetEdit(slug,key){ return (_tlEdits[slug]||{})[key]||{}; }
 function _tlSetEdit(slug,key,field,val){
   if(!_tlEdits[slug]) _tlEdits[slug]={};
@@ -8588,7 +8596,12 @@ function _tlSetEdit(slug,key,field,val){
 let _tlView='table', _tlZoom=2, _tlActive=null;
 
 function showTimeline(){
-  _tlActive=_TL_DATA;
+  // Lightblinded (seed) má natvrdo _TL_DATA; každý jiný boss startuje s prázdnou timeline
+  if(_isSeedBoss()){
+    _tlActive=_TL_DATA;
+  } else {
+    _tlActive={ boss:(document.querySelector('.page-header h1')?.textContent||'Timeline'), slug:_getBossSlug(), duration:'00:00', events:[], groups:{} };
+  }
   _tlRenderBossPanel();
   document.getElementById('tlBossName').textContent='⏱ '+_tlActive.boss;
   document.getElementById('tlSearch').value='';
@@ -8886,22 +8899,25 @@ function _tlTextColorPopApply(c){
 }
 
 // ── Boss category system ─────────────────────────────────────────────────────
-let _tlHighlightMode=localStorage.getItem('tlHighlightMode')||'overlay';
+let _tlHighlightMode=_tlRead('tlHighlightMode')||'overlay';
 function _tlSetHighlightMode(m){
   _tlHighlightMode=m;
-  localStorage.setItem('tlHighlightMode',m);
+  localStorage.setItem(_tlKey('tlHighlightMode'),m);
   if(_tlView==='table') tlRenderTable(document.getElementById('tlSearch').value);
 }
 let _tlBosses={}, _tlActiveBoss=null, _tlBossCats={};
 (function(){
-  try{ _tlBosses=JSON.parse(localStorage.getItem('tlBosses')||'{}'); }catch(e){}
-  try{ _tlBossCats=JSON.parse(localStorage.getItem('tlBossCats')||'{}'); }catch(e){}
-  const defs={senn:{name:'Senn',color:'#9ca3af'},bellamy:{name:'Bellamy',color:'#4ade80'},venel:{name:'Venel',color:'#60a5fa'}};
-  Object.entries(defs).forEach(([id,def])=>{ if(!_tlBosses[id]) _tlBosses[id]=def; });
+  try{ _tlBosses=JSON.parse(_tlRead('tlBosses')||'{}'); }catch(e){}
+  try{ _tlBossCats=JSON.parse(_tlRead('tlBossCats')||'{}'); }catch(e){}
+  // Výchozí bossové (Senn/Bellamy/Venel) jen pro seed boss (Lightblinded) — nový boss má prázdnou timeline
+  if(_isSeedBoss()){
+    const defs={senn:{name:'Senn',color:'#9ca3af'},bellamy:{name:'Bellamy',color:'#4ade80'},venel:{name:'Venel',color:'#60a5fa'}};
+    Object.entries(defs).forEach(([id,def])=>{ if(!_tlBosses[id]) _tlBosses[id]=def; });
+  }
 })();
 function _tlSaveBossData(){
-  try{localStorage.setItem('tlBosses',JSON.stringify(_tlBosses));}catch(e){}
-  try{localStorage.setItem('tlBossCats',JSON.stringify(_tlBossCats));}catch(e){}
+  try{localStorage.setItem(_tlKey('tlBosses'),JSON.stringify(_tlBosses));}catch(e){}
+  try{localStorage.setItem(_tlKey('tlBossCats'),JSON.stringify(_tlBossCats));}catch(e){}
 }
 function _tlRenderBossPanel(){
   const el=document.getElementById('tlBossPanelRows'); if(!el) return;
