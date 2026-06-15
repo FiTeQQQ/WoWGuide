@@ -1117,7 +1117,7 @@
           <span class="cv-lbl">Barva</span>
           <input type="color" id="cvBossLabelColor" value="#ffffff" oninput="cvApplyProp('bossLabelColor',this.value)">
           <span class="cv-lbl">Vel.</span>
-          <input type="number" id="cvBossLabelSize" value="12" min="6" max="40" oninput="cvApplyProp('bossLabelSize',+this.value)" style="width:42px">
+          <input type="number" id="cvBossLabelSize" value="14" min="6" max="80" oninput="cvApplyProp('bossLabelSize',+this.value)" style="width:42px">
           <span class="cv-lbl">Outline</span>
           <input type="checkbox" id="cvBossLabelOutline" onchange="cvApplyProp('bossLabelOutline',this.checked)" style="cursor:pointer;width:16px;height:16px">
         </div>
@@ -6753,7 +6753,7 @@ function buildCvEl(obj,selected,slideId,svg){
         g.appendChild(img);
         // Boss label pod ikonou
         if(obj.type==='boss' && obj.bossLabel){
-          const fPx=Math.max(10, obj.bossLabelSize ? obj.bossLabelSize*(sz/32) : sz*0.36);
+          const fPx=Math.max(6, obj.bossLabelSize || 14); // velikost popisku nezávislá na velikosti ikony
           const lt=document.createElementNS(NS,'text');
           lt.setAttribute('x',px+'%');
           lt.setAttribute('y',(py+szPctH/2+1.0)+'%');
@@ -7455,7 +7455,7 @@ function syncPropsPanel(obj){
     const hasLabel=!!(obj.bossLabel&&obj.bossLabel.trim());
     const ls=document.getElementById('cvBossLabelStyle'); if(ls) ls.style.display=hasLabel?'flex':'none';
     const lc=document.getElementById('cvBossLabelColor'); if(lc) lc.value=obj.bossLabelColor||'#ffffff';
-    const lsz=document.getElementById('cvBossLabelSize'); if(lsz) lsz.value=obj.bossLabelSize||12;
+    const lsz=document.getElementById('cvBossLabelSize'); if(lsz) lsz.value=obj.bossLabelSize||14;
     const lo=document.getElementById('cvBossLabelOutline'); if(lo) lo.checked=!!obj.bossLabelOutline;
     // Class color swatches
     renderBossSwatches(obj.fill||'#888888');
