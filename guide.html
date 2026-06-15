@@ -2607,6 +2607,7 @@ async function applyRaidManifest(){
     if(!entry) return;
     _currentRaidName = raidEntry?.name || null; // pro filtr boss-icon pickeru
     const imgUrl = GH_RAW + entry.image;
+    _currentBossImg = imgUrl; // výchozí obrázek pro nově přidané slidy
     // Glass-mode pozadí per raid: Images/<Raid>/<Raid>_Background.jpg (nebo raid.background z manifestu)
     try{
       const dir = entry.image.includes('/') ? entry.image.slice(0, entry.image.lastIndexOf('/')) : 'Images';
@@ -3700,7 +3701,7 @@ function toggleEditMode(){
         if(left){bar.insertBefore(up,left);bar.insertBefore(dn,left);}
       }
       if(!bar.querySelector('.slide-del-btn')){
-        const dl=document.createElement('button');dl.className='slide-del-btn';dl.type='button';dl.title='Smazat slide';dl.textContent='✕';dl.onclick=()=>deleteSlide(dl);
+        const dl=document.createElement('button');dl.className='slide-del-btn';dl.type='button';dl.title='Smazat slide';dl.textContent='✕'; /* smazání řeší event-delegace */
         const left=bar.querySelector('.slide-bar-left');
         if(left) bar.insertBefore(dl,left);
       }
@@ -4798,6 +4799,7 @@ function serializeSlides(){
     const c=el.cloneNode(true);
     c.querySelectorAll('.cv-overlay, .cv-wh-layer').forEach(x=>x.remove());
     c.querySelectorAll('.slide-img[onclick]').forEach(x=>x.removeAttribute('onclick')); // obrázek se mění jen přes 🖼, ne klikem
+    c.querySelectorAll('.notes-title.static').forEach(h=>{ if((h.textContent||'').trim()==='Název') h.remove(); }); // odeber neupravený auto-nadpis
     return c.outerHTML;
   });
 }
@@ -4839,6 +4841,7 @@ function rebuildSlides(htmlArr){
       // Odeber případné staré canvas vrstvy (z dřívějších uložení) — bez listenerů by nešlo kreslit
       sl.querySelectorAll('.cv-overlay, .cv-wh-layer').forEach(x=>x.remove());
       sl.querySelectorAll('.slide-img[onclick]').forEach(x=>x.removeAttribute('onclick')); // obrázek měň jen přes 🖼
+      sl.querySelectorAll('.notes-title.static').forEach(h=>{ if((h.textContent||'').trim()==='Název') h.remove(); }); // odeber neupravený auto-nadpis
       host.insertBefore(sl, addBtn);
     }
   });
@@ -4890,6 +4893,12 @@ function addNewSlide(addBtn){
   const newSlide = div.firstElementChild;
   secInner.insertBefore(newSlide, addBtn);
 
+  // Výchozí obrázek bosse (jako mají ostatní slidy z manifestu)
+  if(_currentBossImg){
+    images[imgId] = {variants:[{src:_currentBossImg,label:'v1'}], activeIdx:0, defaultIdx:0};
+    applyImages();
+  }
+
   // FIX: Attach event listeners to new slide elements if in edit mode
   if(editMode){
     const title = newSlide.querySelector('.slide-title');
@@ -4907,7 +4916,7 @@ function addNewSlide(addBtn){
   if(bar && !bar.querySelector('.slide-order-btn')){
     const up=document.createElement('button');up.className='slide-order-btn';up.type='button';up.title='Slide nahoru';up.textContent='▲';
     const dn=document.createElement('button');dn.className='slide-order-btn';dn.type='button';dn.title='Slide dolů';dn.textContent='▼';
-    const dl=document.createElement('button');dl.className='slide-del-btn';dl.type='button';dl.title='Smazat slide';dl.textContent='✕';dl.onclick=()=>deleteSlide(dl);
+    const dl=document.createElement('button');dl.className='slide-del-btn';dl.type='button';dl.title='Smazat slide';dl.textContent='✕'; /* smazání řeší event-delegace */
     const left=bar.querySelector('.slide-bar-left');
     if(left){bar.insertBefore(up,left);bar.insertBefore(dn,left);bar.insertBefore(dl,left);}
   }
@@ -6119,6 +6128,9 @@ document.addEventListener('DOMContentLoaded',async ()=>{
     // Reorder card
     const ob = e.target.closest('.rc-order-btn');
     if(ob){ reorderCard(ob); return; }
+    // Smazat slide (delegace — funguje i pro rebuildnuté slidy, kde se ztratil onclick)
+    const sd = e.target.closest('.slide-del-btn');
+    if(sd){ deleteSlide(sd); return; }
     // Reorder slide
     const sb = e.target.closest('.slide-order-btn');
     if(sb){ reorderSlide(sb); return; }
@@ -8217,6 +8229,7 @@ let _bossRaidList=null;
 let _bossActiveRaid=null;
 let _bossEditMode=false;
 let _currentRaidName=null; // raid aktuálního bosse (z manifestu) — picker pak ukazuje jen ten
+let _currentBossImg=null;  // výchozí obrázek bosse (z manifestu) pro nově přidané slidy
 
 // Boss groups — persisted in Cloudflare KV (boss-groups key), localStorage as fallback
 const _BOSS_KV_KEY='boss-groups';
