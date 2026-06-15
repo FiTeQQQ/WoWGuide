@@ -3743,6 +3743,11 @@ function toggleEditMode(){
     document.querySelectorAll('[data-editable], .rc-label, .slide-title, .slide-num, .notes-heading').forEach(el=>{el.contentEditable='false';});
     btn.textContent='✏ Edit Mode'; btn.classList.remove('edit-active');
     _lastEditable=null; _savedRange=null;
+    // Vyčisti canvas editor: zruš výběr prvku, schovej props panel, zpět na nástroj Select
+    if(typeof setCvTool==='function') setCvTool('select');
+    if(typeof cvDeselect==='function') cvDeselect();
+    document.getElementById('cvPropsPanel')?.classList.remove('visible');
+    document.getElementById('cvMiniPanel')?.classList.remove('open');
     renderAll(); // Re-render to hide edit controls
     if(window.$WowheadPower && typeof window.$WowheadPower.init==="function") window.$WowheadPower.init();
   }
@@ -4736,10 +4741,17 @@ function _slideEls(host){
   return Array.from(host.children).filter(el=>el.classList && el.classList.contains('slide'));
 }
 // Serializace všech slidů na pole outerHTML (zdroj pravdy pro strukturu i obsah)
+// Pozn.: canvas overlay + wh-layer NEukládáme — jsou to JS-renderované vrstvy s listenery,
+// které se po rebuildu znovu vytvoří přes initCvOverlays/renderCvOverlay (jinak by nešlo kreslit).
 function serializeSlides(){
   const host=_slidesHost(); if(!host) return null;
   const els=_slideEls(host);
-  return els.length ? els.map(el=>el.outerHTML) : null;
+  if(!els.length) return null;
+  return els.map(el=>{
+    const c=el.cloneNode(true);
+    c.querySelectorAll('.cv-overlay, .cv-wh-layer').forEach(x=>x.remove());
+    return c.outerHTML;
+  });
 }
 // HTML prázdného slidu (bez notes karet)
 function _emptySlideHTML(){
@@ -4775,8 +4787,14 @@ function rebuildSlides(htmlArr){
   htmlArr.forEach(html=>{
     const tmp=document.createElement('div'); tmp.innerHTML=html;
     const sl=tmp.firstElementChild;
-    if(sl){ host.insertBefore(sl, addBtn); }
+    if(sl){
+      // Odeber případné staré canvas vrstvy (z dřívějších uložení) — bez listenerů by nešlo kreslit
+      sl.querySelectorAll('.cv-overlay, .cv-wh-layer').forEach(x=>x.remove());
+      host.insertBefore(sl, addBtn);
+    }
   });
+  // Znovu vytvoř canvas overlay vrstvy včetně mousedown listenerů na kreslení
+  if(typeof initCvOverlays==='function') initCvOverlays();
   if(typeof updateSidebarTOC==='function') updateSidebarTOC();
   if(typeof initNotesDrag==='function') initNotesDrag();
   return true;
