@@ -685,6 +685,8 @@
   }
   #cvPropsPanel.visible { display:flex; }
   #cvPropsPanel > div { width:100%; }
+  /* sekce zobrazené přes display:flex (sf) musí stohovat pod sebe — jen jednořádkové (.cv-row) zůstanou v řádku */
+  #cvPropsPanel > div:not(.cv-row):not(.cv-section) { flex-direction:column; align-items:stretch; gap:5px; }
   #cvPropsPanel .cv-section { font-size:11px; color:var(--text-dim); font-weight:700; text-transform:uppercase; letter-spacing:.06em; margin-bottom:2px; }
   /* každý řádek = popisek vlevo, ovládání vyplní zbytek; vše se zalomí pod sebe, nikdy do strany */
   #cvPropsPanel .cv-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:11px; color:var(--text); width:100%; max-width:100%; margin-bottom:5px; }
