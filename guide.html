@@ -827,6 +827,39 @@
   .present-notes.open { transform: translateX(0); }
   .present-notes .slide-notes { display: block; }
   .present-notes .rc-add-btn, .present-notes .rc-add-choice, .present-notes .rc-remove-btn, .present-notes .role-switch-btn, .present-notes .rc-order-btns, .present-notes .hdg-del, .present-notes .hdg-order-btns, .present-notes .notes-title .hdg-del { display: none !important; }
+
+  /* ═══════════ GLASS MODE (scopnuto pod body.glass-on; classic = beze změny) ═══════════ */
+  .glass-bg { position: fixed; inset: 0; z-index: -3; display: none; background-position: center; background-size: cover; background-repeat: no-repeat; filter: brightness(.6) saturate(.9); }
+  .glass-bg::after { content:''; position:absolute; inset:0; background:
+      radial-gradient(135% 115% at 50% 32%, transparent 0%, transparent 34%, rgba(2,3,8,.58) 82%, rgba(1,2,6,.84) 100%),
+      linear-gradient(180deg, rgba(4,6,14,.42) 0%, rgba(3,4,10,.60) 60%, rgba(2,3,8,.76) 100%); }
+  body.glass-on .glass-bg { display: block; }
+  body.glass-on, body.glass-on .main { background: transparent !important; }
+  body.glass-on .section {
+    background: rgba(12,16,28,.40) !important;
+    backdrop-filter: blur(20px) saturate(165%); -webkit-backdrop-filter: blur(20px) saturate(165%);
+    border: 1px solid rgba(255,255,255,.12) !important; border-radius: 14px !important; box-shadow: none !important;
+  }
+  body.glass-on .sec-header { background: transparent !important; border-bottom: 1px solid rgba(255,255,255,.08); }
+  body.glass-on .sec-header:hover { background: rgba(255,255,255,.05) !important; }
+  body.glass-on #sidebar {
+    background: rgba(9,12,22,.46) !important;
+    backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border-right: 1px solid rgba(255,255,255,.12) !important; box-shadow: none !important;
+  }
+  body.glass-on .nav-item:hover { background: rgba(255,255,255,.07) !important; }
+  body.glass-on .slide-bar { background: rgba(255,255,255,.05) !important; backdrop-filter: blur(8px) saturate(150%); -webkit-backdrop-filter: blur(8px) saturate(150%); border-bottom: 1px solid rgba(255,255,255,.10) !important; box-shadow: none !important; }
+  body.glass-on .rc { background: rgba(255,255,255,.06) !important; backdrop-filter: blur(11px) saturate(150%); -webkit-backdrop-filter: blur(11px); border: 1px solid rgba(255,255,255,.12) !important; border-radius: 10px !important; box-shadow: none !important; }
+  body.glass-on .notes-heading, body.glass-on .notes-title { background: transparent !important; }
+  body.glass-on .group-card { background: rgba(255,255,255,.045) !important; backdrop-filter: blur(11px) saturate(150%); -webkit-backdrop-filter: blur(11px); border: 1px solid rgba(255,255,255,.12) !important; border-radius: 10px !important; box-shadow: none !important; }
+  body.glass-on .slot-chip { background: rgba(255,255,255,.07) !important; border: 1px solid rgba(255,255,255,.10) !important; box-shadow: none !important; }
+  body.glass-on .slot-chip.empty { background: rgba(255,255,255,.035) !important; }
+  body.glass-on .assign-grid, body.glass-on .assign-ref-widget, body.glass-on .roster-list, body.glass-on .rc-add-choice { background: transparent !important; }
+  body.glass-on .btn-ghost { background: rgba(255,255,255,.08) !important; border: 1px solid rgba(255,255,255,.16) !important; backdrop-filter: blur(8px); color: #eef2fb !important; box-shadow: none !important; }
+  body.glass-on .btn-ghost:hover { background: rgba(255,255,255,.16) !important; }
+  body.glass-on .btn-green { background: linear-gradient(135deg, rgba(48,190,114,.88), rgba(36,160,96,.88)) !important; border: 1px solid rgba(120,225,165,.55) !important; color: #fff !important; box-shadow: none !important; }
+  body.glass-on .btn-accent, body.glass-on .btn-blue { background: linear-gradient(135deg, rgba(74,138,252,.9), rgba(50,104,218,.9)) !important; border: 1px solid rgba(150,185,255,.55) !important; color: #fff !important; box-shadow: none !important; }
+  body.glass-on .slide-img { box-shadow: none; }
 </style>
 
 <!-- Inline SVG icons -->
@@ -860,6 +893,9 @@
 
 
 
+
+<!-- Glass mode pozadí (per raid; viditelné jen v body.glass-on) -->
+<div class="glass-bg"></div>
 
 <!-- SIDEBAR -->
 <aside id="sidebar">
@@ -1228,6 +1264,7 @@
     <button class="btn btn-ghost" id="makeCopyBtn" onclick="cloudFork()" title="Vytvoří novou kopii s vlastním linkem">Make Copy</button>
     <button class="btn btn-ghost" id="timelineBtn" onclick="showTimeline()" title="Boss timeline – tabulka &amp; osa">⏱ Timeline</button>
     <button class="btn btn-ghost" id="presentBtn" onclick="presentOpen()" title="Fullscreen prezentace slidů (obrázky + canvas)">▶ Prezentace</button>
+    <button class="btn btn-ghost" id="themeBtn" onclick="toggleTheme()" title="Přepnout vzhled Classic / Glass">🗔 Classic</button>
     <div style="width:1px;background:var(--border2);margin:0 2px"></div>
     <!-- Lock -->
     <div class="lock-toggle-wrap" id="lockToggle" onclick="toggleShareLock()" title="Zamknout — po uložení nebude možné editovat">
@@ -2559,16 +2596,24 @@ async function applyRaidManifest(){
     const res = await fetch(GH_RAW + 'Images/manifest.json?_=' + Date.now());
     if(!res.ok) return;
     const manifest = await res.json();
-    // Najdi bosse podle slugu napříč všemi raidy
-    let entry = null;
+    // Najdi bosse podle slugu napříč všemi raidy (a zapamatuj si raid kvůli pozadí)
+    let entry = null, raidEntry = null;
     for(const raid of manifest.raids || []){
-      entry = (raid.bosses || []).find(b => b.slug === slug);
-      if(entry) break;
+      const f = (raid.bosses || []).find(b => b.slug === slug);
+      if(f){ entry = f; raidEntry = raid; break; }
     }
     // Fallback: první boss v prvním raidu
-    if(!entry) entry = manifest.raids?.[0]?.bosses?.[0];
+    if(!entry){ raidEntry = manifest.raids?.[0]; entry = raidEntry?.bosses?.[0]; }
     if(!entry) return;
     const imgUrl = GH_RAW + entry.image;
+    // Glass-mode pozadí per raid: Images/<Raid>/<Raid>_Background.jpg (nebo raid.background z manifestu)
+    try{
+      const dir = entry.image.includes('/') ? entry.image.slice(0, entry.image.lastIndexOf('/')) : 'Images';
+      const folder = dir.slice(dir.lastIndexOf('/')+1);
+      const bgRel = (raidEntry && raidEntry.background) ? raidEntry.background : (dir+'/'+folder+'_Background.jpg');
+      const bgEl = document.querySelector('.glass-bg');
+      if(bgEl) bgEl.style.backgroundImage = `url('${GH_RAW}${bgRel}')`;
+    }catch(e){}
     // Nastav h1 a page title
     document.querySelectorAll('h1').forEach(el => el.textContent = entry.name);
     document.title = entry.name + ' – Mythic Guide';
@@ -2623,6 +2668,7 @@ function loadState(){
       resetToSingleSlide();
     }
     if(d.deletedSlides?.length) { deletedSlides=d.deletedSlides; applyDeletedSlides(); }
+    applyTheme(_resolveTheme(d.theme));
     if(d.slideBars){ Object.entries(d.slideBars).forEach(([sid,bar])=>{ const sl=document.getElementById(sid); if(!sl) return; const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title'); if(num&&bar.num!==undefined) num.textContent=bar.num; if(ttl&&bar.title!==undefined) ttl.innerHTML=bar.title; }); }
     if(d.slideNotes){
       Object.entries(d.slideNotes).forEach(([sid,html])=>{
@@ -2652,7 +2698,7 @@ function saveState(){
       const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title');
       _slideBarsSnap[sl.id]={num:num?num.textContent:'',title:ttl?ttl.innerHTML:''};
     });
-    localStorage.setItem(_lsKey(),JSON.stringify({roster,slots,images,assignmentExtras,showGroups,groupsLabel,groupsColor,canvasData,variantCanvasData,cvPresets,cvTypeDefaults,slideNotes:_slideNotesSnap,slideBars:_slideBarsSnap,deletedSlides,slidesHTML:serializeSlides()}));
+    localStorage.setItem(_lsKey(),JSON.stringify({roster,slots,images,assignmentExtras,showGroups,groupsLabel,groupsColor,canvasData,variantCanvasData,cvPresets,cvTypeDefaults,slideNotes:_slideNotesSnap,slideBars:_slideBarsSnap,deletedSlides,slidesHTML:serializeSlides(),theme:savedTheme}));
   }catch(e){ console.warn('saveState localStorage error:',e); }
   syncRosterCloud();
   _autoCloudSync();
@@ -5808,7 +5854,7 @@ function buildPayload(lock=false){
     const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title');
     slideBars[sl.id]={num:num?num.textContent:'',title:ttl?ttl.innerHTML:''};
   });
-  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, canvasData, variantCanvasData, cvTypeDefaults, locked: lock, slideNotes, slideBars, deletedSlides, slidesHTML: serializeSlides(), tlEdits: _tlEdits, tlBosses: _tlBosses, tlBossCats: _tlBossCats, tlHighlightMode: _tlHighlightMode };
+  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, canvasData, variantCanvasData, cvTypeDefaults, locked: lock, slideNotes, slideBars, deletedSlides, slidesHTML: serializeSlides(), theme: savedTheme, tlEdits: _tlEdits, tlBosses: _tlBosses, tlBossCats: _tlBossCats, tlHighlightMode: _tlHighlightMode };
 }
 
 async function _postRoster(payload){
@@ -5932,6 +5978,7 @@ async function loadFromCloud(id, silent){
     if(data.tlBosses){ _tlBosses=data.tlBosses; try{localStorage.setItem(_tlKey('tlBosses'),JSON.stringify(_tlBosses));}catch(e){} }
     if(data.tlBossCats){ _tlBossCats=data.tlBossCats; try{localStorage.setItem(_tlKey('tlBossCats'),JSON.stringify(_tlBossCats));}catch(e){} }
     if(data.tlHighlightMode){ _tlHighlightMode=data.tlHighlightMode; try{localStorage.setItem(_tlKey('tlHighlightMode'),_tlHighlightMode);}catch(e){} }
+    applyTheme(_resolveTheme(data.theme));
     saveState(); renderAll(); applyImages(); renderAllCvOverlays();
     updateCloudButtons();
     if(!silent) toast('☁️ Roster načten!');
@@ -7556,6 +7603,31 @@ function renderAllCvOverlays(){
   Object.keys(canvasData).forEach(function(sid){
     if(canvasData[sid]&&canvasData[sid].length) renderCvOverlay(sid);
   });
+}
+
+// ═══════════════ THEME (Classic / Glass) ═══════════════
+let themeMode='classic';   // aktuální zobrazení (lokální)
+let savedTheme='classic';  // uložený default (jde do payloadu, vidí všichni)
+function applyTheme(m){
+  themeMode=(m==='glass')?'glass':'classic';
+  document.body.classList.toggle('glass-on', themeMode==='glass');
+  const b=document.getElementById('themeBtn');
+  if(b) b.textContent = themeMode==='glass' ? '🪟 Glass' : '🗔 Classic';
+}
+// lokální preference > uložený default > classic
+function _resolveTheme(def){
+  savedTheme = (def==='glass'||def==='classic') ? def : 'classic';
+  let pref=null; try{ pref=localStorage.getItem('themePref_'+_getBossSlug()); }catch(e){}
+  return pref || savedTheme;
+}
+function toggleTheme(){
+  applyTheme(themeMode==='glass'?'classic':'glass');
+  try{ localStorage.setItem('themePref_'+_getBossSlug(), themeMode); }catch(e){}
+  // V edit módu se přepnutí stane i uloženým defaultem pro všechny
+  if(typeof editMode!=='undefined' && editMode){
+    savedTheme=themeMode;
+    if(typeof saveState==='function') saveState();
+  }
 }
 
 // ═══════════════ PREZENTAČNÍ (FULLSCREEN) MÓD ═══════════════

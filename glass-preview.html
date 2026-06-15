@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="en" style="--main-max-w: 1400px; --notes-w: 340px;"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lightblinded Vanguard – Mythic Guide</title>
+
+<!-- LZString compression for short share URLs -->
+
+
+<!-- Wowhead tooltips -->
+
+<link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet"><link type="text/css" href="https://wow.zamimg.com/css/universal.css?19" rel="stylesheet">
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    /* Subtle dark navy gradient — lighter than pure black, gentle radial bloom */
+    background-color: #0f1118;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 20% 10%,  rgba(30,40,80,0.55) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 50% at 80% 90%,  rgba(20,30,70,0.45) 0%, transparent 70%),
+      radial-gradient(ellipse 100% 100% at 50% 50%, rgba(16,18,28,1)   0%, transparent 100%);
+    color: #c8ccd8;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Accent colour: cool blue ── */
+  :root {
+    --accent: #4f8eff;
+    --accent-dim: rgba(79,142,255,0.12);
+    --accent-border: rgba(79,142,255,0.28);
+    --surface: #0e0f14;
+    --surface2: #131620;
+    --surface3: #181b26;
+    --border: #1f2234;
+    --border2: #272b3d;
+    --text-dim:  #6b7394;   /* labels, hints  — was #5a6080 */
+    --text-mid:  #a8b0c8;   /* body text      — was #8890aa, now clearly readable */
+
+  }
+
+  /* ── Wowhead spell links — classic WoW gold ── */
+  a[href*="wowhead.com"] {
+    color: #ffd100 !important;
+    text-decoration: none;
+    border-bottom: 1px dotted rgba(255,209,0,0.4);
+    transition: color .15s, opacity .15s;
+  }
+  a[href*="wowhead.com"]:hover {
+    color: #ffe566 !important;
+    opacity: 1;
+  }
+  /* ── Obarvený spell link — když je uvnitř barevného obalu, zdědí tvou barvu,
+        tooltip (data-wowhead) funguje dál beze změny ── */
+  [data-user-fmt] a[href*="wowhead.com"],
+  [data-user-fmt] a[href*="wowhead.com"]:hover {
+    color: inherit !important;
+    border-bottom-color: rgba(255,255,255,0.3);
+  }
+  /* ── Timeline spell link — zdědí barvu buňky (data-tl-color), tooltip funguje dál ── */
+  [data-tl-color] a[href*="wowhead.com"],
+  [data-tl-color] a[href*="wowhead.com"]:hover {
+    color: inherit !important;
+  }
+
+  /* ── Marker icons (inline in text) ── */
+  .mk {
+    height: 1.15em;
+    width:  1.15em;
+    vertical-align: middle;
+    display: inline;
+    margin: 0 2px;
+    object-fit: contain;
+    pointer-events: none;
+  }
+  /* Marker picker toolbar (Edit mode only) */
+  #markerBar {
+    display: none;
+    position: sticky; top: 0; z-index: 30;
+    background: rgba(14,15,20,0.96);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 6px 12px;
+    gap: 6px; flex-wrap: wrap; align-items: center;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  .edit-mode #markerBar { display: flex; }
+  #markerBar span { font-size: 11px; color: var(--text-dim); margin-right: 4px; }
+  .mk-btn {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: var(--surface3); border: 1px solid var(--border2);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all .15s; padding: 4px;
+    color: var(--text-mid);
+  }
+  .mk-btn:hover { border-color: var(--accent-border); background: var(--accent-dim); }
+  .mk-btn img { width: 18px; height: 18px; object-fit: contain; }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #1f2234; border-radius: 3px; }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 216px;
+    background: rgba(13,15,22,0.92);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid var(--border);
+    z-index: 50; display: flex; flex-direction: column;
+    overflow-y: auto; overflow-x: hidden;
+  }
+  .sb-logo { padding: 18px 18px 14px; border-bottom: 1px solid var(--border); }
+  .sb-logo h1 { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .02em; }
+  .sb-logo p  { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  #sidebar nav { padding: 10px 8px; flex: 1; }
+  .nav-section { font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; padding: 12px 10px 4px; }
+  .nav-item {
+    display: block; padding: 6px 10px; border-radius: 6px;
+    color: var(--text-mid); font-size: 12.5px; text-decoration: none;
+    border: 1px solid transparent; transition: all .15s;
+  }
+  .nav-item:hover { color: #c8ccd8; background: var(--surface3); }
+  .nav-item.active { color: var(--accent); background: var(--accent-dim); border-color: var(--accent-border); }
+
+  /* ── MAIN ── */
+  :root { --main-max-w: 1400px; }
+  .main {
+    margin-left: 216px;
+    padding: 28px 32px 80px;
+    max-width: var(--main-max-w);
+  }
+  @media (max-width: 900px) {
+    #sidebar { display: none; }
+    .main { margin-left: 0; padding: 20px 16px 60px; }
+  }
+
+  /* ── PAGE HEADER ── */
+  .page-header { margin-bottom: 24px; }
+  .home-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px; margin-bottom: 12px;
+    border: 1px solid var(--border2); border-radius: 6px;
+    background: var(--surface2); color: var(--text-mid);
+    font-size: 12px; font-weight: 600; text-decoration: none;
+    transition: all .15s;
+  }
+  .home-btn:hover { color: var(--accent); border-color: rgba(79,142,255,.5); background: rgba(79,142,255,.12); }
+  .home-btn svg { opacity: .85; }
+  .page-header h1 { font-size: 22px; font-weight: 800; color: var(--accent); letter-spacing: -.02em; }
+  .page-header p  { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+  .action-row { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+  .action-row .edit-active { background: rgba(79,142,255,.2) !important; color: var(--accent) !important; border-color: rgba(79,142,255,.5) !important; }
+
+  /* ── COLLAPSIBLE SECTION ── */
+  .section {
+    background: linear-gradient(160deg, rgba(26,30,46,0.65) 0%, rgba(12,13,20,0.97) 100%);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px; margin-bottom: 14px; overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35), 0 8px 24px rgba(0,0,0,0.25);
+  }
+  .sec-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 18px; cursor: pointer; user-select: none; transition: background .15s;
+  }
+  .sec-header:hover { background: var(--surface2); }
+  .sec-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .sec-collapse { display: flex; align-items: center; gap: 4px; color: var(--text-dim); font-size: 11px; }
+  .sec-header:hover .sec-collapse { color: var(--text-mid); }
+  .c-arrow { transition: transform .28s; display: block; }
+  .sec-header.closed .c-arrow { transform: rotate(180deg); }
+  .sec-body { overflow: hidden; transition: max-height .32s ease, opacity .25s; }
+  .sec-body.closed { max-height: 0 !important; opacity: 0; pointer-events: none; }
+  .sec-inner { padding: 16px 18px; }
+
+  /* ── SLIDE ── */
+  .slide { scroll-margin-top: 20px; margin-bottom: 16px; }
+  .slide-wrap {
+    border-radius: 12px; overflow: hidden;
+    /* Subtle gradient fill: slightly lighter at top, fading to deep */
+    background:
+      linear-gradient(160deg,
+        rgba(30, 34, 52, 0.72) 0%,
+        rgba(14, 15, 22, 0.95) 55%,
+        rgba(10, 11, 18, 1)    100%);
+    /* Layered shadow for Apple-style "floating card" depth */
+    box-shadow:
+      0 1px  0   rgba(255,255,255, 0.04) inset, /* top inner highlight */
+      0 1px  2px rgba(0,0,0, 0.5),
+      0 4px  12px rgba(0,0,0, 0.45),
+      0 12px 32px rgba(0,0,0, 0.30),
+      0 0   40px rgba(10,20,60, 0.18);
+    border: 1px solid rgba(255,255,255, 0.07);
+    display: flex; flex-direction: column;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+    will-change: transform;
+  }
+  /* No whole-card hover lift — zoom is on the image only */
+
+  /* Slide header bar */
+  .slide-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px;
+    background: linear-gradient(90deg, rgba(20,24,38,0.9) 0%, rgba(14,15,22,0.8) 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+  .slide-bar-left { display: flex; align-items: center; gap: 8px; }
+  .slide-num {
+    width: 22px; height: 22px; border-radius: 5px;
+    background: var(--surface3); border: 1px solid var(--border2);
+    font-size: 11px; font-weight: 800; color: var(--text-dim);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .slide-title { font-size: 13px; font-weight: 700; color: #c8ccd8; }
+  .share-btn {
+    display: flex; align-items: center; gap: 4px; color: var(--text-dim);
+    font-size: 11px; background: none; border: none; cursor: pointer;
+    padding: 4px 8px; border-radius: 5px; transition: all .15s;
+  }
+  .share-btn:hover { color: var(--text-mid); background: var(--surface3); }
+
+  /* Slide body: image + notes side by side */
+  :root { --notes-w: 340px; }
+  .slide-body {
+    display: grid;
+    grid-template-columns: 1fr var(--notes-w);
+  }
+  /* Slide reorder & add */
+  .slide-order-btn {
+    background: none; border: none; cursor: pointer; padding: 2px 5px;
+    color: var(--text-dim); font-size: 12px; transition: color .12s; line-height: 1;
+    display: none;
+  }
+  .edit-mode .slide-order-btn { display: inline-block; }
+  .slide-order-btn:hover { color: var(--accent); }
+  .slide-del-btn {
+    background: none; border: none; cursor: pointer; padding: 2px 5px;
+    color: var(--text-dim); font-size: 14px; line-height: 1; display: none;
+    transition: color .12s;
+  }
+  .edit-mode .slide-del-btn { display: inline-block; }
+  .slide-del-btn:hover { color: #f87171; }
+  .add-slide-btn {
+    display: none; width: 100%; margin-top: 10px; padding: 8px;
+    border-radius: 8px; border: 1px dashed var(--border2);
+    background: none; color: var(--text-dim); font-size: 12px; cursor: pointer;
+    transition: all .15s;
+  }
+  .edit-mode .add-slide-btn { display: block; }
+  .add-slide-btn:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+  /* Notes heading */
+  .notes-heading {
+    font-size: 14px; font-weight: 700; color: var(--accent);
+    padding: 2px 0; margin-bottom: 2px;
+    position: relative; display: flex; align-items: center; gap: 6px;
+  }
+  .notes-heading .hdg-del {
+    display: none; background: none; border: none; cursor: pointer;
+    color: rgba(248,113,113,.5); font-size: 13px; padding: 0 2px; line-height: 1; flex-shrink: 0;
+  }
+  .edit-mode .notes-heading .hdg-del { display: block; }
+  .notes-heading .hdg-del:hover { color: #f87171; }
+  .notes-heading .hdg-text { flex: 1; }
+  /* Add heading/card choice */
+  .rc-add-choice {
+    display: none; gap: 5px; margin-top: 6px;
+  }
+  .edit-mode .rc-add-choice { display: flex; }
+  .rc-add-choice .btn { font-size: 11px; padding: 4px 10px; flex: 1; }
+  /* Editable in edit mode */
+  .edit-mode .slide-title[contenteditable],
+  .edit-mode .slide-num[contenteditable] { cursor: text; outline: none; border-bottom: 1px dashed rgba(79,142,255,.4); }
+  .edit-mode .notes-heading[contenteditable] { outline: none; border-bottom: 1px dashed rgba(79,142,255,.4); }
+
+  /* Drag handles */
+  .slide { position: relative; overflow: visible; }
+  .slide-img { position: relative; }
+  /* Image right edge → adjusts image/notes split */
+  .img-resize-handle {
+    position: absolute; right: 0; top: 0; bottom: 0; width: 7px;
+    cursor: ew-resize; z-index: 20; background: transparent; transition: background .15s;
+  }
+  .img-resize-handle:hover,
+  .img-resize-handle.dragging { background: rgba(79,142,255,.5); }
+  /* Slide right edge → adjusts overall slide width */
+  .slide-width-handle {
+    position: absolute; right: -6px; top: 0; bottom: 0; width: 10px;
+    cursor: ew-resize; z-index: 21; background: transparent; transition: background .15s;
+    border-radius: 0 4px 4px 0;
+  }
+  .slide-width-handle:hover,
+  .slide-width-handle.dragging { background: rgba(251,146,60,.45); }
+
+  /* 16:9 image wrapper — aspect-ratio on the image area itself */
+  .slide-img {
+    /* The image column is (total - 340px). We enforce 16:9 via padding trick
+       so the image area is always perfectly 16:9 regardless of container width. */
+    position: relative;
+    overflow: hidden;
+    /* aspect-ratio is supported in all modern browsers */
+    aspect-ratio: 16 / 8.6; /* FIX: Adjusted for bottom crop */
+    min-height: 200px;
+  }
+  /* Notes panel gets same height as image automatically via CSS grid */
+  .slide-notes {
+    /* scroll if text overflows the 16:9 image height */
+    overflow-y: auto;
+  }
+  @media (max-width: 1100px) {
+    .slide-body { grid-template-columns: 1fr 300px; }
+  }
+  @media (max-width: 800px) {
+    .slide-body { grid-template-columns: 1fr; }
+  }
+
+  /* Image area — additional properties (position/display set above with aspect-ratio) */
+  .slide-img {
+    background: #07070b;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    border-right: 1px solid rgba(255,255,255,0.06);
+  }
+  .slide-img img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
+    transform-origin: center center;
+    will-change: transform;
+    user-select: none; -webkit-user-drag: none;
+    transition: transform 0.2s ease;
+  }
+  .img-toggle-btn {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: #fff; font-size: 24px; font-weight: 300;
+    padding: 0; cursor: pointer; z-index: 10; line-height: 1;
+    transition: all 0.2s; opacity: 0; pointer-events: none;
+    text-shadow: 0 0 3px rgba(0,0,0,0.8);
+  }
+  .slide-img:hover .img-toggle-btn { opacity: 0.7; pointer-events: auto; }
+  .img-toggle-btn:hover { opacity: 1; }
+  .slide-img.zoom-active { cursor: grab; }
+  .slide-img.zoom-active.dragging { cursor: grabbing; }
+  .img-placeholder-inner {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    color: var(--border2); pointer-events: none;
+  }
+  .img-hint {
+    position: absolute; bottom: 8px; left: 10px;
+    font-size: 10px; color: rgba(255,255,255,.25); pointer-events: none;
+  }
+
+  /* Notes panel */
+  .slide-notes {
+    padding: 16px 14px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .notes-title { font-size: 15px; font-weight: 700; color: var(--accent); line-height: 1.3; }
+  .notes-body  { font-size: 13.5px; color: var(--text-mid); line-height: 1.6; }
+  .notes-body strong { color: #c8ccd8; font-weight: 600; }
+
+  /* Role cards */
+  .rc { border-radius: 8px; padding: 9px 11px; border: 1px solid; }
+  .rc-head { display: flex; align-items: center; justify-content: flex-start; gap: 6px; margin-bottom: 4px; }
+  .rc-icon { width: 18px; height: 18px; flex-shrink: 0; }
+  .rc-label { font-size: 13px; font-weight: 700; }
+  .rc-body  { font-size: 13px; line-height: 1.55; }
+  .rc-body strong { font-weight: 600; }
+
+  .rc-tank   { background: rgba(30,58,138,.1);  border-color: rgba(59,130,246,.2); }
+  .rc-healer { background: rgba(5,46,22,.15);    border-color: rgba(34,197,94,.2); }
+  .rc-dps    { background: rgba(69,10,10,.15);   border-color: rgba(239,68,68,.2); }
+  .rc-all    { background: rgba(46,16,101,.1);   border-color: rgba(139,92,246,.2); }
+  .rc-note   { background: rgba(15,17,28,.8);    border-color: var(--border2); }
+
+  .rc-tank   .rc-label { color: #60a5fa; }
+  .rc-healer .rc-label { color: #4ade80; }
+  .rc-dps    .rc-label { color: #f87171; }
+  .rc-all    .rc-label { color: #a78bfa; }
+  .rc-note   .rc-label { color: var(--accent); }
+
+  .rc-tank   .rc-body { color: #bfdbfe; }
+  .rc-healer .rc-body { color: #bbf7d0; }
+  .rc-dps    .rc-body { color: #fecaca; }
+  .rc-all    .rc-body { color: #ddd6fe; }
+  .rc-note     .rc-body { color: #a8b0c8; }
+  .rc-soakers  { background: rgba(255,79,193,.06);  border-color: rgba(255,79,193,.2); }
+  .rc-sennbait { background: rgba(252,207,3,.06); border-color: rgba(252,207,3,.18); }
+  .rc-soakers  .rc-label { color: #ff4fc1; }
+  .rc-sennbait .rc-label { color: #fccf03; }
+  .rc-soakers  .rc-body  { color: var(--text-mid); }
+  .rc-sennbait .rc-body  { color: var(--text-mid); }
+
+  /* ── ASSIGNMENTS ── */
+  .assign-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap:10px; }
+  .group-card  { background: var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px; overflow:visible; }
+  .group-title { font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
+  .slot-row    { display:flex; align-items:center; gap:5px; margin-bottom:4px; }
+  .slot-num    { width:18px; height:18px; border-radius:4px; background:var(--surface3); font-size:10px; font-weight:700; color:var(--text-dim); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .slot-chip   { flex:1; display:flex; align-items:center; gap:5px; padding:3px 8px; border-radius:5px; border:1px solid; cursor:pointer; min-height:26px; font-size:12px; background:rgba(9,9,13,.6); color:var(--text-mid); position:relative; }
+  .slot-chip:hover { background: rgba(30,35,55,0.9); }
+  .slot-chip.empty { border-color:var(--border2); color:var(--text-dim); font-style:italic; }
+  .slot-chip .cn { font-weight:600; flex:1; }
+  .slot-chip-tooltip { position:absolute; top:calc(100% + 8px); left:0; background:#0a0a0f; border:1px solid var(--border2); border-radius:6px; padding:6px 8px; font-size:10px; z-index:1001; box-shadow:0 6px 20px rgba(0,0,0,.9); opacity:0; pointer-events:none; transition:opacity 0.15s ease-out; min-width:160px; color:#ffffff; }
+  .slot-chip-tooltip .tt-main { margin-bottom:6px; display:flex; align-items:center; gap:4px; font-weight:700; color:var(--text-mid); }
+  .slot-chip-tooltip .tt-main img { width:14px; height:14px; border-radius:2px; }
+  .slot-chip-tooltip .tt-alts { display:flex; flex-direction:column; gap:3px; }
+  .slot-chip-tooltip .tt-alt { display:flex; align-items:center; gap:4px; white-space:nowrap; }
+  .slot-chip-tooltip .tt-alt img { width:12px; height:12px; border-radius:2px; flex-shrink:0; }
+  .slot-chip-tooltip .tt-alt-name { font-weight:600; color:inherit; }
+  .tt-sep { height:1px; background:var(--border2); margin:6px 0; }
+  .tt-alts-label { font-size:10px; color:var(--text-dim); margin-bottom:6px; text-transform:uppercase; letter-spacing:.06em; font-weight:700; }
+
+  /* ── CONTEXT MENU ── */
+  .ctx-menu {
+    position: fixed; z-index: 200;
+    background: #1a1d2a; border: 1px solid var(--border2);
+    border-radius: 9px; padding: 5px; min-width: 170px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.65);
+    animation: ctxIn .12s ease;
+  }
+  @keyframes ctxIn { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
+  .ctx-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 6px; font-size: 12px;
+    color: var(--text-mid); cursor: pointer; transition: background .1s;
+    border: none; background: none; width: 100%; text-align: left;
+  }
+  .ctx-item:hover { background: var(--surface3); color: #c8ccd8; }
+  .ctx-item.danger:hover { background: rgba(239,68,68,.1); color: #f87171; }
+  .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
+  .ctx-sub { background: #13151f; border-radius: 7px; margin-top: 4px; padding: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .ctx-spec-btn {
+    display: flex; align-items: center; gap: 5px; padding: 4px 8px;
+    border-radius: 5px; border: 1px solid var(--border2); background: var(--surface);
+    color: var(--text-mid); font-size: 11px; cursor: pointer; transition: all .12s;
+  }
+  .ctx-spec-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+  .ctx-spec-btn.active { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+  /* ── ROSTER ── */
+  .roster-row { display:flex; align-items:center; gap:7px; padding:5px 6px; border-radius:7px; cursor:pointer; transition:background .12s; border:1px solid transparent; user-select:none; }
+  .roster-row:hover { background:var(--surface3); }
+  .roster-row.selected { background:var(--accent-dim); border-color:var(--accent-border); }
+  .spec-icon { width:20px; height:20px; border-radius:4px; flex-shrink:0; object-fit:cover; }
+  .role-badge { font-size:9px; font-weight:800; padding:2px 5px; border-radius:3px; text-transform:uppercase; letter-spacing:.04em; flex-shrink:0; }
+  .role-badge.tank   { background:rgba(59,130,246,.15); color:#60a5fa; }
+  .role-badge.healer { background:rgba(34,197,94,.15);  color:#4ade80; }
+  .role-badge.dps    { background:rgba(239,68,68,.15);  color:#f87171; }
+  .assign-badge { font-size:9px; font-weight:800; padding:2px 6px; border-radius:3px; background:var(--accent-dim); color:var(--accent); border:1px solid var(--accent-border); flex-shrink:0; }
+
+  /* ── ADD/REMOVE CARDS (edit mode) ── */
+  .rc-remove-btn {
+    display: none; margin-left: auto;
+    background: none; border: none; cursor: pointer;
+    color: rgba(248,113,113,.4); font-size: 14px; line-height: 1; padding: 0 2px;
+    transition: color .15s; flex-shrink: 0;
+  }
+  .edit-mode .rc-remove-btn { display: block; }
+  .rc-remove-btn:hover { color: #f87171; }
+
+  .rc-add-btn {
+    display: none; width: 100%; margin-top: 6px;
+    padding: 5px; border-radius: 6px; border: 1px dashed var(--border2);
+    background: none; color: var(--text-dim); font-size: 11px; cursor: pointer;
+    transition: all .15s; text-align: center;
+  }
+  .edit-mode .rc-add-btn { display: block; }
+  .rc-add-btn:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+
+  /* ── TEXT FORMATTING TOOLBAR ── */
+  #fmtBar {
+    display: none; position: fixed; z-index: 300;
+    background: #1a1d2a; border: 1px solid var(--border2);
+    border-radius: 8px; padding: 4px 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.6);
+    align-items: center; gap: 3px;
+    animation: ctxIn .12s ease;
+  }
+  #fmtBar.visible { display: flex; }
+  /* TL ability name — no wowhead underline */
+  [data-tl-color] a { text-decoration: none !important; }
+  .fmt-btn {
+    padding: 3px 7px; border-radius: 5px; border: 1px solid transparent;
+    background: none; color: var(--text-mid); font-size: 12px; cursor: pointer;
+    transition: all .12s; line-height: 1.4;
+  }
+  .fmt-btn:hover { background: var(--surface3); color: #c8ccd8; }
+  .fmt-btn.active { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+  .fmt-sep { width: 1px; height: 16px; background: var(--border2); margin: 0 2px; }
+  .fmt-color-dot {
+    width: 14px; height: 14px; border-radius: 50%; cursor: pointer;
+    border: 1px solid rgba(255,255,255,.15); flex-shrink: 0; transition: transform .1s;
+  }
+  .fmt-color-dot:hover { transform: scale(1.25); }
+
+  /* ── ROLE SWITCHER (edit mode) ── */
+  .role-switch-btn {
+    display: none; margin-left: auto; padding: 1px 6px;
+    border-radius: 4px; border: 1px dashed rgba(255,255,255,.2);
+    font-size: 9px; font-weight: 700; cursor: pointer;
+    background: rgba(255,255,255,.05); color: rgba(255,255,255,.4);
+    text-transform: uppercase; letter-spacing: .05em;
+    transition: all .15s; flex-shrink: 0;
+  }
+  .edit-mode .role-switch-btn { display: block; }
+  .role-switch-btn:hover { border-color: rgba(255,255,255,.4); color: rgba(255,255,255,.7); }
+
+  /* Suppress browser default contenteditable outline everywhere */
+  [contenteditable] { outline: none; }
+  [contenteditable]:focus { outline: none; }
+
+  /* ── EDIT MODE ── */
+  .edit-mode [contenteditable] {
+    outline: 1px dashed rgba(79,142,255,.3);
+    border-radius: 3px;
+    cursor: text;
+  }
+  .edit-mode [contenteditable]:focus {
+    outline: 1px solid var(--accent);
+    background: rgba(79,142,255,.04);
+  }
+
+  /* ── REORDER BUTTONS ── */
+  .rc-order-btns, .hdg-order-btns {
+    display: none; flex-direction: column; gap: 1px; margin-left: auto; flex-shrink: 0;
+  }
+  .edit-mode .rc-order-btns, .edit-mode .hdg-order-btns { display: flex; }
+  .rc-order-btn, .hdg-order-btn {
+    background: none; border: none; cursor: pointer; padding: 0 3px; line-height: 1;
+    color: var(--text-dim); font-size: 11px; transition: color .12s;
+  }
+  .rc-order-btn:hover, .hdg-order-btn:hover { color: var(--accent); }
+
+  /* ── BUTTONS ── */
+  .btn { padding: 7px 14px; border-radius: 8px; border: 1px solid; font-size: 12px; font-weight: 600; cursor: pointer; transition: filter .15s; background: none; }
+  .btn:hover { filter: brightness(1.2); }
+  .btn-accent  { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+  .btn-ghost   { border-color: var(--border2); color: var(--text-mid); }
+  .btn-danger  { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.28); color: #f87171; }
+  .btn-green   { background: rgba(34,197,94,.08); border-color: rgba(34,197,94,.28); color: #4ade80; }
+  .btn-blue    { background: rgba(59,130,246,.08); border-color: rgba(59,130,246,.28); color: #60a5fa; }
+
+  /* ── LOCK TOGGLE ── */
+  .lock-toggle-wrap {
+    display: flex; align-items: center; gap: 7px;
+    padding: 4px 10px 4px 8px; border-radius: 8px;
+    border: 1px solid var(--border2); cursor: pointer;
+    transition: all .15s; user-select: none;
+    background: transparent;
+  }
+  .lock-toggle-wrap:hover { background: var(--surface3); }
+  .lock-toggle-wrap.locked { border-color: rgba(251,146,60,.35); background: rgba(251,146,60,.07); }
+  .toggle-track {
+    width: 32px; height: 18px; border-radius: 9px;
+    background: var(--border2); position: relative;
+    transition: background .2s; flex-shrink: 0;
+  }
+  .lock-toggle-wrap.locked .toggle-track { background: #fb923c; }
+  .toggle-thumb {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; position: absolute; top: 2px; left: 2px;
+    transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  }
+  .lock-toggle-wrap.locked .toggle-thumb { transform: translateX(14px); }
+  .toggle-label { font-size: 12px; font-weight: 600; color: var(--text-mid); }
+  .lock-toggle-wrap.locked .toggle-label { color: #fb923c; }
+
+  /* ── ASSIGNMENT REF WIDGET (in slide notes) ── */
+  .assign-ref-widget { background:transparent; border:none; padding:4px 0; margin:4px 0; position:relative; }
+  .assign-ref-widget .arw-label { font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px; }
+  .edit-mode .assign-ref-widget .arw-del { display:flex; }
+  .assign-ref-widget .arw-del { display:none; position:absolute;top:4px;right:4px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:4px;color:#f87171;cursor:pointer;font-size:11px;padding:0px 5px;line-height:1.6; }
+
+  /* ── WOWHEAD SEARCH PANEL ── */
+  #wh-search-panel { position:fixed;z-index:300;background:#1a1d2a;border:1px solid var(--border2);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.8);width:300px;overflow:hidden; }
+  #wh-search-input { width:100%;background:transparent;border:none;border-bottom:1px solid var(--border2);padding:10px 12px;font-size:13px;color:#c8ccd8;outline:none; }
+  #wh-search-input::placeholder { color:var(--text-dim); }
+  #wh-search-filters { display:flex;gap:4px;padding:6px 8px;border-bottom:1px solid var(--border); }
+  .wh-filter { font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--text-dim);cursor:pointer;transition:all .12s; }
+  .wh-filter.active { background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent); }
+  #wh-search-results { max-height:280px;overflow-y:auto; }
+  .wh-result { display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;transition:background .1s; }
+  .wh-result:hover { background:var(--accent-dim); }
+  .wh-result img { width:20px;height:20px;border-radius:4px;flex-shrink:0;background:var(--surface3); }
+  .wh-result-name { font-size:12px;font-weight:600;color:#c8ccd8;flex:1; }
+  .wh-result-type { font-size:10px;color:var(--text-dim);flex-shrink:0; }
+  #wh-search-status { padding:10px 12px;font-size:11px;color:var(--text-dim);text-align:center; }
+
+  /* ── AUTOCOMPLETE DROPDOWN ── */
+  #autocomplete-dropdown { position:fixed;z-index:9999;background:#1a1d2a;border:1px solid var(--border2);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.7);overflow:hidden;min-width:180px; }
+  .ac-item { display:flex;align-items:center;gap:7px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:600;transition:background .1s; }
+  .ac-item:hover,.ac-item.ac-active { background:var(--accent-dim); }
+  .ac-item img { width:14px;height:14px;border-radius:2px;flex-shrink:0; }
+
+  /* hotspot system removed */
+
+  /* ── EMOJI ICON (replaces SVG icon on a card, keeps card role/color) ── */
+  .rc-emoji-icon { font-size:16px; line-height:1; flex-shrink:0; width:18px; height:18px; display:flex; align-items:center; justify-content:center; filter:grayscale(1) brightness(1.4); }
+
+  /* ── ASSIGNMENT EDIT CONTROLS ── */
+  .asgn-label-row { display:flex; align-items:center; gap:5px; }
+  .asgn-size-btn { background:var(--surface3); border:1px solid var(--border2); border-radius:4px; color:var(--text-mid); cursor:pointer; font-size:13px; line-height:1; padding:1px 7px; transition:all .15s; }
+  .asgn-size-btn:hover { border-color:var(--accent-border); color:var(--accent); }
+  .asgn-size-num { font-size:10px; color:var(--text-dim); min-width:18px; text-align:center; }
+  .asgn-del-btn { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.25); border-radius:4px; color:#f87171; cursor:pointer; font-size:11px; padding:1px 7px; transition:all .15s; }
+  .asgn-del-btn:hover { background:rgba(239,68,68,.2); }
+  .asgn-add-btn { width:100%; margin-top:12px; font-size:11px; padding:5px; border:1px dashed var(--border2); background:transparent; border-radius:6px; color:var(--text-dim); cursor:pointer; transition:all .15s; }
+  .asgn-add-btn:hover { border-color:var(--accent-border); color:var(--accent); background:var(--accent-dim); }
+  body:not(.edit-mode) .edit-only { display:none !important; }
+  .edit-mode .img-btn-group { display:flex !important; }
+
+  /* ── LOCK STATE ── */
+  .lock-banner {
+    display: none; align-items: center; gap: 10px;
+    padding: 8px 16px; border-radius: 8px; margin-bottom: 12px;
+    background: rgba(251,146,60,.08); border: 1px solid rgba(251,146,60,.25);
+    font-size: 12px; color: #fb923c;
+  }
+  .lock-banner.visible { display: flex; }
+  /* When locked, disable all assignment interactions */
+  body.is-locked .slot-chip,
+  body.is-locked .roster-row { pointer-events: none; opacity: .85; }
+  body.is-locked .slot-chip.empty { opacity: .45; }
+  body.is-locked #multiBar { display: none !important; }
+  body.is-locked .mk-btn,
+  body.is-locked #markerBar { display: none !important; }
+
+  /* ══ Canvas Editor ══ */
+  #canvasBar {
+    display: none; position: fixed; right: 6px; top: 50%; transform: translateY(-50%);
+    z-index: 50; flex-direction: column; align-items: center; gap: 3px;
+    background: rgba(12,13,18,0.97); backdrop-filter: blur(12px);
+    border: 1px solid var(--border2); border-radius: 10px;
+    padding: 6px 4px; box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    width: 44px; max-height: 90vh; overflow-y: auto;
+  }
+  .edit-mode #canvasBar { display: flex; }
+  body.is-locked #canvasBar { display: none !important; }
+  .cv-tool-btn {
+    background: rgba(255,255,255,.06); border: 1px solid var(--border2);
+    border-radius: 6px; color: var(--text-dim); font-size: 16px;
+    width: 36px; height: 36px; cursor: pointer; transition: all .15s;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .cv-tool-btn:hover { color: var(--text); border-color: rgba(255,255,255,.3); background: rgba(255,255,255,.1); }
+  .cv-tool-btn.active { background: rgba(79,142,255,.2); border-color: rgba(79,142,255,.5); color: var(--accent); }
+  .cv-sep { width: 28px; height: 1px; background: var(--border2); margin: 1px 0; flex-shrink: 0; }
+  .cv-lbl { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+  /* Boss picker buttons */
+  .cv-boss-btn {
+    background:rgba(255,255,255,.06); border:1px solid var(--border2); border-radius:7px;
+    cursor:pointer; padding:5px 3px; display:flex; flex-direction:column; align-items:center;
+    gap:3px; transition:all .15s; font-size:18px; color:var(--text);
+  }
+  .cv-boss-btn span { font-size:8px; color:var(--text-dim); }
+  .cv-boss-btn:hover { background:rgba(255,255,255,.12); border-color:var(--accent-border); }
+
+  /* img-set-btn: image button on each slide */
+  .img-set-btn {
+    display: none; position: absolute; top: 6px; right: 6px; z-index: 15;
+    background: rgba(14,15,20,.82); border: 1px solid var(--border2);
+    border-radius: 6px; color: var(--text-dim); font-size: 14px;
+    cursor: pointer; padding: 2px 5px; transition: all .15s; line-height: 1;
+  }
+  .edit-mode .img-set-btn { display: block; }
+  .img-set-btn:hover { color: var(--accent); border-color: var(--accent-border); }
+  #cvPropsPanel {
+    display:none; position:fixed; right:56px; top:50%; transform:translateY(-50%);
+    z-index:51; flex-direction:column; gap:5px;
+    background:rgba(12,13,18,0.97); backdrop-filter:blur(12px);
+    border:1px solid var(--border2); border-radius:10px;
+    padding:10px 12px; box-shadow:0 4px 24px rgba(0,0,0,0.5);
+    min-width:270px; max-width:310px; max-height:90vh; overflow-y:auto;
+  }
+  #cvPropsPanel.visible { display:flex; }
+  #cvPropsPanel .cv-section { font-size:11px; color:var(--text-dim); font-weight:700; text-transform:uppercase; letter-spacing:.06em; margin-bottom:2px; }
+  #cvPropsPanel .cv-row { display:flex; align-items:center; gap:5px; flex-wrap:wrap; font-size:11px; color:var(--text); }
+  #cvPropsPanel input[type=color] { width:26px; height:22px; border:1px solid var(--border2); border-radius:4px; background:none; cursor:pointer; padding:1px; }
+  #cvPropsPanel input[type=range] { accent-color:var(--accent); cursor:pointer; }
+  #cvPropsPanel input[type=number] { background:rgba(255,255,255,.07); border:1px solid var(--border2); border-radius:4px; color:var(--text); padding:2px 4px; outline:none; }
+  #cvPropsPanel .cv-val { font-size:10px; color:var(--text-dim); min-width:26px; }
+  .cv-swatches { display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
+  .cv-swatch { width:16px; height:16px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:transform .1s,border-color .1s; flex-shrink:0; }
+  .cv-swatch:hover { transform:scale(1.2); }
+  .cv-swatch.active { border-color:#fff; }
+  .cv-hex { width:60px; background:rgba(255,255,255,.07); border:1px solid var(--border2); border-radius:4px; color:var(--text); font-size:11px; padding:2px 5px; outline:none; font-family:monospace; }
+  .cv-hex:focus { border-color:var(--accent); }
+  .cv-rot-handle { cursor:grab; fill:rgba(255,255,255,.8); stroke:#2196f3; stroke-width:1.5; }
+  @keyframes slideFlash {
+    0%  { background: rgba(79,142,255,.45); }
+    40% { background: rgba(79,142,255,.25); }
+    100%{ background: rgba(79,142,255,0); }
+  }
+  .slide-img.flash-new::after {
+    content:''; position:absolute; inset:0; z-index:20; pointer-events:none;
+    animation: slideFlash 1.1s ease-out forwards;
+  }
+  .cv-rot-handle:hover { fill:#2196f3; }
+  .cv-tog { font-size:11px; padding:3px 7px; background:rgba(255,255,255,.07); border:1px solid var(--border2); border-radius:4px; color:var(--text-dim); cursor:pointer; transition:all .12s; }
+  .cv-tog:hover { background:rgba(255,255,255,.14); color:var(--text); }
+  .cv-tog.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+
+  /* Canvas right-click context menu */
+  #cvCtxMenu {
+    display:none; position:fixed; z-index:9999;
+    background:rgba(10,12,18,0.97); backdrop-filter:blur(12px);
+    border:1px solid var(--border2); border-radius:8px;
+    padding:5px 0; box-shadow:0 4px 20px rgba(0,0,0,.7);
+    min-width:170px; font-size:12px;
+  }
+  #cvCtxMenu .ctx-section {
+    font-size:10px; font-weight:700; color:var(--text-dim);
+    text-transform:uppercase; letter-spacing:.06em;
+    padding:5px 12px 3px; pointer-events:none;
+  }
+  #cvCtxMenu button {
+    display:flex; align-items:center; gap:8px; width:100%;
+    background:none; border:none; color:var(--text);
+    padding:5px 12px; cursor:pointer; text-align:left; font-size:12px;
+  }
+  #cvCtxMenu button:hover { background:rgba(79,142,255,.15); color:#fff; }
+  #cvCtxMenu button .ctx-dot {
+    width:12px; height:12px; border-radius:50%; flex-shrink:0;
+  }
+  #cvCtxMenu .ctx-sep { height:1px; background:var(--border2); margin:4px 0; }
+
+  /* SVG overlay on each slide image */
+  .cv-overlay {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: auto; z-index: 13; overflow: visible;
+  }
+  /* pointer-events always on so group tooltips work in read mode too */
+  .cv-obj { cursor: pointer; }
+  .cv-handle { cursor: nwse-resize; }
+  .cv-dash-btn { background:rgba(255,255,255,.06); border:1px solid var(--border2); border-radius:4px; color:var(--text-mid); font-size:11px; padding:2px 6px; cursor:pointer; letter-spacing:1px; }
+  .cv-dash-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .cv-dash-btn.active { border-color:var(--accent); color:var(--accent); background:rgba(79,142,255,.12); }
+  body.cv-drawing .slide-img .cv-overlay { cursor: crosshair; }
+  body.cv-drawing .slide-img { cursor: crosshair; }
+
+  /* Bulk upload modal */
+  #bulkUploadModal {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,.7); align-items: center; justify-content: center;
+  }
+  #bulkUploadModal .bum-inner {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 12px; padding: 24px; min-width: 360px; max-width: 480px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  #bulkUploadModal h3 { margin: 0; font-size: 15px; color: var(--text); }
+  #bulkUploadModal label { font-size: 12px; color: var(--text-dim); display:flex; flex-direction:column; gap:4px; }
+  #bulkUploadModal select, #bulkUploadModal input[type=text] {
+    background: rgba(255,255,255,.07); border:1px solid var(--border2);
+    border-radius:6px; color:var(--text); font-size:12px; padding:5px 8px;
+  }
+
+  /* ── MODALS ── */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 200; display: none; align-items: center; justify-content: center; }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--surface2); border: 1px solid var(--border2); border-radius: 14px; padding: 24px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+  .modal h2 { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 16px; }
+  .modal label { font-size: 11px; color: var(--text-dim); display: block; margin-bottom: 4px; }
+  .modal input, .modal textarea, .modal select {
+    width: 100%; background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #c8ccd8;
+    outline: none; transition: border-color .15s; resize: vertical;
+  }
+  .modal input:focus, .modal textarea:focus { border-color: var(--accent); }
+  .modal .mb { margin-bottom: 12px; }
+  .btn-row { display: flex; gap: 8px; margin-top: 16px; }
+  .class-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 5px; margin-bottom: 4px; }
+  .cls-btn { padding: 5px 4px; border-radius: 6px; border: 1px solid; font-size: 10px; font-weight: 600; cursor: pointer; text-align: center; background: var(--surface); transition: all .15s; }
+  .cls-btn.sel { filter: brightness(1.4); background: rgba(255,255,255,.04); }
+
+  /* ── TOAST ── */
+  .toast { position: fixed; bottom: 20px; right: 20px; background: var(--surface3); border: 1px solid var(--accent-border); border-radius: 8px; padding: 9px 15px; color: var(--accent); font-size: 12px; z-index: 300; animation: tIn .2s ease; pointer-events: none; }
+  @keyframes tIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+  /* ── inline ref chips (small, in notes) ── */
+  .mini-ref { font-size: 11px; color: var(--text-dim); }
+  .mini-ref strong { color: var(--text-mid); }
+
+  /* ── PRESENTATION MODE ── */
+  #presentMode { position: fixed; inset: 0; z-index: 5000; background: #06070b; display: none; flex-direction: column; }
+  #presentMode.open { display: flex; }
+  .present-top { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: rgba(10,12,18,.92); border-bottom: 1px solid rgba(255,255,255,.08); flex-wrap: nowrap; overflow-x: auto; }
+  .present-title { font-size: 14px; font-weight: 800; color: var(--accent); white-space: nowrap; margin-right: 6px; }
+  .present-nums { display: flex; gap: 5px; flex: 1; flex-wrap: wrap; }
+  .present-num { min-width: 26px; height: 26px; padding: 0 6px; border-radius: 6px; border: 1px solid var(--border2); background: var(--surface2); color: var(--text-mid); font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all .12s; }
+  .present-num:hover { border-color: var(--accent-border); color: var(--accent); }
+  .present-num.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .present-top-btns { display: flex; gap: 6px; margin-left: auto; }
+  .present-stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
+  .present-scaler { position: relative; }
+  .present-scaler > .slide-img { position: relative; transform-origin: top left; }
+  .present-scaler > .slide-img .img-resize-handle,
+  .present-scaler > .slide-img .img-set-btn,
+  .present-scaler > .slide-img .img-add-variant-btn,
+  .present-scaler > .slide-img .img-dot-bar { display: none !important; }
+  .present-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 54px; height: 88px; border: none; border-radius: 10px; background: rgba(0,0,0,.4); color: #fff; font-size: 30px; cursor: pointer; opacity: .55; transition: opacity .15s, background .15s; z-index: 5; }
+  .present-nav:hover { opacity: 1; background: rgba(0,0,0,.65); }
+  .present-nav.prev { left: 14px; }
+  .present-nav.next { right: 14px; }
+  .present-vardots { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 7px; background: rgba(0,0,0,.5); padding: 6px 10px; border-radius: 20px; z-index: 6; }
+  .present-vardot { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #cfd6e6; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .present-vardot:hover { border-color: var(--accent); color: #fff; }
+  .present-vardot.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .present-bottom { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 9px 14px; background: rgba(10,12,18,.92); border-top: 1px solid rgba(255,255,255,.08); }
+  .present-pbtn { flex: 0 0 auto; white-space: nowrap; }
+  .present-mid { flex: 0 0 460px; width: 460px; max-width: 50vw; display: flex; align-items: center; justify-content: center; gap: 12px; overflow: hidden; }
+  .present-slidetitle { font-size: 14px; font-weight: 700; color: #e6e9f2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .present-counter { font-size: 12px; color: var(--text-dim); min-width: 48px; text-align: center; flex: 0 0 auto; }
+  .present-notes { position: absolute; top: 0; right: 0; bottom: 0; width: 380px; max-width: 80vw; background: rgba(12,14,22,.97); border-left: 1px solid rgba(255,255,255,.1); padding: 18px 20px; overflow-y: auto; transform: translateX(100%); transition: transform .2s; z-index: 10; }
+  .present-notes.open { transform: translateX(0); }
+  .present-notes .slide-notes { display: block; }
+  .present-notes .rc-add-btn, .present-notes .rc-add-choice, .present-notes .rc-remove-btn, .present-notes .role-switch-btn, .present-notes .rc-order-btns, .present-notes .hdg-del, .present-notes .hdg-order-btns, .present-notes .notes-title .hdg-del { display: none !important; }
+
+/* ═══════ GLASS MODE (plochy, crisp — bez 3D bevelu a sedeho borderu) ═══════ */
+.glass-bg{position:fixed;inset:0;z-index:-3;display:none;background:url('the-voidspire-v0-ybv6naaoling1.webp') center/cover no-repeat;filter:brightness(.62) saturate(.92)}
+.glass-bg::after{content:'';position:absolute;inset:0;background:
+  radial-gradient(135% 115% at 50% 32%, transparent 0%, transparent 34%, rgba(2,3,8,.58) 82%, rgba(1,2,6,.82) 100%),
+  linear-gradient(180deg, rgba(4,6,14,.42) 0%, rgba(3,4,10,.60) 60%, rgba(2,3,8,.74) 100%)}
+body.glass-on .glass-bg{display:block}
+body.glass-on , body.glass-on .main{background:transparent !important}
+/* plocha skla: bez inset highlightu, bez stinu, tenky ostry okraj */
+body.glass-on .section{
+  background:rgba(12,16,28,.40) !important;
+  backdrop-filter:blur(20px) saturate(165%); -webkit-backdrop-filter:blur(20px) saturate(165%);
+  border:1px solid rgba(255,255,255,.12) !important;
+  border-radius:14px !important;
+  box-shadow:none !important;
+}
+body.glass-on .sec-header{background:transparent !important;border-bottom:1px solid rgba(255,255,255,.08)}
+body.glass-on .sec-header:hover{background:rgba(255,255,255,.05) !important}
+body.glass-on #sidebar{
+  background:rgba(9,12,22,.46) !important;
+  backdrop-filter:blur(20px) saturate(160%); -webkit-backdrop-filter:blur(20px) saturate(160%);
+  border-right:1px solid rgba(255,255,255,.12) !important;
+  box-shadow:none !important;
+}
+body.glass-on .nav-item:hover{background:rgba(255,255,255,.07) !important}
+body.glass-on .slide-bar{background:rgba(255,255,255,.05) !important;backdrop-filter:blur(8px) saturate(150%);-webkit-backdrop-filter:blur(8px) saturate(150%);border-bottom:1px solid rgba(255,255,255,.10) !important;box-shadow:none !important}
+body.glass-on .rc{background:rgba(255,255,255,.06) !important;backdrop-filter:blur(11px) saturate(150%);-webkit-backdrop-filter:blur(11px);border:1px solid rgba(255,255,255,.12) !important;border-radius:10px !important;box-shadow:none !important}
+body.glass-on .notes-heading,body.glass-on .notes-title{background:transparent !important}
+body.glass-on .group-card{background:rgba(255,255,255,.045) !important;backdrop-filter:blur(11px) saturate(150%);-webkit-backdrop-filter:blur(11px);border:1px solid rgba(255,255,255,.12) !important;border-radius:10px !important;box-shadow:none !important}
+body.glass-on .slot-chip{background:rgba(255,255,255,.07) !important;border:1px solid rgba(255,255,255,.10) !important;box-shadow:none !important}
+body.glass-on .slot-chip.empty{background:rgba(255,255,255,.035) !important}
+body.glass-on .assign-grid,body.glass-on .assign-ref-widget,body.glass-on .roster-list,body.glass-on .rc-add-choice{background:transparent !important}
+body.glass-on #assignments-panel{visibility:visible !important}
+body.glass-on .btn-ghost{background:rgba(255,255,255,.08) !important;border:1px solid rgba(255,255,255,.16) !important;backdrop-filter:blur(8px);color:#eef2fb !important;box-shadow:none !important}
+body.glass-on .btn-ghost:hover{background:rgba(255,255,255,.16) !important}
+body.glass-on .btn-green{background:linear-gradient(135deg,rgba(48,190,114,.88),rgba(36,160,96,.88)) !important;border:1px solid rgba(120,225,165,.55) !important;color:#fff !important;box-shadow:none !important}
+body.glass-on .btn-accent,body.glass-on .btn-blue{background:linear-gradient(135deg,rgba(74,138,252,.9),rgba(50,104,218,.9)) !important;border:1px solid rgba(150,185,255,.55) !important;color:#fff !important;box-shadow:none !important}
+body.glass-on #lockBanner{display:none !important}
+body.glass-on .slide-img{box-shadow:none;border-radius:6px}
+#themeToggle{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:99999;
+  font:600 12.5px 'Segoe UI',sans-serif;color:#eaf0fb;cursor:pointer;
+  background:rgba(12,16,28,.72);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.20);
+  border-radius:10px;padding:8px 18px;box-shadow:none}
+#themeToggle:hover{background:rgba(26,34,54,.82)}
+
+</style>
+
+<!-- Inline SVG icons -->
+</head><body class="webp glass-on" data-wh-webp="true">
+<div class="glass-bg"></div>
+<button id="themeToggle">prepinac</button>
+<svg style="display:none">
+  <symbol id="i-healer" viewBox="0 0 100 100">
+    <ellipse ry="50" rx="50" cy="50" cx="50" fill="#084d42"></ellipse>
+    <rect height="63.71" width="14" y="18.14" x="43" fill="#fff"></rect>
+    <rect height="14" width="63.71" y="43" x="18.14" fill="#fff"></rect>
+  </symbol>
+  <symbol id="i-tank" viewBox="0 0 100 100">
+    <ellipse ry="50" rx="50" cy="50" cx="50" fill="#001c52"></ellipse>
+    <g transform="matrix(.1181 0 0 .1181 -49.31 -46.74)">
+      <path fill="#fff" d="m1045.97 626.36-200.83-60.25c-2.81-.84-5.81-.84-8.62 0l-200.83 60.25c-6.34 1.9-10.69 7.74-10.69 14.37v220.92c0 28.73 11.63 58.15 34.57 87.42 17.52 22.36 41.76 44.81 72.05 66.74 50.88 36.83 100.98 59.42 103.08 60.36 1.95.87 4.04 1.31 6.13 1.31s4.18-.44 6.13-1.31c2.11-.94 52.21-23.54 103.08-60.36 30.29-21.92 54.53-44.38 72.05-66.74 22.94-29.28 34.57-58.69 34.57-87.42V640.73c0-6.62-4.34-12.46-10.69-14.37z"></path>
+    </g>
+  </symbol>
+  <symbol id="i-dps" viewBox="0 0 100 100">
+    <ellipse ry="50" rx="50" cy="50" cx="50" fill="#6d0a0b"></ellipse>
+    <path fill="#fff" d="m76.29 23.71-11.06.17-30.34 32.17 3.49 3.49 5.91-5.91 2.18 2.18-5.91 5.91 3.42 3.42 31.88-30.6.43-10.82z"></path>
+    <path fill="#fff" d="m24.83 59.29 4.73 4.73-5.75 5.75-.1 6.46 6.6.08 5.77-5.77 4.73 4.73 4.47-4.47L25.31 54.82l-4.47 4.47z"></path>
+  </symbol>
+  <symbol id="i-all" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"></path>
+  </symbol>
+  <symbol id="i-soakers" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"></path>
+  </symbol>
+  <symbol id="i-sennbait" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M12 2L1 21h22L12 2zm0 3.5L20.5 19h-17L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z"></path>
+  </symbol>
+</svg>
+
+
+
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sb-logo">
+    <h1>Lightblinded Vanguard</h1>
+    <p>Mythic · The War Within</p>
+  </div>
+  <nav id="sidebarNav"><div class="nav-section">Overview</div><a href="#assignments" class="nav-item">Assignments</a><div class="nav-section">Phase 1</div><a href="#assignments" class="nav-item">assignments</a><a href="#s-start" class="nav-item">S · Pull</a><a href="#s1" class="nav-item">1 · Aura of Devotion (Consecration)</a><a href="#s2" class="nav-item">2 · Absorb Soak</a><a href="#s3" class="nav-item">3 · Avengers Shield (Spread)</a><a href="#s4" class="nav-item">4 · Aura of Wrath (Consecration)</a><a href="#s5" class="nav-item">5 · Execution Sentence (Group Soak)</a><a href="#s6" class="nav-item">6 · Divine Storm (Tornado)</a><a href="#s7" class="nav-item">7 · Aura of Peace (Consecration)</a><a href="#s8" class="nav-item">8 · Absorb Soak</a><a href="#s9" class="nav-item">9 · Execution Sentence (Group Soak)</a><a href="#s-new-1780387952288" class="nav-item">10 · Senn Bait</a><a href="#s10" class="nav-item">11 · Searing Radiance</a><a href="#s-new-1780388915136" class="nav-item">12 · Aura of Devotion (Consecration)</a><a href="#s-new-1780389825404" class="nav-item">13 · Absorb Soakers</a><a href="#s-new-1780389826960" class="nav-item">14 · Senn Bait</a><a href="#s-new-1780389834792" class="nav-item">15 · Avengers Shield (Spread)</a><a href="#s-new-1780389835747" class="nav-item">16 · Aura of Wrath (Consecration)</a><a href="#s-new-1780390118433" class="nav-item">17 · Execution Sentence (Group Soak)</a><a href="#s-new-1780390119436" class="nav-item">18 · Senn Bait</a><a href="#s-new-1780390120242" class="nav-item">19 · Divine Storm (Tornado)</a><a href="#s-new-1780390121227" class="nav-item">20 · Aura of Peace (Consecration)</a><a href="#s-new-1780390130439" class="nav-item">21 · Execution Sentence (Group Soak)</a><a href="#s-new-1780391765194" class="nav-item">22 · Absorb Soakers</a><a href="#s-new-1780391766339" class="nav-item">23 · Senn Bait</a><a href="#s-new-1780391854399" class="nav-item">24 · Aura of Devotion (Consecration)</a><a href="#s11" class="nav-item">25 · Kill</a></nav>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- Marker picker bar — sticky at top, only visible in Edit Mode -->
+  <div id="markerBar">
+    <span>Insert marker:</span>
+    <button class="mk-btn" title="Star" onclick="insertMarker('Markers/star.png',    'star')"><img src="Markers/star.png" alt="star"></button>
+    <button class="mk-btn" title="Circle" onclick="insertMarker('Markers/circle.png',  'circle')"><img src="Markers/circle.png" alt="circle"></button>
+    <button class="mk-btn" title="Diamond" onclick="insertMarker('Markers/diamond.png', 'diamond')"><img src="Markers/diamond.png" alt="diamond"></button>
+    <button class="mk-btn" title="Triangle" onclick="insertMarker('Markers/triangle.png','triangle')"><img src="Markers/triangle.png" alt="triangle"></button>
+    <button class="mk-btn" title="Moon" onclick="insertMarker('Markers/moon.png',    'moon')"><img src="Markers/moon.png" alt="moon"></button>
+    <button class="mk-btn" title="Square" onclick="insertMarker('Markers/square.png',  'square')"><img src="Markers/square.png" alt="square"></button>
+    <button class="mk-btn" title="Cross" onclick="insertMarker('Markers/cross.png',   'cross')"><img src="Markers/cross.png" alt="cross"></button>
+    <button class="mk-btn" title="Skull" onclick="insertMarker('Markers/skull.png',   'skull')"><img src="Markers/skull.png" alt="skull"></button>
+    <div style="width:1px;background:var(--border2);align-self:stretch;margin:0 4px"></div>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;height:28px;line-height:1" onclick="openSpellModal(this)" title="Vlož spell do textu">⚡ Spelly</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;height:28px;line-height:1" onclick="openSpellManageModal()" title="Spravovat spell databázi">⚙</button>
+    <div style="width:1px;background:var(--border2);align-self:stretch;margin:0 4px"></div>
+    <!-- Global font sizes -->
+    <span style="font-size:10px;color:var(--text-dim)">Nadpisy:</span>
+    <button class="mk-btn" onclick="setGlobalSize('title','11px')" id="tS" title="Malé nadpisy" style="width:auto;padding:0 6px;font-size:10px;font-weight:700">S</button>
+    <button class="mk-btn" onclick="setGlobalSize('title','13px')" id="tM" title="Střední nadpisy" style="width:auto;padding:0 6px;font-size:11px;font-weight:700">M</button>
+    <button class="mk-btn" onclick="setGlobalSize('title','16px')" id="tL" title="Velké nadpisy" style="width: auto; padding: 0px 6px; font-size: 13px; font-weight: 700; background: var(--accent-dim);">L</button>
+    <button class="mk-btn" onclick="setGlobalSize('title','20px')" id="tXL" title="XL nadpisy" style="width:auto;padding:0 6px;font-size:15px;font-weight:700">XL</button>
+    <div style="width:1px;background:var(--border2);align-self:stretch;margin:0 4px"></div>
+    <span style="font-size:10px;color:var(--text-dim)">Obsah:</span>
+    <button class="mk-btn" onclick="setGlobalSize('body','11px')" id="bS" title="Malý text" style="width:auto;padding:0 6px;font-size:10px">S</button>
+    <button class="mk-btn" onclick="setGlobalSize('body','13px')" id="bM" title="Střední text" style="width: auto; padding: 0px 6px; font-size: 11px; background: var(--accent-dim);">M</button>
+    <button class="mk-btn" onclick="setGlobalSize('body','15px')" id="bL" title="Velký text" style="width:auto;padding:0 6px;font-size:13px">L</button>
+    <button class="mk-btn" onclick="setGlobalSize('body','18px')" id="bXL" title="XL text" style="width:auto;padding:0 6px;font-size:15px">XL</button>
+    <div style="width:1px;background:var(--border2);align-self:stretch;margin:0 6px"></div>
+    <button class="btn btn-accent edit-active" style="font-size:11px;padding:4px 12px;height:28px;line-height:1" onclick="toggleEditMode()">✓ Done Editing</button>
+  </div>
+
+  <!-- Canvas / Drawing toolbar (edit mode only) -->
+  <div id="canvasBar">
+    <!-- Drag handle -->
+    <div id="cvBarHandle" title="Přetáhni toolbar" style="cursor:grab;color:var(--text-dim);font-size:10px;padding:1px 0;opacity:.5;user-select:none;width:100%;text-align:center">⠿</div>
+    <div class="cv-sep" style="width:28px;height:1px;margin:1px 0"></div>
+    <button class="cv-tool-btn active" data-tool="select" onclick="setCvTool('select')" title="Výběr (S)">↖</button>
+    <button class="cv-tool-btn" data-tool="rect"   onclick="setCvTool('rect')"   title="Obdélník (R)">▭</button>
+    <button class="cv-tool-btn" data-tool="circle" onclick="setCvTool('circle')" title="Kruh (E)">◯</button>
+    <button class="cv-tool-btn" data-tool="arrow"    onclick="setCvTool('arrow')"    title="Šipka (A)">↗</button>
+    <button class="cv-tool-btn" data-tool="triangle" onclick="setCvTool('triangle')" title="Trojúhelník">▲</button>
+    <button class="cv-tool-btn" data-tool="text"   onclick="setCvTool('text')"   title="Text (T)">T</button>
+    <div class="cv-sep" style="width:28px;height:1px;margin:1px 0"></div>
+    <button class="cv-tool-btn" data-tool="player" onclick="openCvMiniPanel('player')" title="Hráč (P)">👤</button>
+    <button class="cv-tool-btn" data-tool="marker" onclick="openCvMiniPanel('marker')" title="Raid marker">★</button>
+    <button class="cv-tool-btn" data-tool="boss"   onclick="openCvMiniPanel('boss')"   title="Boss & Role">❖</button>
+    <button class="cv-tool-btn" data-tool="spell"  onclick="openCvMiniPanel('spell')"  title="Spelly">⚡</button>
+    <div class="cv-sep" style="width:28px;height:1px;margin:1px 0"></div>
+    <button class="cv-tool-btn" onclick="cvDeleteSelected()" title="Smaž (Del)">🗑</button>
+    <button class="cv-tool-btn" onclick="openBulkUpload()" title="Obrázky na slidy">⬆</button>
+  </div>
+
+  <!-- Canvas properties flyout (shown when object selected) -->
+  <div id="cvPropsPanel">
+    <div class="cv-section" id="cvPropsTitle">Vlastnosti</div>
+
+    <!-- TEXT v tvaru (rect/circle/triangle) -->
+    <div id="cvS_shapeText" style="display:none">
+      <div class="cv-row">
+        <span class="cv-lbl">Text</span>
+        <input type="text" id="cvShapeText" placeholder="volný text…" oninput="cvApplyProp('shapeText',this.value)"
+          style="flex:1;background:rgba(255,255,255,.07);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;padding:3px 6px;outline:none;min-width:0">
+      </div>
+      <div class="cv-row">
+        <span class="cv-lbl">Barva</span>
+        <input type="color" id="cvShapeTextColor" value="#ffffff" oninput="cvApplyProp('shapeTextColor',this.value)">
+        <span class="cv-lbl">Vel.</span>
+        <input type="number" id="cvShapeTextSize" min="10" max="500" step="10" value="100"
+          oninput="cvApplyProp('shapeTextSize',this.value)"
+          style="width:46px;background:rgba(255,255,255,.07);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;padding:2px 4px;outline:none">
+        <span class="cv-lbl">%</span>
+      </div>
+      <div class="cv-row">
+        <span class="cv-lbl">Průhl.</span>
+        <input type="range" id="cvShapeTextAlpha" min="0" max="100" value="100" style="width:65px" oninput="cvApplyProp('shapeTextAlpha',this.value);document.getElementById('cvShapeTextAlphaV').textContent=this.value+'%'">
+        <span class="cv-val" id="cvShapeTextAlphaV">100%</span>
+      </div>
+    </div>
+
+    <!-- COLOR SWATCHES (sdílené pro fill+border) -->
+    <div id="cvS_swatches" style="display:none;margin-bottom:4px">
+      <div class="cv-row" style="margin-bottom:3px">
+        <span class="cv-lbl">Color</span>
+        <div class="cv-swatches" id="cvSwatchRow"></div>
+      </div>
+      <div class="cv-row">
+        <input type="color" id="cvNativeColor" style="width:22px;height:22px;border:none;background:none;cursor:pointer;padding:0;border-radius:3px;flex-shrink:0" oninput="cvSwatchCustom(this.value)">
+        <input type="text" id="cvHexColor" class="cv-hex" maxlength="7" placeholder="#rrggbb" oninput="cvSwatchHexInput(this.value)" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'">
+        <span style="font-size:9px;color:var(--text-dim)" title="Pravý klik na swatch = ulož tuto barvu jako preset">★ preset</span>
+      </div>
+    </div>
+
+    <!-- FILL (rect/circle) -->
+    <div id="cvS_fill" class="cv-row" style="display:none">
+      <span class="cv-lbl">Fill</span>
+      <input type="range" id="cvFillAlpha" min="0" max="100" value="30" style="width:70px" oninput="cvApplyProp('fillA',this.value);document.getElementById('cvFillAlphaV').textContent=this.value+'%'">
+      <span class="cv-val" id="cvFillAlphaV">30%</span>
+    </div>
+
+    <!-- BORDER (rect/circle/text) -->
+    <div id="cvS_border" style="display:none">
+      <div class="cv-row">
+        <span class="cv-lbl">Border</span>
+        <input type="range" id="cvStrokeAlpha" min="0" max="100" value="100" style="width:55px" oninput="cvApplyProp('strokeA',this.value);document.getElementById('cvStrokeAlphaV').textContent=this.value+'%'">
+        <span class="cv-val" id="cvStrokeAlphaV">100%</span>
+        <input type="number" id="cvStrokeWidth" value="2" min="0" max="20" oninput="cvApplyProp('strokeW',this.value)" style="width:34px">px
+      </div>
+    </div>
+    <!-- TLOUŠŤKA (pouze arrow) -->
+    <div id="cvS_arrowWidth" style="display:none">
+      <div class="cv-row">
+        <span class="cv-lbl">Tloušťka</span>
+        <input type="range" id="cvArrowWidth" min="1" max="20" value="2" style="width:65px" oninput="cvApplyProp('strokeW',this.value);document.getElementById('cvArrowWidthV').textContent=this.value">
+        <span class="cv-val" id="cvArrowWidthV">2</span>
+        <span class="cv-lbl" style="margin-left:2px">px</span>
+      </div>
+      <div class="cv-row" style="margin-top:4px;gap:4px">
+        <span class="cv-lbl">Styl</span>
+        <button id="cvArrowStyleSolid"  class="cv-dash-btn active" onclick="cvApplyProp('dashStyle','solid')"   title="Plná">——</button>
+        <button id="cvArrowStyleDashed" class="cv-dash-btn"        onclick="cvApplyProp('dashStyle','dashed')"  title="Přerušovaná">- - -</button>
+        <button id="cvArrowStyleDotted" class="cv-dash-btn"        onclick="cvApplyProp('dashStyle','dotted')"  title="Tečkovaná">· · ·</button>
+      </div>
+      <div class="cv-row" style="margin-top:4px">
+        <span class="cv-lbl">Průhl.</span>
+        <input type="range" id="cvArrowAlpha" min="0" max="100" value="100" style="width:65px" oninput="cvApplyProp('strokeA',this.value);document.getElementById('cvArrowAlphaV').textContent=this.value+'%'">
+        <span class="cv-val" id="cvArrowAlphaV">100%</span>
+      </div>
+    </div>
+
+    <!-- TEXT (pouze typ text) -->
+    <div id="cvS_text" style="display:none">
+      <div class="cv-row">
+        <span class="cv-lbl">Barva</span>
+        <input type="color" id="cvTextColor" value="#ffffff" oninput="cvApplyProp('textColor',this.value)">
+        <span class="cv-lbl">Vel.</span>
+        <input type="number" id="cvFontSize" value="16" min="6" max="120" oninput="cvApplyProp('fontSize',this.value)" style="width:44px">
+      </div>
+    </div>
+
+    <!-- VEL. (player/group/marker/boss/spell) -->
+    <div id="cvS_iconSize" style="display:none;flex-direction:column;gap:2px">
+      <div class="cv-row">
+        <span class="cv-lbl">Vel.</span>
+        <input type="range" id="cvIconSize" min="16" max="80" value="32" style="width:60px" oninput="cvApplyProp('iconSize',this.value);cvSyncSizeInputs(this.value)">
+        <input type="number" id="cvIconSizeNum" min="4" max="400" value="32" title="Přepiš velikost vybraného prvku na vlastní hodnotu" style="width:48px;background:rgba(255,255,255,.07);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;padding:2px 4px;outline:none" oninput="cvApplyProp('iconSize',this.value);cvSyncSizeInputs(this.value)">
+        <span class="cv-val" id="cvIconSizeV" style="display:none">32</span>
+      </div>
+      <div class="cv-row" style="margin-top:1px">
+        <span class="cv-lbl" title="Výchozí velikost pro tento typ prvku – uloží se do cloudu a použije se pro nově vkládané prvky">Default</span>
+        <input type="number" id="cvIconSizeDefault" min="4" max="400" placeholder="–" title="Výchozí velikost pro tento typ prvku (uloží se do cloudu pro budoucí prvky)" style="width:48px;background:rgba(255,255,255,.07);border:1px solid var(--accent-border,#3b82f6);border-radius:4px;color:var(--text);font-size:11px;padding:2px 4px;outline:none" oninput="cvSetTypeDefault(this.value)">
+        <button class="btn btn-ghost" style="font-size:9px;padding:2px 6px" title="Nastav velikost vybraného prvku na výchozí" onclick="cvApplyTypeDefaultToSelected()">použít</button>
+      </div>
+    </div>
+
+    <!-- LABEL (pouze player) -->
+    <div id="cvS_label" class="cv-row" style="display:none">
+      <span class="cv-lbl">Label</span>
+      <div style="display:flex;gap:2px">
+        <button id="cvLM_full"  class="cv-tog" onclick="cvTogLabel('labelMode','full')"  title="Full name">Full</button>
+        <button id="cvLM_2L"   class="cv-tog" onclick="cvTogLabel('labelMode','2L')"   title="2 letters">2L</button>
+        <button id="cvLM_none" class="cv-tog" onclick="cvTogLabel('labelMode','none')"  title="Bez labelu">—</button>
+      </div>
+      <div style="display:flex;gap:2px">
+        <button id="cvLL_right" class="cv-tog" onclick="cvTogLabel('labelLayout','right')" title="Vpravo">→</button>
+        <button id="cvLL_below" class="cv-tog" onclick="cvTogLabel('labelLayout','below')" title="Dole">↓</button>
+      </div>
+    </div>
+
+    <!-- GROUP (barva + alpha + barva textu + tvar) -->
+    <div id="cvS_group" style="display:none">
+      <div class="cv-row">
+        <span class="cv-lbl">Barva</span>
+        <input type="color" id="cvIconColor" value="#4f8eff" oninput="cvApplyProp('iconColor',this.value)">
+        <input type="range" id="cvGroupAlpha" min="0" max="100" value="90" style="width:55px" oninput="cvApplyProp('groupAlpha',this.value);document.getElementById('cvGroupAlphaV').textContent=this.value+'%'">
+        <span class="cv-val" id="cvGroupAlphaV">90%</span>
+      </div>
+      <div class="cv-row">
+        <span class="cv-lbl">Text</span>
+        <input type="color" id="cvGroupTextColor" value="#ffffff" oninput="cvApplyProp('groupTextColor',this.value)">
+        <span class="cv-lbl">Tvar</span>
+        <div style="display:flex;gap:2px">
+          <button id="cvIS_circle" class="cv-tog" onclick="cvTogShape('circle')" title="Kruh">◯</button>
+          <button id="cvIS_rect"   class="cv-tog" onclick="cvTogShape('rect')"   title="Čtverec">▭</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOSS (barva kruhu + alpha + popisek) -->
+    <div id="cvS_boss" style="display:none">
+      <div class="cv-row">
+        <span class="cv-lbl">Kruh</span>
+        <input type="color" id="cvBossFill" value="#888888" oninput="cvApplyProp('fill',this.value)">
+        <input type="range" id="cvBossAlpha" min="0" max="100" value="25" style="width:55px" oninput="cvApplyProp('fillA',this.value);document.getElementById('cvBossAlphaV').textContent=this.value+'%'">
+        <span class="cv-val" id="cvBossAlphaV">25%</span>
+      </div>
+      <!-- Class color swatches pro Kruh -->
+      <div id="cvBossSwatches" style="display:grid;grid-template-columns:repeat(8,16px);gap:3px;margin:2px 0 4px 0;padding:4px;background:rgba(255,255,255,.03);border-radius:5px"></div>
+      <div class="cv-row" style="margin-top:2px">
+        <span class="cv-lbl">Text</span>
+        <input type="text" id="cvBossLabel" placeholder="popisek pod ikonou…" oninput="cvApplyProp('bossLabel',this.value)"
+          style="flex:1;background:rgba(255,255,255,.07);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:11px;padding:3px 6px;outline:none;min-width:0">
+      </div>
+      <!-- Text styling (zobrazí se jen když je text vyplněný) -->
+      <div id="cvBossLabelStyle" style="display:none;margin-top:2px">
+        <div class="cv-row">
+          <span class="cv-lbl">Barva</span>
+          <input type="color" id="cvBossLabelColor" value="#ffffff" oninput="cvApplyProp('bossLabelColor',this.value)">
+          <span class="cv-lbl">Vel.</span>
+          <input type="number" id="cvBossLabelSize" value="12" min="6" max="40" oninput="cvApplyProp('bossLabelSize',+this.value)" style="width:42px">
+          <span class="cv-lbl">Outline</span>
+          <input type="checkbox" id="cvBossLabelOutline" onchange="cvApplyProp('bossLabelOutline',this.checked)" style="cursor:pointer;width:16px;height:16px">
+        </div>
+      </div>
+    </div>
+
+    <!-- ROTACE -->
+    <div id="cvS_rotation" class="cv-row" style="display:none">
+      <span class="cv-lbl">Rot</span>
+      <input type="range" id="cvRotSlider" min="-180" max="180" value="0" style="width:65px" oninput="cvApplyProp('rot',+this.value);document.getElementById('cvRotV').textContent=this.value+'°'">
+      <span class="cv-val" id="cvRotV">0°</span>
+      <button class="btn btn-ghost" style="font-size:10px;padding:2px 5px" onclick="cvApplyProp('rot',0);document.getElementById('cvRotSlider').value=0;document.getElementById('cvRotV').textContent='0°'">↺</button>
+    </div>
+
+    <!-- AKCE -->
+    <div class="cv-row" style="margin-top:6px;border-top:1px solid var(--border2);padding-top:6px">
+      <button class="btn btn-danger" style="font-size:11px;padding:3px 8px" onclick="cvDeleteSelected()">✕ Smaž</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:3px 8px" onclick="cvCopySelected()">Copy</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:3px 8px" onclick="cvPaste()">Paste</button>
+    </div>
+    <!-- Z-ORDER -->
+    <div class="cv-row" style="margin-top:4px;gap:3px" title="Pořadí vrstev">
+      <button class="btn btn-ghost" style="font-size:11px;padding:3px 6px" title="Úplně dopředu" onclick="cvZOrder('front')">⬆⬆</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:3px 6px" title="O vrstvu dopředu" onclick="cvZOrder('forward')">⬆</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:3px 6px" title="O vrstvu dozadu" onclick="cvZOrder('backward')">⬇</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:3px 6px" title="Úplně dozadu" onclick="cvZOrder('back')">⬇⬇</button>
+      <span style="font-size:10px;color:var(--text-dim);margin-left:2px">vrstva</span>
+    </div>
+  </div>
+
+  <!-- ══ Canvas Mini Panel (roster/group/marker picker) ══ -->
+  <div id="cvMiniPanel" style="display:none;position:fixed;right:56px;top:50%;transform:translateY(-50%);
+    z-index:52;background:rgba(10,11,16,0.97);backdrop-filter:blur(12px);border:1px solid var(--border2);
+    border-radius:10px;padding:10px;box-shadow:0 4px 24px rgba(0,0,0,.6);min-width:200px;max-width:260px;
+    max-height:80vh;overflow-y:auto;flex-direction:column;gap:6px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <span id="cvMiniTitle" style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em">Roster</span>
+      <button onclick="closeCvMiniPanel()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;line-height:1;padding:0 2px">✕</button>
+    </div>
+    <!-- Roster section -->
+    <div id="cvMiniRoster" style="display:none;flex-direction:column;gap:2px">
+      <input id="cvMiniSearch" type="text" placeholder="Hledat hráče…" oninput="cvMiniFilterRoster(this.value)"
+        style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:5px;
+        color:var(--text);font-size:11px;padding:4px 7px;outline:none;margin-bottom:4px">
+      <div id="cvMiniRosterList" style="display:flex;flex-direction:column;gap:2px;max-height:240px;overflow-y:auto"></div>
+      <div style="display:flex;gap:5px;margin-top:6px;align-items:center">
+        <span id="cvMiniCount" style="font-size:10px;color:var(--text-dim);flex:1">0 vybráno</span>
+        <button class="btn btn-ghost" style="font-size:10px;padding:2px 7px" onclick="cvMiniSelectAll()">Vše</button>
+        <button class="btn btn-ghost" style="font-size:10px;padding:2px 7px" onclick="cvMiniClearSel()">Žádné</button>
+        <button class="btn btn-accent" style="font-size:11px;padding:3px 10px" onclick="cvMiniPlaceRoster()">Place →</button>
+      </div>
+    </div>
+    <!-- Group + Assignment section -->
+    <div id="cvMiniGroup" style="display:none;flex-direction:column;gap:8px">
+      <!-- Groups -->
+      <div style="font-size:10px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em">Skupiny</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px" id="cvGGroupGrid">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:4px 6px;border-radius:6px;border:1px solid rgba(79,142,255,.3);background:rgba(79,142,255,.08)">
+          <input type="checkbox" data-gnum="1" class="cv-gcheck"> <span style="font-size:12px;font-weight:700;color:#4f8eff">G1</span></label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:4px 6px;border-radius:6px;border:1px solid rgba(248,113,113,.3);background:rgba(248,113,113,.08)">
+          <input type="checkbox" data-gnum="2" class="cv-gcheck"> <span style="font-size:12px;font-weight:700;color:#f87171">G2</span></label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:4px 6px;border-radius:6px;border:1px solid rgba(74,222,128,.3);background:rgba(74,222,128,.08)">
+          <input type="checkbox" data-gnum="3" class="cv-gcheck"> <span style="font-size:12px;font-weight:700;color:#4ade80">G3</span></label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:4px 6px;border-radius:6px;border:1px solid rgba(250,204,21,.3);background:rgba(250,204,21,.08)">
+          <input type="checkbox" data-gnum="4" class="cv-gcheck"> <span style="font-size:12px;font-weight:700;color:#facc15">G4</span></label>
+      </div>
+      <button class="btn btn-accent" style="font-size:11px;padding:3px 10px;align-self:flex-end" onclick="cvMiniPlaceGroups()">Place skupiny →</button>
+      <!-- Assignments -->
+      <div style="font-size:10px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-top:4px;border-top:1px solid var(--border2);padding-top:8px">Assignments</div>
+      <div id="cvMiniAssignList" style="display:flex;flex-direction:column;gap:3px"></div>
+      <button class="btn btn-accent" style="font-size:11px;padding:3px 10px;align-self:flex-end" onclick="cvMiniPlaceAssign()">Place assign →</button>
+    </div>
+    <!-- Marker section -->
+    <div id="cvMiniMarker" style="display:none;flex-direction:column;gap:6px">
+      <div style="font-size:10px;color:var(--text-dim);margin-bottom:2px">Klikni = vloží marker</div>
+      <div id="cvMiniMarkerBtns" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px"></div>
+    </div>
+    <!-- Spell section -->
+    <div id="cvMiniSpell" style="display:none;flex-direction:column;gap:6px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+        <span style="font-size:10px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;flex:1">Spelly</span>
+        <button onclick="openSpellManageModal()" title="Spravovat spelly" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:11px;padding:0 2px;line-height:1">⚙</button>
+      </div>
+      <input id="cvSpellFilter" type="text" placeholder="Filtruj spelly…" autocomplete="off" spellcheck="false"
+        style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:5px 8px;outline:none"
+        oninput="_renderCvSpellList(this.value)">
+      <div id="cvSpellList" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:2px">
+        <div style="font-size:11px;color:var(--text-dim);padding:8px 0">Žádné spelly — klikni ⚙ pro správu</div>
+      </div>
+    </div>
+    <!-- Boss/Add section -->
+    <div id="cvMiniBoss" style="display:none;flex-direction:column;gap:8px">
+      <!-- Generic icons -->
+      <div style="font-size:10px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em">Boss & Role</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">
+        <button onclick="cvMiniPlaceBossGeneric('tank')" class="cv-boss-btn" title="Tank spot"><img src="Icons/tank.svg" style="width:28px;height:28px;border-radius:4px" onerror="this.replaceWith(document.createTextNode('🛡'))"><span>Tank</span></button>
+        <button onclick="cvMiniPlaceBossGeneric('healer')" class="cv-boss-btn" title="Healer"><img src="Icons/healer.svg" style="width:28px;height:28px;border-radius:4px" onerror="this.replaceWith(document.createTextNode('💚'))"><span>Heal</span></button>
+        <button onclick="cvMiniPlaceBossGeneric('dps')" class="cv-boss-btn" title="Melee DPS"><img src="Icons/dps.svg" style="width:28px;height:28px;border-radius:4px" onerror="this.replaceWith(document.createTextNode('⚔️'))"><span>DPS</span></button>
+        <button onclick="cvMiniPlaceBossGeneric('rdps')" class="cv-boss-btn" title="Ranged DPS"><img src="Icons/rdps.svg" style="width:28px;height:28px;border-radius:4px" onerror="this.replaceWith(document.createTextNode('🏹'))"><span>rDPS</span></button>
+      </div>
+      <!-- GitHub Raids -->
+      <div style="border-top:1px solid var(--border2);padding-top:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+          <span style="font-size:10px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em">Raidy</span>
+          <div style="display:flex;gap:4px">
+            <button id="cvBossEditBtn" onclick="_bossToggleEdit()" title="Upravit kategorie" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:12px;padding:0 2px;line-height:1">✏</button>
+            <button onclick="_bossReload()" title="Reload ze GitHubu" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;padding:0 2px;line-height:1">↻</button>
+          </div>
+        </div>
+        <div id="cvBossRaidTabs" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;min-height:22px"></div>
+        <div id="cvBossContent" style="max-height:200px;overflow-y:auto"></div>
+      </div>
+      <!-- Custom URL -->
+      <div style="font-size:10px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;border-top:1px solid var(--border2);padding-top:6px">Vlastní URL</div>
+      <input id="cvBossCustomUrl" type="text" placeholder="https://…/icon.png" style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:5px 8px;outline:none">
+      <input id="cvBossCustomName" type="text" placeholder="Název (volitelné)" style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:5px 8px;outline:none">
+      <button class="btn btn-accent" style="font-size:11px;padding:4px 10px;align-self:flex-end" onclick="cvMiniPlaceBossCustom()">Place vlastní →</button>
+    </div>
+  </div>
+
+
+
+  <div class="page-header">
+    <a href="index.html" class="home-btn" title="Zpět na výběr raidů">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"></path></svg>
+      <span>Domů</span>
+    </a>
+    <h1>Lightblinded Vanguard</h1>
+    <p>Mythic Guide · The War Within</p>
+  </div>
+
+  <!-- Lock banner -->
+  <div id="lockBanner" class="lock-banner">
+    <span>🔒</span>
+    <span id="lockBannerText">Assignmenty jsou zamčené.</span>
+    <span style="flex:1"></span>
+    <button onclick="unlockAssignments()" class="btn btn-ghost" style="padding:3px 10px;font-size:11px;pointer-events:all">🔓 Odemknout</button>
+  </div>
+
+  <div class="action-row">
+    <!-- Share group -->
+    <button class="btn btn-green" id="shareBtn" onclick="cloudShare()" title="Sdílet s vlastním ID">Share</button>
+    <button class="btn btn-ghost" id="mainSaveBtn" onclick="cloudSave()" title="Uloží změny do cloudu (Ctrl+S)" style="display:none;color:#4f8eff;border-color:rgba(79,142,255,.35)">☁ Uložit</button>
+    <button class="btn btn-ghost" id="makeCopyBtn" onclick="cloudFork()" title="Vytvoří novou kopii s vlastním linkem">Make Copy</button>
+    <button class="btn btn-ghost" id="timelineBtn" onclick="showTimeline()" title="Boss timeline – tabulka &amp; osa">⏱ Timeline</button>
+    <button class="btn btn-ghost" id="presentBtn" onclick="presentOpen()" title="Fullscreen prezentace slidů (obrázky + canvas)">▶ Prezentace</button>
+    <div style="width:1px;background:var(--border2);margin:0 2px"></div>
+    <!-- Lock -->
+    <div class="lock-toggle-wrap" id="lockToggle" onclick="toggleShareLock()" title="Zamknout — po uložení nebude možné editovat">
+      <div class="toggle-track"><div class="toggle-thumb"></div></div>
+      <span class="toggle-label" id="lockToggleLabel">🔓</span>
+    </div>
+    <div style="width:1px;background:var(--border2);margin:0 2px"></div>
+    <!-- Edit + roster export -->
+    <button class="btn btn-ghost" id="editBtn" onclick="toggleEditMode()" title="Edituj texty v průvodci">✏ Edit Mode</button>
+    <button class="btn btn-green" onclick="exportRoster()" title="Stáhne roster.json">⬇ roster.json</button>
+  </div>
+
+  <!-- ═══ ASSIGNMENTS ═══ -->
+  <section class="section slide" id="assignments">
+    <div class="sec-header" onclick="toggleSec(this)">
+      <div class="sec-title" style="color:var(--accent)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="m6.2 2.44 11.9 11.9 2.12-2.12 1.41 1.41-2.47 2.47 3.18 3.18c.39.39.39 1.02 0 1.41l-.71.71a.996.996 0 0 1-1.41 0L17 18.23l-2.44 2.47-1.41-1.41 2.12-2.12-11.9-11.9V2.44zM15.89 10l4.74-4.74V2.44H17.8l-4.74 4.74zm-4.95 5-2.83-2.87-2.21 2.21-2.12-2.12-1.41 1.41 2.47 2.47-3.18 3.19a.996.996 0 0 0 0 1.41l.71.71c.39.39 1.02.39 1.41 0L7 18.23l2.44 2.47 1.41-1.41-2.12-2.12z"></path></svg>
+        Assignments
+      </div>
+      <div class="sec-collapse"><span>Collapse</span><svg class="c-arrow" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path></svg></div>
+    </div>
+    <div class="sec-body" style="max-height: 99999px;">
+      <div class="sec-inner" style="padding-top:16px">
+        <div style="display:grid;grid-template-columns:330px 1fr;gap:18px;align-items:start">
+
+          <!-- ── ROSTER PANEL ── -->
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em">
+                Roster <span id="rosterCount" style="color:var(--text-mid);font-weight:400">(27)</span>
+              </div>
+              <div style="display:flex;gap:5px">
+                <button class="btn btn-ghost" style="padding:3px 9px;font-size:11px" onclick="openWclModal()" title="Import directly from WarcraftLogs API">WCL</button>
+                <button class="btn btn-ghost" style="padding:3px 9px;font-size:11px" onclick="openImportModal()">↑ CSV</button>
+                <button class="btn btn-ghost" style="padding:3px 9px;font-size:11px" onclick="openAddPlayerModal()">+ Add</button>
+                <button class="btn btn-ghost" style="padding:3px 9px;font-size:11px" onclick="toggleRosterFilter()" id="filterToggle">⚙ Filter</button>
+              </div>
+            </div>
+            <input id="rosterSearch" type="text" placeholder="Search player…" style="margin-bottom:8px;font-size:12px;width:100%" oninput="renderAll()">
+            <!-- Roster filter panel -->
+            <div id="rosterFilterPanel" style="display:none;padding:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;margin-bottom:8px;font-size:11px">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div>
+                  <div style="color:var(--text-mid);margin-bottom:4px;font-weight:600">Role</div>
+                  <label style="display:block;margin:3px 0"><input type="checkbox" class="roster-filter-role" value="tank" onchange="renderAll()"> Tank</label>
+                  <label style="display:block;margin:3px 0"><input type="checkbox" class="roster-filter-role" value="healer" onchange="renderAll()"> Healer</label>
+                  <label style="display:block;margin:3px 0"><input type="checkbox" class="roster-filter-role" value="dps" onchange="renderAll()"> DPS</label>
+                </div>
+                <div id="assignmentFilterCol"><div style="color:var(--text-mid);margin-bottom:4px;font-weight:600">Assignment</div><div><label style="display: block; margin: 3px 0px;"><input type="checkbox" class="roster-filter-assign" value="unassigned"> Unassigned</label><label style="display: block; margin: 3px 0px;"><input type="checkbox" class="roster-filter-assign" value="soakers"> Heal Absorb Soakers</label><label style="display: block; margin: 3px 0px;"><input type="checkbox" class="roster-filter-assign" value="baiter"> Senn Baiter</label></div></div>
+              </div>
+            </div>
+            <div id="rosterList" style="max-height:440px;overflow-y:auto;margin-bottom:8px"><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_holy_powerwordshield.jpg" alt="Discipline" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(255, 255, 255); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Amyas</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Discipline</div></div><span class="role-badge healer">H</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_frost_frostbolt02.jpg" alt="Frost" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(63, 199, 235); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Batyxburst</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Frost</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/classicon_demonhunter_void.jpg" alt="Devourer" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(163, 48, 201); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Bymms</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Devourer</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_holy_auraoflight.jpg" alt="Retribution" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(244, 140, 186); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Cenryhavill</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Retribution</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_nature_magicimmunity.jpg" alt="Restoration" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(0, 112, 221); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Deepline</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Restoration</div></div><span class="role-badge healer">H</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/ability_warrior_innerrage.jpg" alt="Fury" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(198, 155, 58); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Desmodus</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Fury</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/classicon_evoker_augmentation.jpg" alt="Augmentation" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(51, 147, 127); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Egoup</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Augmentation</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/ability_warrior_defensivestance.jpg" alt="Protection" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(198, 155, 58); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Fifak</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Protection · Main: <span style="color:#F48CBA;">Cenryhavill</span></div></div><span class="role-badge tank">T</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_nature_healingtouch.jpg" alt="Restoration" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(255, 124, 10); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Heady</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Restoration</div></div><span class="role-badge healer">H</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_holy_auraoflight.jpg" alt="Retribution" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(244, 140, 186); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Holypally</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Retribution</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_frost_frostbolt02.jpg" alt="Frost" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(63, 199, 235); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Hrona</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Frost</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_nature_starfall.jpg" alt="Balance" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(255, 124, 10); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Jachurdudu</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Balance</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/classicon_evoker_augmentation.jpg" alt="Augmentation" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(51, 147, 127); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Jùnjié</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Augmentation</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_deathknight_unholypresence.jpg" alt="Unholy" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(196, 30, 58); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Labelbruh</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Unholy · Main: <span style="color:#33937F;">Jùnjié</span></div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_deathknight_bloodpresence.jpg" alt="Blood" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(196, 30, 58); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Manofsteel</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Blood · Main: <span style="color:#F48CBA;">Cenryhavill</span></div></div><span class="role-badge tank">T</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_deathknight_bloodpresence.jpg" alt="Blood" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(196, 30, 58); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Márra</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Blood</div></div><span class="role-badge tank">T</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_holy_auraoflight.jpg" alt="Retribution" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(244, 140, 186); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Mastodonec</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Retribution</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/ability_racial_bearform.jpg" alt="Guardian" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(255, 124, 10); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Nerliusd</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Guardian</div></div><span class="role-badge tank">T</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_shadow_rainoffire.jpg" alt="Destruction" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(135, 136, 238); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Noxyra</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Destruction</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_holy_holybolt.jpg" alt="Holy" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(244, 140, 186); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Osvicena</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Holy</div></div><span class="role-badge healer">H</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/ability_stealth.jpg" alt="Subtlety" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(255, 244, 104); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Saeva</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Subtlety</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/ability_backstab.jpg" alt="Outlaw" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(255, 244, 104); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Saliven</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Outlaw</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/ability_demonhunter_specdps.jpg" alt="Havoc" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(163, 48, 201); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Senso</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Havoc</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_holy_auraoflight.jpg" alt="Retribution" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(244, 140, 186); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Skylerm</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Retribution</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/spell_holy_magicalsentry.jpg" alt="Arcane" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(63, 199, 235); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Spaghett</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Arcane</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/monk_stance_wiseserpent.jpg" alt="Mistweaver" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(0, 255, 152); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Terapeutka</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Mistweaver · Main: <span style="color:#F48CBA;">Osvicena</span></div></div><span class="role-badge healer">H</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div><div class="roster-row"><input type="checkbox" style="width: 14px; height: 14px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;"><img src="https://wow.zamimg.com/images/wow/icons/small/ability_hunter_bestialdiscipline.jpg" alt="Beast Mastery" class="spec-icon"><div style="flex: 1 1 0%; min-width: 0px;"><div style="font-size: 12.5px; font-weight: 600; color: rgb(170, 211, 114); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Weisswinter</div><div style="font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Beast Mastery</div></div><span class="role-badge dps">D</span><button style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; color: var(--text-dim); cursor: pointer; font-size: 15px; padding: 0px 2px; line-height: 1; flex-shrink: 0;">×</button></div></div>
+            <!-- Multi-select bar -->
+            <div id="multiBar" style="display:none;padding:9px;background:var(--surface3);border:1px solid var(--border2);border-radius:8px">
+              <div style="font-size:11px;color:var(--text-mid);margin-bottom:7px"><span id="multiCount">0</span> selected — assign to:</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px" id="bulkAssignBtns"><button class="btn btn-ghost" style="font-size: 10px; padding: 2px 7px;">Group 1</button><button class="btn btn-ghost" style="font-size: 10px; padding: 2px 7px;">Group 2</button><button class="btn btn-ghost" style="font-size: 10px; padding: 2px 7px;">Group 3</button><button class="btn btn-ghost" style="font-size: 10px; padding: 2px 7px;">Group 4</button><button class="btn btn-ghost" style="font-size: 10px; padding: 2px 7px;">Heal Abso…</button><button class="btn btn-ghost" style="font-size: 10px; padding: 2px 7px;">Senn Bait…</button><button class="btn btn-danger" style="font-size: 10px; padding: 2px 7px;">✕ Clear</button></div>
+            </div>
+            <div style="margin-top:10px">
+              <button class="btn btn-danger" style="font-size:11px;padding:3px 9px;width:100%" onclick="clearRoster()">Clear Roster &amp; Assignments</button>
+            </div>
+          </div>
+
+          <!-- ── ASSIGNMENTS PANEL (rendered by JS) ── -->
+          <div id="assignments-panel"><div><div class="asgn-label-row" style="margin-bottom: 4px;"><div id="assign-label-groups" title="Edit Mode: klik = barva, dblklik = přejmenovat" style="font-size: 11px; font-weight: 700; color: rgb(244, 140, 186); cursor: pointer; flex: 1 1 0%;">Execution Sentence Groups</div><button class="btn btn-ghost edit-only" style="font-size: 10px; padding: 1px 8px;">Skrýt</button></div><div class="assign-grid" id="exec-groups"><div class="group-card"><div class="group-title">Group 1</div><div class="slot-row"><div class="slot-num">1</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">2</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">3</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">4</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">5</div><div class="slot-chip empty">Empty</div></div></div><div class="group-card"><div class="group-title">Group 2</div><div class="slot-row"><div class="slot-num">1</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">2</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">3</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">4</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">5</div><div class="slot-chip empty">Empty</div></div></div><div class="group-card"><div class="group-title">Group 3</div><div class="slot-row"><div class="slot-num">1</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">2</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">3</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">4</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">5</div><div class="slot-chip empty">Empty</div></div></div><div class="group-card"><div class="group-title">Group 4</div><div class="slot-row"><div class="slot-num">1</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">2</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">3</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">4</div><div class="slot-chip empty">Empty</div></div><div class="slot-row"><div class="slot-num">5</div><div class="slot-chip empty">Empty</div></div></div></div></div><div style="margin-top: 14px;"><div class="asgn-label-row" style="margin-bottom: 6px;"><div id="assign-label-soakers" title="Edit Mode: klik = barva, dblklik = přejmenovat" style="font-size: 11px; font-weight: 700; color: rgb(251, 146, 60); cursor: pointer; flex: 1 1 0%;">Heal Absorb Soakers</div><button class="asgn-size-btn edit-only" title="Ubrat slot">−</button><span class="asgn-size-num">5</span><button class="asgn-size-btn edit-only" title="Přidat slot">+</button><button class="asgn-del-btn edit-only" title="Odebrat kategorii">×</button></div><div style="display: flex; flex-wrap: wrap; gap: 6px;"><div class="slot-chip empty">Empty</div><div class="slot-chip empty">Empty</div><div class="slot-chip empty">Empty</div><div class="slot-chip empty">Empty</div><div class="slot-chip empty">Empty</div></div></div><div style="margin-top: 14px;"><div class="asgn-label-row" style="margin-bottom: 6px;"><div id="assign-label-baiter" title="Edit Mode: klik = barva, dblklik = přejmenovat" style="font-size: 11px; font-weight: 700; color: rgb(255, 244, 104); cursor: pointer; flex: 1 1 0%;">Senn Baiter</div><button class="asgn-size-btn edit-only" title="Ubrat slot">−</button><span class="asgn-size-num">2</span><button class="asgn-size-btn edit-only" title="Přidat slot">+</button><button class="asgn-del-btn edit-only" title="Odebrat kategorii">×</button></div><div style="display: flex; flex-wrap: wrap; gap: 6px;"><div class="slot-chip empty">Empty</div><div class="slot-chip empty">Empty</div></div></div><button class="asgn-add-btn edit-only">+ Přidat kategorii</button></div>
+
+        </div>
+      </div>
+    </div>
+  <div class="slide-width-handle"></div></section>
+
+  <!-- ═══ PHASE 1 ═══ -->
+  <section class="section" id="phase1">
+    <div class="sec-header" onclick="toggleSec(this)">
+      <div class="sec-title" style="color:#c8ccd8">Phase 1</div>
+      <div class="sec-collapse"><span>Collapse</span><svg class="c-arrow" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"></path></svg></div>
+    </div>
+    <div class="sec-body" style="max-height:99999px">
+      <div class="sec-inner" style="padding-top:10px">
+
+<!-- ── Pull ── -->
+<div class="slide" id="s-start">
+<div class="slide-wrap">
+  <div class="slide-bar">
+    <button class="slide-order-btn" type="button" title="Slide nahoru">▲</button><button class="slide-order-btn" type="button" title="Slide dolů">▼</button><div class="slide-bar-left"><div class="slide-num" contenteditable="true">S</div><span class="slide-title" contenteditable="true">Pull</span></div>
+    <button class="share-btn" onclick="shareSlide('s-start')">Share <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M11 17H7q-2.075 0-3.537-1.463T2 12t1.463-3.537T7 7h4v2H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h4zm-3-4v-2h8v2zm5 4v-2h4q1.25 0 2.125-.875T20 12t-.875-2.125T17 9h-4V7h4q2.075 0 3.538 1.463T22 12t-1.463 3.537T17 17h-4z"></path></svg></button>
+    <button class="clone-slide-btn edit-only" onclick="cloneSlide(this)" title="Duplikovat slide" style="display:none;font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--text-mid);cursor:pointer;margin-left:4px">⊕ New Image</button>
+  </div>
+  <div class="slide-body">
+    <div class="slide-img zoom-active" id="img-s-start">
+    <button class="img-set-btn" onclick="clickImage('img-s-start')" title="Nastavit obrázek">🖼</button><img src="https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/Images/1.png" style="width:100%;height:100%;object-fit:cover;display:block" class="img-main" onerror="imgLoadError(this)"><div class="img-resize-handle"></div></div>
+    <div class="slide-notes">
+      <div class="notes-title notes-heading" data-editable="" style="font-size: 16px;"><button class="hdg-del" type="button" title="Smazat nadpis">×</button><div class="hdg-order-btns"><button class="hdg-order-btn" type="button" title="Nadpis nahoru">▲</button><button class="hdg-order-btn" type="button" title="Nadpis dolů">▼</button></div><span class="hdg-text" data-editable=""><span style="color: rgb(74, 222, 128);">Pull</span></span></div>
+      <div class="rc rc-all">
+        <div class="rc-head"><svg class="rc-icon" viewBox="0 0 24 24" fill="#a78bfa"><use href="#i-all"></use></svg><span class="rc-label" style="font-size: 16px;" contenteditable="true">Everyone</span><button class="role-switch-btn" type="button">role</button><button class="rc-remove-btn" type="button" title="Odebrat kartu">×</button><div class="rc-order-btns"><button class="rc-order-btn" type="button" title="Posunout nahoru">▲</button><button class="rc-order-btn" type="button" title="Posunout dolů">▼</button></div></div>
+        <div class="rc-body" data-editable="" style="font-size: 13px;">Všichni na melee range -&gt; důležité pro bait Senn</div>
+      </div>
+      <div class="rc rc-note">
+        <div class="rc-head"><svg class="rc-icon" viewBox="0 0 24 24" style="display: none;"></svg><span class="rc-label" data-editable="" style="font-size: 16px;">Note</span><button class="role-switch-btn" type="button">role</button><button class="rc-remove-btn" type="button" title="Odebrat kartu">×</button><div class="rc-order-btns"><button class="rc-order-btn" type="button" title="Posunout nahoru">▲</button><button class="rc-order-btn" type="button" title="Posunout dolů">▼</button></div></div>
+        <div class="rc-body" data-editable="" style="font-size: 13px;"><div>Focus Venel (<b>Belf Ret Pala</b>) má na sobě +20% damage taken&nbsp;<a href="https://www.wowhead.com/spell=1246385" data-wowhead="spell=1246385" target="_blank" rel="noopener noreferrer" class="icontinyl" data-game="wow" data-type="spell" data-wh-icon-added="true" style="background-image: url(&quot;https://wow.zamimg.com/images/wow/icons/tiny/spell_holy_avenginewrath.gif&quot;);">[Avenging Wrath]</a><br><br></div><div><b>❗Pořád platí, chceme je zabít +- současně&nbsp;</b></div></div>
+      </div>
+    <button class="rc-add-btn" type="button">+ Přidat kartu</button><div class="rc-add-choice"><button class="btn btn-ghost">🔤 Nadpis</button></div></div>
+  </div>
+</div><div class="slide-width-handle"></div></div>
+
+<!-- ── S1: Aura of Devotion ── -->
+<div class="slide" id="s1">
+<div class="slide-wrap">
+  <div class="slide-bar">
+    <button class="slide-order-btn" type="button" title="Slide nahoru">▲</button><button class="slide-order-btn" type="button" title="Slide dolů">▼</button><div class="slide-bar-left"><div class="slide-num" contenteditable="true">1</div><span class="slide-title" contenteditable="true">Aura of Devotion (Consecration)</span></div>
+    <button class="share-btn" onclick="shareSlide('s1')">Share <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M11 17H7q-2.075 0-3.537-1.463T2 12t1.463-3.537T7 7h4v2H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h4zm-3-4v-2h8v2zm5 4v-2h4q1.25 0 2.125-.875T20 12t-.875-2.125T17 9h-4V7h4q2.075 0 3.538 1.463T22 12t-1.463 3.537T17 17h-4z"></path></svg></button>
+    <button class="clone-slide-btn edit-only" onclick="cloneSlide(this)" title="Duplikovat slide" style="display:none;font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--text-mid);cursor:pointer;margin-left:4px">⊕ New Image</button>
+  </div>
+  <div class="slide-body">
+    <div class="slide-img zoom-active" id="img-s1">
+    <button class="img-set-btn" onclick="clickImage('img-s1')" title="Nastavit obrázek">🖼</button><img src="https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/Images/2.png" style="width:100%;height:100%;object-fit:cover;display:block" class="img-main" onerror="imgLoadError(this)"><div class="img-resize-handle"></div></div>
+    <div class="slide-notes">
+      <div class="notes-title notes-heading" data-editable="" style="font-size: 16px;"><button class="hdg-del" type="button" title="Smazat nadpis">×</button><div class="hdg-order-btns"><button class="hdg-order-btn" type="button" title="Nadpis nahoru">▲</button><button class="hdg-order-btn" type="button" title="Nadpis dolů">▼</button></div><span class="hdg-text" data-editable=""><a href="https://www.wowhead.com/spell=1246162" data-wowhead="spell=1246162" target="_blank" rel="noopener noreferrer" class="icontinyl" data-game="wow" data-type="spell" data-wh-icon-added="true" style="background-image: url(&quot;https://wow.zamimg.com/images/wow/icons/tiny/spell_holy_devotionaura.gif&quot;);">[Aura Of Devotion]</a></span></div>
+      
+      <div class="rc rc-tank" style="margin-bottom:4px">
+    <div class="rc-head">
+      <svg class="rc-icon" viewBox="0 0 100 100"><use href="#i-tank"></use></svg>
+      <span class="rc-label" style="font-size: 16px;" contenteditable="true">Tank</span>
+      <button class="rc-remove-btn" type="button" title="Odebrat kartu">×</button>
+      <button class="role-switch-btn" type="button">role</button>
+    <div class="rc-order-btns"><button class="rc-order-btn" type="button" title="Posunout nahoru">▲</button><button class="rc-order-btn" type="button" title="Posunout dolů">▼</button></div></div>
+    <div class="rc-body" data-editable="" style="font-size: 13px;">S bossem na <img src="Markers/square.png" alt="square" class="mk" data-mk="square"> předžím než hitne <span style="font-weight: bold;">100% Energy</span></div>
+  </div><div class="rc rc-sennbait" style="background: rgba(255, 244, 104, 0.06); border-color: rgba(255, 244, 104, 0.2);">
+        <div class="rc-head"><span class="rc-emoji-icon">🔥</span><svg class="rc-icon" viewBox="0 0 24 24" style="display: none;"><use href="#i-sennbait"></use></svg><span class="rc-label" style="font-size: 16px; color: rgb(255, 244, 104);" contenteditable="true">Senn Baiter</span><button class="role-switch-btn" type="button">role</button><button class="rc-remove-btn" type="button" title="Odebrat kartu">×</button><div class="rc-order-btns"><button class="rc-order-btn" type="button" title="Posunout nahoru">▲</button><button class="rc-order-btn" type="button" title="Posunout dolů">▼</button></div></div>
+        <div class="rc-body" data-editable="" style="font-size: 13px;">Bait Player - buď na <img src="Markers/skull.png" alt="skull" class="mk" data-mk="skull"> před chargem<br><br>Nemusí to být jeden, může to být klidně několik ranged dps, ale je potřeba se domluvit a myslet na to&nbsp;<span style="color: rgb(244, 140, 186); font-weight: 600;"><br></span><br><br></div>
+      </div>
+      <div class="rc rc-all">
+        <div class="rc-head"><svg class="rc-icon" viewBox="0 0 24 24" fill="#a78bfa" style=""><use href="#i-all"></use></svg><span class="rc-label" style="font-size: 16px;" contenteditable="true">Everyone</span><button class="role-switch-btn" type="button">role</button><button class="rc-remove-btn" type="button" title="Odebrat kartu">×</button><div class="rc-order-btns"><button class="rc-order-btn" type="button" title="Posunout nahoru">▲</button><button class="rc-order-btn" type="button" title="Posunout dolů">▼</button></div></div>
+        <div class="rc-body" data-editable="" style="font-size: 13px;">Zbytek na close range a vyhnout se <b>Senn</b></div>
+      </div>
+    <button class="rc-add-btn" type="button">+ Přidat kartu</button><div class="rc-add-choice"><button class="btn btn-ghost">🔤 Nadpis</button></div></div>
+  </div>
+</div><div class="slide-width-handle"></div></div>
+
+<!-- ── S2: Absorb Soakers ── -->
+<div class="slide" id="s2">
+<div class="slide-wrap">
+  <div class="slide-bar">
+    <button class="slide-order-btn" type="button" title="Slide nahoru">▲</button><button class="slide-order-btn" type="button" title="Slide dolů">▼</button><div class="slide-bar-left"><div class="slide-num" contenteditable="true">2</div><span class="slide-title" contenteditable="true">Absorb Soak</span></div>
+    <button class="share-btn" onclick="shareSlide('s2')">Share <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M11 17H7q-2.075 0-3.537-1.463T2 12t1.463-3.537T7 7h4v2H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h4zm-3-4v-2h8v2zm5 4v-2h4q1.25 0 2.125-.875T20 12t-.875-2.125T17 9h-4V7h4q2.075 0 3.538 1.463T22 12t-1.463 3.537T17 17h-4z"></path></svg></button>
+    <button class="clone-slide-btn edit-only" onclick="cloneSlide(this)" title="Duplikovat slide" style="display:none;font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--text-mid);cursor:pointer;margin-left:4px">⊕ New Image</button>
+  </div>
+  <div class="slide-body">
+    <div class="slide-img zoom-active" id="img-s2">
+    <button class="img-set-btn" onclick="clickImage('img-s2')" title="Nastavit obrázek">🖼</button><img src="https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/Images/3.png" style="width:100%;height:100%;object-fit:cover;display:block" class="img-main" onerror="imgLoadError(this)"><div class="img-resize-handle"></div></div>
+    <div class="slide-notes">
+      <div class="notes-title notes-heading" data-editable="" style="font-size: 16px;"><button class="hdg-del" type="button" title="Smazat nadpis">×</button><div class="hdg-order-btns"><button class="hdg-order-btn" type="button" title="Nadpis nahoru">▲</button><button class="hdg-order-btn" type="button" title="Nadpis dolů">▼</button></div><span class="hdg-text" data-editable="">Heal Absorb Soakers</span></div>
+      <div class="rc rc-soakers" style="margin-bottom: 4px; background: rgba(251, 146, 60, 0.06); border-color: rgba(251, 146, 60, 0.2);">
+    <div class="rc-head"><span class="rc-emoji-icon">⚡</span>
+      <svg class="rc-icon" viewBox="0 0 24 24" fill="var(--accent)" style="display: none;"><use href="#i-soakers"></use></svg>
+      <span class="rc-label" style="font-size: 16px; color: rgb(251, 146, 60);" contenteditable="true">Heal Absorb Soakers</span>
+      <button class="rc-remove-btn" type="button" title="Odebrat kartu">×</button>
+      <button class="role-switch-btn" type="button">role</button>
+    <div class="rc-order-btns"><button class="rc-order-btn" type="button" title="Posunout nahoru">▲</button><button class="rc-order-btn" type="button" title="Posunout dolů">▼</button></div></div>
+    <div class="rc-body" data-editable="" style="font-size: 13px;">5 vybraných soakne heal absorb&nbsp;<a href="https://www.wowhead.com/spell=1248721" data-wowhead="spell=1248721" target="_blank" rel="noopener noreferrer" class="icontinyl" data-game="wow" data-type="spell" data-wh-icon-added="true" style="background-image: url(&quot;https://wow.zamimg.com/images/wow/icons/tiny/inv_ability_holyfire_debuff.gif&quot;); font-weight: bold;">[Tyrs Wrath]</a><br>Může to být kombinace Meele/Ranged/Healer je to jedno</div>
+  </div>
+      
+      <div class="rc rc-all">
+        <div class="rc-head"><svg class="rc-icon" viewBox="0 0 24 24" fill="#a78bfa"><use href="#i-all"></use></svg><span class="rc-label" style="font-size: 16px;" contenteditable="true">Everyone</span><button class="role-switch-btn" type="button">role</button><button class="rc-remove-btn" type="button" title="Odebrat kartu">×</button><div class="rc-order-btns"><button class="rc-order-btn" type="button" title="Posunout nahoru">▲</button><button class="rc-order-btn" type="button" title="Posunout dolů">▼</button></div></div>
+        <div class="rc-body" data-editable="" style="font-size: 13px;">Zbytek raidu na druhé straně od Soak Group</div>
+      </div>
+      <div class="assign-ref-widget" data-assign-ref="soakers"><div class="arw-label" style="color: rgb(251, 146, 60);">Heal Absorb Soakers</div><button class="arw-del" title="Odebrat">×</button><div style="display: flex; flex-wrap: wrap; gap: 4px;"><div class="slot-chip empty" style="flex: 0 0 auto; pointer-events: none;">—</div><div class="slot-chip empty" style="flex: 0 0 auto; pointer-events: none;">—</div><div class="slot-chip empty" style="flex: 0 0 auto; pointer-events: none;">—</div><div class="slot-chip empty" style="flex: 0 0 auto; pointer-events: none;">—</div><div class="slot-chip empty" style="flex: 0 0 auto; pointer-events: none;">—</div></div></div>
+    <button class="rc-add-btn" type="button">+ Přidat kartu</button><div class="rc-add-choice"><button class="btn btn-ghost">🔤 Nadpis</button></div></div>
+  </div>
+</div><div class="slide-width-handle"></div></div>
+
+<!-- ── S3: Avengers Shield ── -->
+<button class="add-slide-btn" onclick="addNewSlide(this)">+ Přidat slide</button>
+
+      </div><!-- sec-inner -->
+    </div><!-- sec-body -->
+  </section>
+
+</div><!-- main -->
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Import -->
+<!-- Spell Management Modal -->
+<div id="spellManageModal" class="modal-bg">
+  <div class="modal" style="max-width:560px;max-height:85vh;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0">
+      <div>
+        <h2 style="margin:0;font-size:16px">⚡ Správa spellů</h2>
+        <div id="spellManageSlug" style="font-size:11px;color:var(--text-dim);margin-top:2px"></div>
+      </div>
+      <button onclick="closeModal('spellManageModal')" class="btn btn-ghost" style="padding:4px 8px">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;padding:8px;background:rgba(255,255,255,.04);border-radius:6px;flex-shrink:0">
+      1. Jdi na <a href="https://www.wowhead.com" target="_blank" style="color:var(--accent)">wowhead.com</a> → encounter journal bosse → Abilities tab → M filtr → klikni ikonu kopírování → <b>Copy All → Wowhead Markup Tag</b><br>
+      2. Vlož zkopírovaný text do pole níže a klikni <b>Parsuj</b>.
+    </div>
+    <div id="spellBossesList" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;padding-right:4px"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-shrink:0;border-top:1px solid var(--border2);padding-top:12px">
+      <button class="btn btn-ghost" style="font-size:12px" onclick="_spellAddBoss()">+ Přidat bosse</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-ghost" onclick="closeModal('spellManageModal')" style="font-size:12px">Zrušit</button>
+      <button class="btn btn-green" onclick="saveSpellsToCloud()" style="font-size:12px">☁ Uložit do cloudu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Slot -->
+<div id="editModal" class="modal-bg">
+  <div class="modal" style="max-width:360px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 id="editModalTitle" style="margin:0">Edit Slot</h2>
+      <button onclick="closeModal('editModal')" class="btn btn-ghost" style="padding:4px 8px">✕</button>
+    </div>
+    <div class="mb"><label>Player Name</label><input id="editName" type="text" placeholder="Player name" autocomplete="off"></div>
+    <div class="mb"><label>Class</label><div class="class-grid" id="classSelector"></div></div>
+    <div class="btn-row">
+      <button onclick="saveEdit()" class="btn btn-accent" style="flex:1">Save</button>
+      <button onclick="clearSlot()" class="btn btn-ghost">Clear</button>
+      <button onclick="closeModal('editModal')" class="btn btn-ghost">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Floating text formatting toolbar -->
+<div id="fmtBar" class="">
+  <button class="fmt-btn" id="fmtBold" onmousedown="event.preventDefault(); fmtExec('bold')" title="Bold"><b>B</b></button>
+  <button class="fmt-btn" id="fmtItalic" onmousedown="event.preventDefault(); fmtExec('italic')" title="Italic"><i>I</i></button>
+  <div class="fmt-sep"></div>
+  <div class="fmt-color-dot" style="background:#C41E3A" title="Death Knight" onmousedown="event.preventDefault(); fmtColor('#C41E3A')"></div>
+  <div class="fmt-color-dot" style="background:#A330C9" title="Demon Hunter" onmousedown="event.preventDefault(); fmtColor('#A330C9')"></div>
+  <div class="fmt-color-dot" style="background:#FF7C0A" title="Druid" onmousedown="event.preventDefault(); fmtColor('#FF7C0A')"></div>
+  <div class="fmt-color-dot" style="background:#33937F" title="Evoker" onmousedown="event.preventDefault(); fmtColor('#33937F')"></div>
+  <div class="fmt-color-dot" style="background:#AAD372" title="Hunter" onmousedown="event.preventDefault(); fmtColor('#AAD372')"></div>
+  <div class="fmt-color-dot" style="background:#3FC7EB" title="Mage" onmousedown="event.preventDefault(); fmtColor('#3FC7EB')"></div>
+  <div class="fmt-color-dot" style="background:#00FF98" title="Monk" onmousedown="event.preventDefault(); fmtColor('#00FF98')"></div>
+  <div class="fmt-color-dot" style="background:#F48CBA" title="Paladin" onmousedown="event.preventDefault(); fmtColor('#F48CBA')"></div>
+  <div class="fmt-color-dot" style="background:#AAAAAA" title="Priest" onmousedown="event.preventDefault(); fmtColor('#AAAAAA')"></div>
+  <div class="fmt-color-dot" style="background:#FFF468" title="Rogue" onmousedown="event.preventDefault(); fmtColor('#FFF468')"></div>
+  <div class="fmt-color-dot" style="background:#0070DD" title="Shaman" onmousedown="event.preventDefault(); fmtColor('#0070DD')"></div>
+  <div class="fmt-color-dot" style="background:#8788EE" title="Warlock" onmousedown="event.preventDefault(); fmtColor('#8788EE')"></div>
+  <div class="fmt-color-dot" style="background:#C69B3A" title="Warrior" onmousedown="event.preventDefault(); fmtColor('#C69B3A')"></div>
+  <div class="fmt-sep"></div>
+  <button class="fmt-btn" onmousedown="event.preventDefault(); fmtColor('inherit')" title="Reset color" style="font-size:10px">✕</button>
+</div>
+
+<!-- TL Ability Color Popup -->
+<div id="tlColorPop" style="display:none;position:fixed;z-index:10001;background:#1a1d2a;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:5px 7px;box-shadow:0 4px 16px rgba(0,0,0,.7);align-items:center;gap:4px;flex-wrap:wrap;width:270px">
+  <div style="width:14px;height:14px;border-radius:50%;background:#C41E3A;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Death Knight" onclick="_tlColorPopApply('#C41E3A')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#A330C9;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Demon Hunter" onclick="_tlColorPopApply('#A330C9')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#FF7C0A;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Druid" onclick="_tlColorPopApply('#FF7C0A')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#33937F;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Evoker" onclick="_tlColorPopApply('#33937F')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#AAD372;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Hunter" onclick="_tlColorPopApply('#AAD372')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#3FC7EB;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Mage" onclick="_tlColorPopApply('#3FC7EB')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#00FF98;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Monk" onclick="_tlColorPopApply('#00FF98')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#F48CBA;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Paladin" onclick="_tlColorPopApply('#F48CBA')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#AAAAAA;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Priest" onclick="_tlColorPopApply('#AAAAAA')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#FFF468;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Rogue" onclick="_tlColorPopApply('#FFF468')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#0070DD;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Shaman" onclick="_tlColorPopApply('#0070DD')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#8788EE;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Warlock" onclick="_tlColorPopApply('#8788EE')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#C69B3A;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Warrior" onclick="_tlColorPopApply('#C69B3A')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#fb923c;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Oranžová" onclick="_tlColorPopApply('#fb923c')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#f87171;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Červená" onclick="_tlColorPopApply('#f87171')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#facc15;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Žlutá" onclick="_tlColorPopApply('#facc15')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#4ade80;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Zelená" onclick="_tlColorPopApply('#4ade80')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#22d3ee;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Cyan" onclick="_tlColorPopApply('#22d3ee')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#60a5fa;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Modrá" onclick="_tlColorPopApply('#60a5fa')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#9ca3af;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Šedá" onclick="_tlColorPopApply('#9ca3af')"></div>
+  <div style="width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0;margin:0 1px"></div>
+  <div id="tlCustomColors" style="display:contents"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.35);cursor:pointer;flex-shrink:0;font-size:11px;display:flex;align-items:center;justify-content:center;color:#9ca3af;position:relative" title="Přidat vlastní barvu" onclick="_tlOpenCustomPicker()">+<input type="color" id="tlCustomColorInput" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none" oninput="_tlAddCustomColor(this.value)"></div>
+  <div style="width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0;margin:0 1px"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#333,#111);border:1px solid rgba(255,255,255,.3);cursor:pointer;flex-shrink:0;font-size:9px;display:flex;align-items:center;justify-content:center;color:#fff" title="Reset" onclick="_tlColorPopApply(null)">✕</div>
+  <div style="width:100%;border-top:1px solid rgba(255,255,255,.1);margin:3px 0 1px;display:flex;gap:3px;padding-top:4px">
+    <button id="tlCpModeOverlay" onclick="_tlColorPopSetMode('overlay')" style="flex:1;min-width:0;font-size:10px;padding:2px 3px;border-radius:4px;border:1px solid rgba(79,142,255,.4);background:rgba(79,142,255,.2);color:#60a5fa;cursor:pointer;font-weight:600">▬ Fill</button>
+    <button id="tlCpModeBorder" onclick="_tlColorPopSetMode('border')" style="flex:1;min-width:0;font-size:10px;padding:2px 3px;border-radius:4px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#6b7280;cursor:pointer;font-weight:600">□ Border</button>
+    <button id="tlCpModeStripe" onclick="_tlColorPopSetMode('stripe')" style="flex:1;min-width:0;font-size:10px;padding:2px 3px;border-radius:4px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#6b7280;cursor:pointer;font-weight:600">▨ Stripe</button>
+    <button id="tlCpModeFade" onclick="_tlColorPopSetMode('fade')" style="flex:1;min-width:0;font-size:10px;padding:2px 3px;border-radius:4px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#6b7280;cursor:pointer;font-weight:600">◧ Fade</button>
+    <button id="tlCpModeFadeR" onclick="_tlColorPopSetMode('fade-r')" style="flex:1;min-width:0;font-size:10px;padding:2px 3px;border-radius:4px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#6b7280;cursor:pointer;font-weight:600">◨ Fade←</button>
+  </div>
+</div>
+
+<!-- Timeline TEXT color picker (jen barva názvu spellu) -->
+<div id="tlTextColorPop" style="display:none;position:fixed;z-index:10001;background:#1a1d2a;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:5px 7px;box-shadow:0 4px 16px rgba(0,0,0,.7);align-items:center;gap:4px;flex-wrap:wrap;width:270px">
+  <div style="width:100%;font-size:10px;color:#6b7280;font-weight:600;margin-bottom:1px">Barva textu</div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#C41E3A;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Death Knight" onclick="_tlTextColorPopApply('#C41E3A')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#A330C9;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Demon Hunter" onclick="_tlTextColorPopApply('#A330C9')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#FF7C0A;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Druid" onclick="_tlTextColorPopApply('#FF7C0A')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#33937F;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Evoker" onclick="_tlTextColorPopApply('#33937F')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#AAD372;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Hunter" onclick="_tlTextColorPopApply('#AAD372')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#3FC7EB;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Mage" onclick="_tlTextColorPopApply('#3FC7EB')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#00FF98;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Monk" onclick="_tlTextColorPopApply('#00FF98')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#F48CBA;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Paladin" onclick="_tlTextColorPopApply('#F48CBA')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#FFFFFF;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Priest" onclick="_tlTextColorPopApply('#FFFFFF')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#FFF468;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Rogue" onclick="_tlTextColorPopApply('#FFF468')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#0070DD;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Shaman" onclick="_tlTextColorPopApply('#0070DD')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#8788EE;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Warlock" onclick="_tlTextColorPopApply('#8788EE')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#C69B3A;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Warrior" onclick="_tlTextColorPopApply('#C69B3A')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#fb923c;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Oranžová" onclick="_tlTextColorPopApply('#fb923c')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#f87171;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Červená" onclick="_tlTextColorPopApply('#f87171')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#facc15;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Žlutá" onclick="_tlTextColorPopApply('#facc15')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#4ade80;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Zelená" onclick="_tlTextColorPopApply('#4ade80')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#22d3ee;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Cyan" onclick="_tlTextColorPopApply('#22d3ee')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#60a5fa;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Modrá" onclick="_tlTextColorPopApply('#60a5fa')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#e2e8f0;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Bílá" onclick="_tlTextColorPopApply('#e2e8f0')"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:#ffd100;border:1px solid rgba(255,255,255,.2);cursor:pointer;flex-shrink:0" title="Zlatá (výchozí)" onclick="_tlTextColorPopApply('#ffd100')"></div>
+  <div style="width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0;margin:0 1px"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.35);cursor:pointer;flex-shrink:0;font-size:11px;display:flex;align-items:center;justify-content:center;color:#9ca3af;position:relative" title="Vlastní barva" onclick="this.querySelector('input').click()">+<input type="color" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none" oninput="_tlTextColorPopApply(this.value)"></div>
+  <div style="width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0;margin:0 1px"></div>
+  <div style="width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#333,#111);border:1px solid rgba(255,255,255,.3);cursor:pointer;flex-shrink:0;font-size:9px;display:flex;align-items:center;justify-content:center;color:#fff" title="Reset na výchozí" onclick="_tlTextColorPopApply(null)">✕</div>
+</div>
+
+<!-- WarcraftLogs API Import -->
+<div id="wclModal" class="modal-bg">
+  <div class="modal" style="max-width:500px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <h2 style="margin:0;display:flex;align-items:center;gap:8px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color:var(--accent)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"></path></svg>
+        WarcraftLogs Import
+      </h2>
+      <button onclick="closeModal('wclModal')" class="btn btn-ghost" style="padding:4px 8px">✕</button>
+    </div>
+    <p style="font-size:11px;color:var(--text-dim);margin-bottom:16px">
+      Vyžaduje API klíče z <a href="https://www.warcraftlogs.com/api/clients/" target="_blank" style="color:var(--accent)">warcraftlogs.com/api/clients</a> — vytvoř si klienta (typ: public, redirect URI: libovolné), zkopíruj Client ID a Secret.
+    </p>
+
+    <!-- Credentials -->
+    <details id="wclCredDetails" style="margin-bottom:14px">
+      <summary style="font-size:11px;font-weight:700;color:var(--text-mid);cursor:pointer;user-select:none;padding:4px 0">
+        ⚙ API Credentials <span id="wclCredStatus" style="color:var(--text-dim);font-weight:400"></span>
+      </summary>
+      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><label>Client ID</label><input id="wclClientId" type="text" placeholder="abc123..." autocomplete="off"></div>
+        <div><label>Client Secret</label><input id="wclClientSecret" type="password" placeholder="••••••••" autocomplete="off"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button onclick="wclSaveCreds()" class="btn btn-accent" style="font-size:11px;padding:4px 12px">Save &amp; Test</button>
+        <button onclick="wclClearCreds()" class="btn btn-ghost" style="font-size:11px;padding:4px 10px">Clear</button>
+      </div>
+    </details>
+
+    <!-- Import method tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button id="wclTabReport" class="btn btn-accent" style="font-size:11px;padding:4px 12px" onclick="wclSetTab('report')">📋 From Report</button>
+      <button id="wclTabGuild" class="btn btn-ghost" style="font-size:11px;padding:4px 12px" onclick="wclSetTab('guild')">⚔ From Guild</button>
+    </div>
+
+    <!-- Report tab -->
+    <div id="wclPanelReport">
+      <div class="mb">
+        <label>WarcraftLogs Report URLs nebo kódy — <strong style="color:var(--text-mid)">jeden na řádek</strong></label>
+        <textarea id="wclReportUrl" rows="4" placeholder="https://www.warcraftlogs.com/reports/AbCd1234?fight=last
+https://www.warcraftlogs.com/reports/XyZw5678?fight=37
+AbCd1234" style="font-size:12px;font-family:monospace"></textarea>
+      </div>
+      <p style="font-size:11px;color:var(--text-dim);margin-bottom:10px">
+        Pro <strong style="color:var(--text-mid)">personal logy</strong> přidej <code style="color:var(--accent)">?fight=last</code> nebo <code style="color:var(--accent)">?fight=ČÍSLO</code> — jinak se vezme poslední session.<br>
+        Pro <strong style="color:var(--text-mid)">guild logy</strong> stačí samotný kód.
+      </p>
+    </div>
+
+    <!-- Guild tab -->
+    <div id="wclPanelGuild" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:4px">
+        <div><label>Guild Name</label><input id="wclGuildName" type="text" placeholder="MyGuild"></div>
+        <div><label>Realm (slug)</label><input id="wclRealm" type="text" placeholder="ravencrest"></div>
+        <div><label>Region</label>
+          <select id="wclRegion" style="margin-top:4px">
+            <option>EU</option><option>US</option><option>KR</option><option>TW</option>
+          </select>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--text-dim);margin-bottom:10px">Načte attendance z posledních 3 raidů guildy. Realm slug = název malými písmeny bez mezer (např. ravencrest, twisting-nether).</p>
+    </div>
+
+    <div class="btn-row">
+      <button onclick="wclFetch()" class="btn btn-accent" style="flex:1" id="wclFetchBtn">⬇ Fetch Players</button>
+      <button onclick="closeModal('wclModal')" class="btn btn-ghost">Cancel</button>
+    </div>
+    <div id="wclStatus" style="display:none;margin-top:10px;font-size:12px;line-height:1.5"></div>
+  </div>
+</div>
+
+<!-- Add Player -->
+<div id="addPlayerModal" class="modal-bg">
+  <div class="modal" style="max-width:460px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="margin:0">Add Player</h2>
+      <button onclick="closeModal('addPlayerModal')" class="btn btn-ghost" style="padding:4px 8px">✕</button>
+    </div>
+    <div class="mb">
+      <label>Player Name</label>
+      <input id="addName" type="text" placeholder="e.g. Arthas" autocomplete="off">
+    </div>
+    <div class="mb">
+      <label>Class</label>
+      <div class="class-grid" id="addClassPicker"><button type="button" class="cls-btn" style="border-color: rgba(196, 30, 58, 0.333); color: rgb(196, 30, 58);">deathknight</button><button type="button" class="cls-btn" style="border-color: rgba(163, 48, 201, 0.333); color: rgb(163, 48, 201);">demonhunter</button><button type="button" class="cls-btn" style="border-color: rgba(255, 124, 10, 0.333); color: rgb(255, 124, 10);">druid</button><button type="button" class="cls-btn" style="border-color: rgba(51, 147, 127, 0.333); color: rgb(51, 147, 127);">evoker</button><button type="button" class="cls-btn" style="border-color: rgba(170, 211, 114, 0.333); color: rgb(170, 211, 114);">hunter</button><button type="button" class="cls-btn" style="border-color: rgba(63, 199, 235, 0.333); color: rgb(63, 199, 235);">mage</button><button type="button" class="cls-btn" style="border-color: rgba(0, 255, 152, 0.333); color: rgb(0, 255, 152);">monk</button><button type="button" class="cls-btn" style="border-color: rgba(244, 140, 186, 0.333); color: rgb(244, 140, 186);">paladin</button><button type="button" class="cls-btn" style="border-color: rgba(255, 255, 255, 0.333); color: rgb(255, 255, 255);">priest</button><button type="button" class="cls-btn" style="border-color: rgba(255, 244, 104, 0.333); color: rgb(255, 244, 104);">rogue</button><button type="button" class="cls-btn" style="border-color: rgba(0, 112, 221, 0.333); color: rgb(0, 112, 221);">shaman</button><button type="button" class="cls-btn" style="border-color: rgba(135, 136, 238, 0.333); color: rgb(135, 136, 238);">warlock</button><button type="button" class="cls-btn sel" style="border-color: rgba(198, 155, 58, 0.333); color: rgb(198, 155, 58);">warrior</button></div>
+    </div>
+    <div class="mb">
+      <label>Spec</label>
+      <div id="addSpecPicker" style="display:flex;flex-wrap:wrap;gap:5px;min-height:28px"><button type="button" class="btn btn-ghost" style="font-size: 11px; padding: 4px 8px; display: flex; align-items: center; gap: 5px;"><img src="https://wow.zamimg.com/images/wow/icons/small/ability_warrior_savageblow.jpg" style="width:16px;height:16px;border-radius:3px" onerror="this.style.display='none'">Arms <span style="font-size:9px;color:var(--text-dim)">D</span></button><button type="button" class="btn btn-ghost" style="font-size: 11px; padding: 4px 8px; display: flex; align-items: center; gap: 5px;"><img src="https://wow.zamimg.com/images/wow/icons/small/ability_warrior_innerrage.jpg" style="width:16px;height:16px;border-radius:3px" onerror="this.style.display='none'">Fury <span style="font-size:9px;color:var(--text-dim)">D</span></button><button type="button" class="btn btn-ghost" style="font-size: 11px; padding: 4px 8px; display: flex; align-items: center; gap: 5px;"><img src="https://wow.zamimg.com/images/wow/icons/small/ability_warrior_defensivestance.jpg" style="width:16px;height:16px;border-radius:3px" onerror="this.style.display='none'">Protection <span style="font-size:9px;color:var(--text-dim)">T</span></button></div>
+    </div>
+    <div class="btn-row">
+      <button onclick="saveAddPlayer()" class="btn btn-accent" style="flex:1">Add Player</button>
+      <button onclick="saveAddPlayer();closeModal('addPlayerModal')" class="btn btn-green">Add &amp; Close</button>
+      <button onclick="closeModal('addPlayerModal')" class="btn btn-ghost">Done</button>
+    </div>
+    <p style="font-size:11px;color:var(--text-dim);margin-top:8px">Tip: click "Add Player" repeatedly to add the whole roster, then "Done".</p>
+  </div>
+</div>
+
+<!-- Universal prompt modal -->
+<div id="promptModal" class="modal-bg">
+  <div class="modal" style="max-width:400px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 id="promptModalTitle" style="margin:0">Zadej název</h2>
+      <button onclick="_promptModalCancel()" class="btn btn-ghost" style="padding:4px 8px">✕</button>
+    </div>
+    <div class="mb">
+      <label id="promptModalLabel"></label>
+      <input id="promptModalInput" type="text" autocomplete="off">
+    </div>
+    <div id="promptModalExtra"></div>
+    <div class="btn-row" style="margin-top:8px">
+      <button id="promptModalOk" onclick="_promptModalConfirm()" class="btn btn-green" style="flex:1">OK</button>
+      <button onclick="_promptModalCancel()" class="btn btn-ghost">Zrušit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Share modal -->
+<div id="shareModal" class="modal-bg">
+  <div class="modal" style="max-width:420px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <h2 style="margin:0">Sdílet strategii</h2>
+      <button onclick="_shareModalClose()" class="btn btn-ghost" style="padding:4px 8px">✕</button>
+    </div>
+    <!-- Step 1: name input -->
+    <div id="shareModalStep1">
+      <p style="margin:0 0 16px;font-size:12px;color:var(--text-dim)">Uloží aktuální stav do cloudu.</p>
+      <div class="mb">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px">Vlastní název odkazu <span style="font-weight:400;color:var(--text-dim)">(nepovinný)</span></label>
+        <input id="shareModalInput" type="text" autocomplete="off" placeholder="např. week1-vanguard" style="width:100%">
+        <div style="margin-top:6px;font-size:11px;color:var(--text-dim);line-height:1.4">
+          💡 Bez názvu se vygeneruje automatické ID — odkaz bude fungovat stejně.
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button id="shareModalSubmitBtn" onclick="_shareModalConfirm()" class="btn btn-green" style="flex:1">🔗 Sdílet</button>
+        <button onclick="_shareModalClose()" class="btn btn-ghost">Zrušit</button>
+      </div>
+    </div>
+    <!-- Step 2: result link -->
+    <div id="shareModalStep2" style="display:none">
+      <p style="margin:0 0 12px;font-size:12px;color:var(--text-dim)">✅ Uloženo! Zkopíruj odkaz:</p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="shareModalResult" type="text" readonly style="width:100%;font-size:12px;cursor:pointer" onclick="this.select()">
+        <button onclick="_shareModalCopyResult()" class="btn btn-green" style="white-space:nowrap">📋 Kopírovat</button>
+      </div>
+      <div style="margin-top:12px;text-align:right">
+        <button onclick="_shareModalClose()" class="btn btn-ghost">Zavřít</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Wowhead Search Panel (injected by JS) -->
+
+<!-- Image -->
+<div id="imgModal" class="modal-bg">
+  <div class="modal" style="max-width:400px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="margin:0">Nastavit obrázek</h2>
+      <button onclick="closeModal('imgModal')" class="btn btn-ghost" style="padding:4px 8px">✕</button>
+    </div>
+    <div class="mb"><label>URL obrázku</label><input id="imgUrl" type="text" placeholder="https://..."></div>
+    <div class="mb"><label>Nahrát ze souboru</label><input id="imgFile" type="file" accept="image/*" style="font-size:12px;color:var(--text-mid)"></div>
+    <div class="btn-row">
+      <button onclick="saveImage()" class="btn btn-accent" style="flex:1">Uložit</button>
+      <button onclick="clearImage()" class="btn btn-danger">Odebrat</button>
+      <button onclick="closeModal('imgModal')" class="btn btn-ghost">Zrušit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Image Upload Modal -->
+<div id="bulkUploadModal">
+  <div class="bum-inner" style="min-width:480px;max-width:680px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <h3 style="margin:0">⬆ Obrázky na slidy</h3>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px" onclick="bumSelectAll(true)">Vše</button>
+        <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px" onclick="bumSelectAll(false)">Žádné</button>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px">
+      Každý slide dostane <b>Images/N.png</b> ze GitHubu. Zaškrtni které chceš aktualizovat.
+    </div>
+    <!-- 2-column grid of slide checkboxes -->
+    <div id="bumSlideGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px 8px;max-height:320px;overflow-y:auto;margin-bottom:10px;padding-right:4px"></div>
+    <!-- Source options -->
+    <div style="display:flex;gap:5px;margin-bottom:6px">
+      <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer">
+        <input type="radio" name="bumSrc" value="github" checked onchange="bumToggleSource(this.value)" style="accent-color:var(--accent)"> GitHub Images/</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer">
+        <input type="radio" name="bumSrc" value="folder" onchange="bumToggleSource(this.value)" style="accent-color:var(--accent)"> Vlastní složka</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer">
+        <input type="radio" name="bumSrc" value="url" onchange="bumToggleSource(this.value)" style="accent-color:var(--accent)"> Jeden URL</label>
+    </div>
+    <div id="bumSrcGithub" style="font-size:10px;color:var(--text-dim);margin-bottom:4px">Načte <b>Images/1.png</b>, <b>2.png</b>… z GitHubu</div>
+    <div id="bumSrcFolder" style="display:none;flex-direction:column;gap:4px;margin-bottom:6px">
+      <div style="font-size:10px;color:var(--text-dim)">Cesta ke složce na GitHubu (např. <code>Images/boss1</code>)</div>
+      <div style="display:flex;gap:4px">
+        <span style="font-size:10px;color:var(--text-dim);align-self:center;white-space:nowrap">…/WoWGuide/main/</span>
+        <input id="bumFolderPath" type="text" placeholder="Images/boss1" value="Images" style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:4px 7px;outline:none">
+      </div>
+    </div>
+    <div id="bumSrcUrl" style="display:none;flex-direction:column;gap:4px;margin-bottom:6px">
+      <div style="font-size:10px;color:var(--text-dim)">Jeden URL → přiřadí se na všechny zaškrtnuté slidy</div>
+      <input id="bumCustomUrl" type="text" placeholder="https://example.com/images/ nebo …/{n}.png" style="background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:5px 8px;outline:none">
+      <div style="font-size:10px;color:var(--text-dim)">Zadej base URL (přidá se /1.png, /2.png…) nebo použij <b>{n}</b> jako číslo slidu</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-accent" style="flex:1" onclick="executeBulkUpload()">Načíst</button>
+      <button class="btn btn-ghost" onclick="closeBulkUpload()">Zrušit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var b=document.body, btn=document.getElementById('themeToggle');
+  function upd(){ btn.textContent = b.classList.contains('glass-on') ? '🪟 Glass  ·  klik = Classic' : '🗔 Classic  ·  klik = Glass'; }
+  if(btn){ btn.addEventListener('click',function(){ b.classList.toggle('glass-on'); upd(); }); upd(); }
+})();
+</script>
+</body>
+</html>
