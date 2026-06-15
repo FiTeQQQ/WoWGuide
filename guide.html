@@ -4797,6 +4797,7 @@ function serializeSlides(){
   return els.map(el=>{
     const c=el.cloneNode(true);
     c.querySelectorAll('.cv-overlay, .cv-wh-layer').forEach(x=>x.remove());
+    c.querySelectorAll('.slide-img[onclick]').forEach(x=>x.removeAttribute('onclick')); // obrázek se mění jen přes 🖼, ne klikem
     return c.outerHTML;
   });
 }
@@ -4813,7 +4814,7 @@ function _emptySlideHTML(){
     <button class="clone-slide-btn edit-only" onclick="cloneSlide(this)" title="Duplikovat slide" style="display:none;font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--text-mid);cursor:pointer;margin-left:4px">⊕ New Image</button>
   </div>
   <div class="slide-body">
-    <div class="slide-img" id="${imgId}" onclick="clickImage('${imgId}')">
+    <div class="slide-img" id="${imgId}">
       <div class="img-placeholder-inner"><svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-1 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg><span style="font-size:12px">Click to add image</span></div>
       <div class="img-resize-handle"></div></div>
     <div class="slide-notes">
@@ -4837,6 +4838,7 @@ function rebuildSlides(htmlArr){
     if(sl){
       // Odeber případné staré canvas vrstvy (z dřívějších uložení) — bez listenerů by nešlo kreslit
       sl.querySelectorAll('.cv-overlay, .cv-wh-layer').forEach(x=>x.remove());
+      sl.querySelectorAll('.slide-img[onclick]').forEach(x=>x.removeAttribute('onclick')); // obrázek měň jen přes 🖼
       host.insertBefore(sl, addBtn);
     }
   });
@@ -4874,7 +4876,7 @@ function addNewSlide(addBtn){
     <button class="share-btn" onclick="shareSlide('${id}')">Share <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M11 17H7q-2.075 0-3.537-1.463T2 12t1.463-3.537T7 7h4v2H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h4zm-3-4v-2h8v2zm5 4v-2h4q1.25 0 2.125-.875T20 12t-.875-2.125T17 9h-4V7h4q2.075 0 3.538 1.463T22 12t-1.463 3.537T17 17h-4z"/></svg></button>
   </div>
   <div class="slide-body">
-    <div class="slide-img" id="${imgId}" onclick="clickImage('${imgId}')">
+    <div class="slide-img" id="${imgId}">
       <div class="img-placeholder-inner"><svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-1 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg><span style="font-size:12px">Click to add image</span></div>
     </div>
     <div class="slide-notes">
