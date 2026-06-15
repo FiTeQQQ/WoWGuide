@@ -2605,6 +2605,7 @@ async function applyRaidManifest(){
     // Fallback: první boss v prvním raidu
     if(!entry){ raidEntry = manifest.raids?.[0]; entry = raidEntry?.bosses?.[0]; }
     if(!entry) return;
+    _currentRaidName = raidEntry?.name || null; // pro filtr boss-icon pickeru
     const imgUrl = GH_RAW + entry.image;
     // Glass-mode pozadí per raid: Images/<Raid>/<Raid>_Background.jpg (nebo raid.background z manifestu)
     try{
@@ -8214,6 +8215,7 @@ let _bossCache={};
 let _bossRaidList=null;
 let _bossActiveRaid=null;
 let _bossEditMode=false;
+let _currentRaidName=null; // raid aktuálního bosse (z manifestu) — picker pak ukazuje jen ten
 
 // Boss groups — persisted in Cloudflare KV (boss-groups key), localStorage as fallback
 const _BOSS_KV_KEY='boss-groups';
@@ -8264,8 +8266,14 @@ async function cvMiniRenderBoss(){
       _bossRaidList=Array.isArray(items)?items.filter(i=>i.type==='dir').map(i=>i.name):[];
     } else _bossRaidList=[];
   }catch(e){ _bossRaidList=[]; }
+  // Ukaž jen aktuální raid (podle bosse z manifestu); když jeho složka neexistuje, ponech všechny
+  let _curMatch=null;
+  if(_currentRaidName){
+    _curMatch=_bossRaidList.find(rn=>rn.toLowerCase()===_currentRaidName.toLowerCase());
+    if(_curMatch) _bossRaidList=[_curMatch];
+  }
   _renderBossRaidTabs();
-  if(_bossRaidList.length) selectBossRaid(_bossActiveRaid||_bossRaidList[0]);
+  if(_bossRaidList.length) selectBossRaid(_bossActiveRaid||_curMatch||_bossRaidList[0]);
   else if(cont) cont.innerHTML='<div style="font-size:10px;color:var(--text-dim)">Žádné raidy.<br>Vytvoř <code>Images/Bosses/NazevRaidu/</code> na GitHubu.</div>';
 }
 
