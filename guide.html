@@ -870,7 +870,8 @@
   }
   body.glass-on .nav-item:hover { background: rgba(255,255,255,.07) !important; }
   body.glass-on .slide-bar { background: rgba(255,255,255,.05) !important; backdrop-filter: blur(8px) saturate(150%); -webkit-backdrop-filter: blur(8px) saturate(150%); border-bottom: 1px solid rgba(255,255,255,.10) !important; box-shadow: none !important; }
-  body.glass-on .rc { background: rgba(255,255,255,.06) !important; backdrop-filter: blur(11px) saturate(150%); -webkit-backdrop-filter: blur(11px); border: 1px solid rgba(255,255,255,.12) !important; border-radius: 10px !important; box-shadow: none !important; }
+  /* glass: notes karty si nechají svou barvu role, jen dostanou frosted blur */
+  body.glass-on .rc { backdrop-filter: blur(11px) saturate(150%); -webkit-backdrop-filter: blur(11px) saturate(150%); border-radius: 10px !important; box-shadow: none !important; }
   body.glass-on .notes-heading, body.glass-on .notes-title { background: transparent !important; }
   body.glass-on .group-card { background: rgba(255,255,255,.045) !important; backdrop-filter: blur(11px) saturate(150%); -webkit-backdrop-filter: blur(11px); border: 1px solid rgba(255,255,255,.12) !important; border-radius: 10px !important; box-shadow: none !important; }
   body.glass-on .slot-chip { background: rgba(255,255,255,.07) !important; border: 1px solid rgba(255,255,255,.10) !important; box-shadow: none !important; }
