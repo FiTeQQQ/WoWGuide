@@ -697,6 +697,17 @@
   #cvPropsPanel input[type=range] { flex:1 1 90px; accent-color:var(--accent); cursor:pointer; max-width:100%; }
   #cvPropsPanel input[type=color] { width:26px; height:22px; border:1px solid var(--border2); border-radius:4px; background:none; cursor:pointer; padding:1px; flex:0 0 auto; }
   #cvPropsPanel input[type=number] { background:rgba(255,255,255,.07); border:1px solid var(--border2); border-radius:4px; color:var(--text); padding:2px 4px; outline:none; flex:0 0 auto; }
+  /* ── hezčí číselník se stepperem ── */
+  #cvPropsPanel input[type=number]::-webkit-outer-spin-button,
+  #cvPropsPanel input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  #cvPropsPanel input[type=number] { -moz-appearance:textfield; appearance:textfield; }
+  .num-stepper { display:inline-flex; align-items:center; flex:0 0 auto; border:1px solid var(--border2); border-radius:7px; overflow:hidden; background:rgba(255,255,255,.05); height:26px; }
+  .num-stepper input[type=number] { border:none !important; border-radius:0 !important; background:transparent !important; width:42px !important; text-align:center; padding:0 2px !important; font-size:12px !important; height:100%; flex:0 0 auto; }
+  .num-step { width:26px; height:26px; border:none; background:rgba(255,255,255,.05); color:var(--text-mid); font-size:16px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; user-select:none; transition:background .12s,color .12s; }
+  .num-step:hover { background:var(--accent); color:#fff; }
+  .num-step:active { background:var(--accent); color:#fff; transform:scale(.94); }
+  .num-step.minus { border-right:1px solid var(--border2); }
+  .num-step.plus { border-left:1px solid var(--border2); }
   #cvPropsPanel .cv-val { font-size:10px; color:var(--text-dim); min-width:26px; flex:0 0 auto; }
   #cvBossSwatches { grid-template-columns:repeat(8,1fr) !important; width:100%; box-sizing:border-box; }
   #cvBossSwatches > * { width:100%; aspect-ratio:1/1; }
@@ -7364,11 +7375,39 @@ function renderBossSwatches(activeColor){
   });
 }
 
+// Nahradí nativní stepper hezčími − / + tlačítky (jednorázově pro každý číselník v panelu)
+function cvEnhanceSteppers(){
+  document.querySelectorAll('#cvPropsPanel input[type=number]').forEach(inp=>{
+    if(inp.dataset.stepperized) return;
+    inp.dataset.stepperized='1';
+    const wrap=document.createElement('span'); wrap.className='num-stepper';
+    inp.parentNode.insertBefore(wrap, inp);
+    const minus=document.createElement('button'); minus.type='button'; minus.className='num-step minus'; minus.textContent='−'; minus.tabIndex=-1;
+    const plus=document.createElement('button');  plus.type='button';  plus.className='num-step plus';  plus.textContent='+'; plus.tabIndex=-1;
+    wrap.appendChild(minus); wrap.appendChild(inp); wrap.appendChild(plus);
+    const step=dir=>{
+      const s=parseFloat(inp.step)||1;
+      let v=parseFloat(inp.value); if(isNaN(v)) v=parseFloat(inp.min)||0;
+      v=Math.round((v+dir*s)*1000)/1000;
+      const mn=inp.min!==''?parseFloat(inp.min):-Infinity;
+      const mx=inp.max!==''?parseFloat(inp.max):Infinity;
+      v=Math.min(mx,Math.max(mn,v));
+      inp.value=v;
+      inp.dispatchEvent(new Event('input',{bubbles:true}));
+    };
+    let _hold=null,_to=null;
+    const start=dir=>{ step(dir); _to=setTimeout(()=>{ _hold=setInterval(()=>step(dir),70); },380); };
+    const stop=()=>{ clearTimeout(_to); clearInterval(_hold); };
+    minus.addEventListener('mousedown',()=>start(-1)); plus.addEventListener('mousedown',()=>start(1));
+    ['mouseup','mouseleave'].forEach(ev=>{ minus.addEventListener(ev,stop); plus.addEventListener(ev,stop); });
+  });
+}
 function syncPropsPanel(obj){
   const panel=document.getElementById('cvPropsPanel');
   if(!panel) return;
   if(!editMode){ panel.classList.remove('visible'); return; }
   panel.classList.add('visible');
+  cvEnhanceSteppers();
   setTimeout(_positionPropsPanel,0);
   const t=obj.type;
   const isShape=t==='rect'||t==='circle';
