@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roster — Trial / Attendance Tracker</title>
+<style>
+  :root{
+    --bg:#0a0b0f; --surface:#13151f; --surface2:#1a1d2a; --border2:#272b3d;
+    --text:#e0e2ea; --text-mid:#a8b0c8; --text-dim:#6b7080; --accent:#4f8eff; --accent-border:rgba(79,142,255,.45);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;padding:28px 26px 60px}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1100px;margin:0 auto}
+  .topbar{display:flex;align-items:center;gap:14px;margin-bottom:6px;flex-wrap:wrap}
+  .home-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--surface2);border:1px solid var(--border2);color:var(--text-mid);font-size:12px;font-weight:600;cursor:pointer}
+  .home-btn:hover{color:var(--accent);border-color:var(--accent-border)}
+  h1{font-size:24px;font-weight:800;letter-spacing:-.02em}
+  .sub{font-size:12px;color:var(--text-dim);margin-top:2px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:18px 0 12px}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid;transition:all .15s}
+  .btn-ghost{background:var(--surface2);border-color:var(--border2);color:var(--text-mid)}
+  .btn-ghost:hover{border-color:var(--accent-border);color:var(--accent)}
+  .btn-accent{background:rgba(79,142,255,.15);border-color:var(--accent-border);color:#7eb3ff}
+  .btn-accent:hover{background:rgba(79,142,255,.25)}
+  .search{flex:1;min-width:160px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;padding:8px 12px;outline:none}
+  .search:focus{border-color:var(--accent-border)}
+  .status{font-size:11px;color:var(--text-dim)}
+  .card{background:var(--surface);border:1px solid var(--border2);border-radius:14px;overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);font-weight:700;padding:10px 12px;border-bottom:1px solid var(--border2);cursor:pointer;user-select:none;white-space:nowrap}
+  th .arr{opacity:.5;font-size:9px}
+  td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle}
+  tr.flag{background:rgba(220,60,60,.10)}
+  tr.flag td:first-child{box-shadow:inset 3px 0 0 0 #ef4444}
+  .name{font-weight:700}
+  .warn{font-size:10px;color:#f87171;font-weight:700;margin-left:6px}
+  .rank{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:4px 7px;outline:none;cursor:pointer}
+  .cnt{font-weight:800;font-size:15px}
+  .cnt.zero{color:#5b6070}
+  .break{font-size:10px;color:var(--text-dim);margin-top:1px}
+  .note-in{width:100%;background:transparent;border:1px solid transparent;border-radius:5px;color:var(--text-mid);font-size:12px;padding:4px 6px;outline:none}
+  .note-in:focus{border-color:var(--border2);background:rgba(255,255,255,.05)}
+  .act{display:flex;gap:5px;justify-content:flex-end}
+  .iconbtn{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text-mid);font-size:11px;padding:4px 8px;cursor:pointer;white-space:nowrap}
+  .iconbtn:hover{border-color:var(--accent-border);color:var(--accent)}
+  .iconbtn.del:hover{border-color:rgba(239,68,68,.5);color:#f87171}
+  .iconbtn.promo:hover{border-color:rgba(74,222,128,.5);color:#4ade80}
+  .expand{cursor:pointer;color:var(--text-dim);font-size:12px;user-select:none}
+  .chars{background:rgba(0,0,0,.28);border-radius:8px;padding:11px 13px;margin:2px 0 6px}
+  .char-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap}
+  .char-row input[type=text]{flex:1 1 160px;min-width:110px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none}
+  .char-row .lbl{font-size:11px;color:var(--text-dim)}
+  .mini-num{width:58px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:5px;outline:none;text-align:center}
+  .empty{text-align:center;color:var(--text-dim);font-size:14px;padding:50px 10px}
+  .legend{font-size:11px;color:var(--text-dim);margin-top:12px}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--accent-border);border-radius:8px;padding:9px 16px;color:var(--accent);font-size:13px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="home-btn" href="index.html">⌂ Dashboard</a>
+    <div style="flex:1">
+      <h1>Roster</h1>
+      <div class="sub">Globální přehled hráčů, ranků a účasti (Heroic / Mythic). Pro rozhodování o promotu trial → core.</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn btn-accent" onclick="addPerson()">+ Přidat hráče</button>
+    <button class="btn btn-ghost" onclick="addRank()">+ Rank</button>
+    <input class="search" id="search" placeholder="Hledat hráče / poznámku…" oninput="render()">
+    <span class="status" id="status"></span>
+  </div>
+
+  <div class="card"><div id="tableWrap"></div></div>
+  <div class="legend">⚠ Trial bez jediného Heroic raidu je červeně zvýrazněný. WCL auto-načítání účasti přidáme v dalším kroku. Klikni na ▸ u hráče pro slučování altů.</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const API_BASE='https://raidguide-api.filip-tesarik1.workers.dev';
+const TRK_KEY='trial-roster';
+const CC={deathknight:'#C41E3A',demonhunter:'#A330C9',druid:'#FF7C0A',evoker:'#33937F',hunter:'#AAD372',mage:'#3FC7EB',monk:'#00FF98',paladin:'#F48CBA',priest:'#FFFFFF',rogue:'#FFF468',shaman:'#0070DD',warlock:'#8788EE',warrior:'#C69B3A'};
+
+let people=[];
+let ranks=['Core','Member','Trial'];
+let expanded={};
+let sortKey='rank', sortDir=1;
+let saveTimer=null;
+
+function uid(){return 't'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function find(id){return people.find(p=>p.id===id);}
+function totals(p){let h=0,m=0;(p.chars||[]).forEach(c=>{h+=(+c.h||0);m+=(+c.m||0);});return{h,m};}
+function breakdown(p,key){const a=(p.chars||[]).filter(c=>(+c[key]||0)>0).map(c=>`${c.name||'?'} ${+c[key]||0}×`);return a.length>1?a.join(' · '):'';}
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200);}
+
+async function load(){
+  const st=document.getElementById('status');st.textContent='Načítám…';
+  try{
+    const r=await fetch(API_BASE+'/api/roster/'+TRK_KEY,{cache:'no-cache'});
+    if(r.ok){const j=await r.json();if(j){if(Array.isArray(j.people))people=j.people;if(Array.isArray(j.ranks)&&j.ranks.length)ranks=j.ranks;}}
+  }catch(e){
+    try{const d=JSON.parse(localStorage.getItem('trkData')||'null');if(d){people=d.people||[];if(d.ranks&&d.ranks.length)ranks=d.ranks;}}catch(_){}
+  }
+  st.textContent='';
+  render();
+}
+function save(){
+  try{localStorage.setItem('trkData',JSON.stringify({people,ranks}));}catch(e){}
+  clearTimeout(saveTimer);
+  const st=document.getElementById('status');st.textContent='Ukládám…';
+  saveTimer=setTimeout(async()=>{
+    try{await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({people,ranks,updatedAt:new Date().toISOString()})});st.textContent='✓ Uloženo';setTimeout(()=>{if(st.textContent==='✓ Uloženo')st.textContent='';},1500);}
+    catch(e){st.textContent='⚠ Cloud offline (uloženo lokálně)';}
+  },700);
+}
+
+function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}render();}
+function sortedPeople(filtered){
+  const arr=filtered.slice();
+  arr.sort((a,b)=>{
+    let va,vb;
+    if(sortKey==='name'){va=(a.name||'').toLowerCase();vb=(b.name||'').toLowerCase();}
+    else if(sortKey==='rank'){va=ranks.indexOf(a.rank);vb=ranks.indexOf(b.rank);}
+    else if(sortKey==='h'){va=totals(a).h;vb=totals(b).h;}
+    else if(sortKey==='m'){va=totals(a).m;vb=totals(b).m;}
+    if(va<vb)return -1*sortDir;if(va>vb)return 1*sortDir;return 0;
+  });
+  return arr;
+}
+
+function render(){
+  const wrap=document.getElementById('tableWrap');
+  const q=(document.getElementById('search').value||'').toLowerCase().trim();
+  const filtered=people.filter(p=>!q||(p.name||'').toLowerCase().includes(q)||(p.note||'').toLowerCase().includes(q)||(p.chars||[]).some(c=>(c.name||'').toLowerCase().includes(q)));
+  if(!people.length){wrap.innerHTML='<div class="empty">Zatím žádní hráči. Přidej prvního přes „+ Přidat hráče".</div>';return;}
+  if(!filtered.length){wrap.innerHTML='<div class="empty">Žádný hráč neodpovídá hledání.</div>';return;}
+  const arr=sortedPeople(filtered);
+  const arrow=k=>sortKey===k?`<span class="arr">${sortDir>0?'▲':'▼'}</span>`:'';
+  const rankOpts=name=>ranks.map(r=>`<option ${r===name?'selected':''}>${esc(r)}</option>`).join('');
+  let html=`<table><thead><tr>
+    <th style="width:18px"></th>
+    <th onclick="setSort('name')">Hráč ${arrow('name')}</th>
+    <th style="width:110px" onclick="setSort('rank')">Rank ${arrow('rank')}</th>
+    <th style="width:100px" onclick="setSort('h')">Heroic ${arrow('h')}</th>
+    <th style="width:100px" onclick="setSort('m')">Mythic ${arrow('m')}</th>
+    <th>Poznámka</th>
+    <th style="width:150px"></th></tr></thead><tbody>`;
+  arr.forEach(p=>{
+    const t=totals(p);const flag=p.rank==='Trial'&&t.h===0;const exp=!!expanded[p.id];
+    const clr=CC[(p.cls||'').toLowerCase()]||'var(--text)';
+    const bh=breakdown(p,'h'),bm=breakdown(p,'m');
+    html+=`<tr class="${flag?'flag':''}">
+      <td><span class="expand" onclick="toggle('${p.id}')">${exp?'▾':'▸'}</span></td>
+      <td><span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${flag?'<span class="warn">⚠ 0× Heroic</span>':''}</td>
+      <td><select class="rank" onchange="setRank('${p.id}',this.value)">${rankOpts(p.rank)}</select></td>
+      <td><div class="cnt ${t.h===0?'zero':''}">${t.h}×</div>${bh?`<div class="break">${esc(bh)}</div>`:''}</td>
+      <td><div class="cnt ${t.m===0?'zero':''}">${t.m}×</div>${bm?`<div class="break">${esc(bm)}</div>`:''}</td>
+      <td><input class="note-in" value="${esc(p.note||'')}" placeholder="…" onchange="setNote('${p.id}',this.value)"></td>
+      <td><div class="act">
+        <button class="iconbtn promo" title="Přesunout do hlavního rosteru" onclick="promote('${p.id}')">↗ Promote</button>
+        <button class="iconbtn del" title="Smazat hráče" onclick="del('${p.id}')">✕</button>
+      </div></td></tr>`;
+    if(exp){
+      html+=`<tr><td></td><td colspan="6"><div class="chars">
+        <div class="sub" style="margin-bottom:7px">Postavy / alty — počty se sčítají pod hráče (H = Heroic, M = Mythic).</div>
+        ${(p.chars||[]).map((c,ci)=>`<div class="char-row">
+          <input type="text" value="${esc(c.name||'')}" placeholder="jméno postavy" onchange="setChar('${p.id}',${ci},'name',this.value)">
+          <span class="lbl">H</span><input class="mini-num" type="number" min="0" value="${+c.h||0}" onchange="setChar('${p.id}',${ci},'h',this.value)">
+          <span class="lbl">M</span><input class="mini-num" type="number" min="0" value="${+c.m||0}" onchange="setChar('${p.id}',${ci},'m',this.value)">
+          <button class="iconbtn del" title="Odebrat postavu" onclick="delChar('${p.id}',${ci})">✕</button>
+        </div>`).join('')}
+        <button class="iconbtn" onclick="addChar('${p.id}')">+ Přidat postavu / alt</button>
+      </div></td></tr>`;
+    }
+  });
+  html+='</tbody></table>';
+  wrap.innerHTML=html;
+}
+
+function addPerson(){const name=(window.prompt('Jméno hráče (hlavní postava):')||'').trim();if(!name)return;const id=uid();people.push({id,name,rank:'Trial',note:'',cls:'',chars:[{name,h:0,m:0}]});expanded[id]=true;save();render();}
+function addRank(){const r=(window.prompt('Nový rank:')||'').trim();if(!r)return;if(!ranks.includes(r))ranks.push(r);save();render();}
+function toggle(id){expanded[id]=!expanded[id];render();}
+function setRank(id,v){const p=find(id);if(p){p.rank=v;save();render();}}
+function setNote(id,v){const p=find(id);if(p){p.note=v;save();}}
+function setChar(id,ci,key,v){const p=find(id);if(p&&p.chars[ci]){p.chars[ci][key]=(key==='name')?v:(+v||0);save();render();}}
+function addChar(id){const p=find(id);if(p){(p.chars=p.chars||[]).push({name:'',h:0,m:0});save();render();}}
+function delChar(id,ci){const p=find(id);if(p&&p.chars){p.chars.splice(ci,1);save();render();}}
+function del(id){const p=find(id);if(!p)return;if(!confirm(`Smazat „${p.name}" z rosteru?`))return;people=people.filter(x=>x.id!==id);save();render();}
+
+async function promote(id){
+  const p=find(id);if(!p)return;
+  if(!confirm(`Přesunout „${p.name}" do hlavního rosteru (core)?`))return;
+  try{
+    const r=await fetch(API_BASE+'/api/roster/main',{cache:'no-cache'});
+    let data=r.ok?await r.json():{};
+    data.roster=Array.isArray(data.roster)?data.roster:[];
+    if(!data.roster.find(x=>(x.name||'').toLowerCase()===p.name.toLowerCase())){
+      data.roster.push({id:uid(),name:p.name,class:(p.cls||'warrior'),spec:'',specIcon:'',role:'dps'});
+      data.updatedAt=new Date().toISOString();
+      await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    }
+    people=people.filter(x=>x.id!==id);save();render();
+    toast(`${p.name} přesunut do hlavního rosteru.`);
+  }catch(e){toast('Promote selhalo: '+e.message);}
+}
+
+load();
+</script>
+</body>
+</html>
