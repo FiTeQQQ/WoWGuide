@@ -882,6 +882,38 @@
   body.glass-on .btn-green { background: linear-gradient(135deg, rgba(48,190,114,.88), rgba(36,160,96,.88)) !important; border: 1px solid rgba(120,225,165,.55) !important; color: #fff !important; box-shadow: none !important; }
   body.glass-on .btn-accent, body.glass-on .btn-blue { background: linear-gradient(135deg, rgba(74,138,252,.9), rgba(50,104,218,.9)) !important; border: 1px solid rgba(150,185,255,.55) !important; color: #fff !important; box-shadow: none !important; }
   body.glass-on .slide-img { box-shadow: none; }
+
+  /* ═══════════ ROSTER / TRIAL TRACKER ═══════════ */
+  #trkModal .modal { max-width: 920px; width: 94%; }
+  .trk-head { display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+  .trk-head h2 { margin:0; font-size:18px; }
+  .trk-sub { font-size:11px; color:var(--text-dim); }
+  .trk-toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; align-items:center; }
+  .trk-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .trk-table th { text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); font-weight:700; padding:6px 8px; border-bottom:1px solid var(--border2); }
+  .trk-table td { padding:7px 8px; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:middle; }
+  .trk-row.flag { background:rgba(220,60,60,.10); }
+  .trk-row.flag td:first-child { box-shadow:inset 3px 0 0 0 #ef4444; }
+  .trk-name { font-weight:700; }
+  .trk-warn { font-size:10px; color:#f87171; font-weight:700; margin-left:6px; }
+  .trk-rank { background:rgba(255,255,255,.06); border:1px solid var(--border2); border-radius:6px; color:var(--text); font-size:12px; padding:3px 6px; outline:none; cursor:pointer; }
+  .trk-cnt { font-weight:800; font-size:14px; }
+  .trk-cnt.zero { color:#6b7280; }
+  .trk-break { font-size:10px; color:var(--text-dim); margin-top:1px; }
+  .trk-note-in { width:100%; background:transparent; border:1px solid transparent; border-radius:5px; color:var(--text-mid); font-size:12px; padding:3px 5px; outline:none; }
+  .trk-note-in:focus { border-color:var(--border2); background:rgba(255,255,255,.05); }
+  .trk-act { display:flex; gap:4px; justify-content:flex-end; }
+  .trk-iconbtn { background:rgba(255,255,255,.06); border:1px solid var(--border2); border-radius:5px; color:var(--text-mid); font-size:11px; padding:3px 7px; cursor:pointer; white-space:nowrap; }
+  .trk-iconbtn:hover { border-color:var(--accent-border); color:var(--accent); }
+  .trk-iconbtn.del:hover { border-color:rgba(239,68,68,.5); color:#f87171; }
+  .trk-iconbtn.promo:hover { border-color:rgba(74,222,128,.5); color:#4ade80; }
+  .trk-chars { background:rgba(0,0,0,.25); border-radius:8px; padding:10px 12px; margin:2px 0 4px; }
+  .trk-char-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap; }
+  .trk-char-row input[type=text] { flex:1 1 140px; min-width:100px; background:rgba(255,255,255,.06); border:1px solid var(--border2); border-radius:5px; color:var(--text); font-size:12px; padding:4px 7px; outline:none; }
+  .trk-char-row .lbl { font-size:11px; color:var(--text-dim); }
+  .trk-mini-num { width:54px; background:rgba(255,255,255,.06); border:1px solid var(--border2); border-radius:5px; color:var(--text); font-size:12px; padding:4px 5px; outline:none; text-align:center; }
+  .trk-expand { cursor:pointer; color:var(--text-dim); font-size:11px; user-select:none; }
+  .trk-empty { text-align:center; color:var(--text-dim); font-size:13px; padding:30px 10px; }
 </style>
 
 <!-- Inline SVG icons -->
@@ -1296,6 +1328,7 @@
     <!-- Edit + roster export -->
     <button class="btn btn-ghost" id="editBtn" onclick="toggleEditMode()" title="Edituj texty v průvodci">✏ Edit Mode</button>
     <button class="btn btn-green" onclick="exportRoster()" title="Stáhne roster.json">⬇ roster.json</button>
+    <button class="btn btn-ghost" onclick="openRosterTracker()" title="Globální roster — ranky a účast (Heroic/Mythic)">👥 Roster</button>
     <button class="btn btn-ghost edit-only" id="themeBtn" onclick="toggleTheme()" title="Přepnout vzhled Classic / Glass" style="font-size:11px;padding:3px 9px;opacity:.7">🗔 Classic</button>
   </div>
 
@@ -7669,6 +7702,116 @@ function renderAllCvOverlays(){
   });
 }
 
+// ═══════════════ ROSTER / TRIAL TRACKER (globální) ═══════════════
+const TRK_KEY='trial-roster';
+let _trkPeople=[];
+let _trkRanks=['Core','Member','Trial'];
+let _trkExpanded={};
+let _trkLoaded=false;
+let _trkSaveTimer=null;
+function _trkUid(){ return 't'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36); }
+function _trkEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function _trkFind(id){ return _trkPeople.find(p=>p.id===id); }
+function _trkTotals(p){ let h=0,m=0; (p.chars||[]).forEach(c=>{ h+=(+c.h||0); m+=(+c.m||0); }); return {h,m}; }
+function _trkBreak(p,key){ const a=(p.chars||[]).filter(c=>(+c[key]||0)>0).map(c=>`${c.name||'?'} ${+c[key]||0}×`); return a.length>1?a.join(' · '):''; }
+async function trkLoad(){
+  try{
+    const r=await fetch(API_BASE+'/api/roster/'+TRK_KEY,{cache:'no-cache'});
+    if(r.ok){ const j=await r.json(); if(j){ if(Array.isArray(j.people)) _trkPeople=j.people; if(Array.isArray(j.ranks)&&j.ranks.length) _trkRanks=j.ranks; } }
+  }catch(e){
+    try{ const d=JSON.parse(localStorage.getItem('trkData')||'null'); if(d){ _trkPeople=d.people||[]; if(d.ranks&&d.ranks.length)_trkRanks=d.ranks; } }catch(_){}
+  }
+  _trkLoaded=true;
+}
+function trkSave(){
+  try{ localStorage.setItem('trkData',JSON.stringify({people:_trkPeople,ranks:_trkRanks})); }catch(e){}
+  clearTimeout(_trkSaveTimer);
+  _trkSaveTimer=setTimeout(async()=>{
+    try{ await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({people:_trkPeople,ranks:_trkRanks,updatedAt:new Date().toISOString()})}); }catch(e){}
+  },800);
+}
+async function openRosterTracker(){
+  if(!document.getElementById('trkModal')) return;
+  const st=document.getElementById('trkStatus');
+  if(!_trkLoaded){ if(st) st.textContent='Načítám…'; await trkLoad(); if(st) st.textContent=''; }
+  trkRender();
+  openModal('trkModal');
+}
+function trkRender(){
+  const wrap=document.getElementById('trkTableWrap'); if(!wrap) return;
+  if(!_trkPeople.length){ wrap.innerHTML='<div class="trk-empty">Zatím žádní hráči. Přidej prvního přes „+ Přidat hráče".</div>'; return; }
+  const rankOpts=name=>_trkRanks.map(r=>`<option ${r===name?'selected':''}>${_trkEsc(r)}</option>`).join('');
+  let html='<table class="trk-table"><thead><tr><th style="width:18px"></th><th>Hráč</th><th style="width:96px">Rank</th><th style="width:90px">Heroic</th><th style="width:90px">Mythic</th><th>Poznámka</th><th style="width:140px"></th></tr></thead><tbody>';
+  _trkPeople.forEach(p=>{
+    const t=_trkTotals(p);
+    const flag=p.rank==='Trial'&&t.h===0;
+    const exp=!!_trkExpanded[p.id];
+    const clr=CC[(p.cls||'').toLowerCase()]||'var(--text)';
+    const bh=_trkBreak(p,'h'), bm=_trkBreak(p,'m');
+    html+=`<tr class="trk-row ${flag?'flag':''}">
+      <td><span class="trk-expand" onclick="trkToggle('${p.id}')">${exp?'▾':'▸'}</span></td>
+      <td><span class="trk-name" style="color:${clr}">${_trkEsc(p.name||'?')}</span>${flag?'<span class="trk-warn">⚠ 0× Heroic</span>':''}</td>
+      <td><select class="trk-rank" onchange="trkSetRank('${p.id}',this.value)">${rankOpts(p.rank)}</select></td>
+      <td><div class="trk-cnt ${t.h===0?'zero':''}">${t.h}×</div>${bh?`<div class="trk-break">${_trkEsc(bh)}</div>`:''}</td>
+      <td><div class="trk-cnt ${t.m===0?'zero':''}">${t.m}×</div>${bm?`<div class="trk-break">${_trkEsc(bm)}</div>`:''}</td>
+      <td><input class="trk-note-in" value="${_trkEsc(p.note||'')}" placeholder="…" onchange="trkSetNote('${p.id}',this.value)"></td>
+      <td><div class="trk-act">
+        <button class="trk-iconbtn promo" title="Přesunout do hlavního rosteru" onclick="trkPromote('${p.id}')">↗ Promote</button>
+        <button class="trk-iconbtn del" title="Smazat hráče" onclick="trkDelete('${p.id}')">✕</button>
+      </div></td>
+    </tr>`;
+    if(exp){
+      html+=`<tr><td></td><td colspan="6"><div class="trk-chars">
+        <div class="trk-sub" style="margin-bottom:6px">Postavy / alty — počty se sčítají pod hráče (H = Heroic, M = Mythic).</div>
+        ${(p.chars||[]).map((c,ci)=>`<div class="trk-char-row">
+          <input type="text" value="${_trkEsc(c.name||'')}" placeholder="jméno postavy" onchange="trkSetChar('${p.id}',${ci},'name',this.value)">
+          <span class="lbl">H</span><input class="trk-mini-num" type="number" min="0" value="${+c.h||0}" onchange="trkSetChar('${p.id}',${ci},'h',this.value)">
+          <span class="lbl">M</span><input class="trk-mini-num" type="number" min="0" value="${+c.m||0}" onchange="trkSetChar('${p.id}',${ci},'m',this.value)">
+          <button class="trk-iconbtn del" title="Odebrat postavu" onclick="trkDelChar('${p.id}',${ci})">✕</button>
+        </div>`).join('')}
+        <button class="trk-iconbtn" onclick="trkAddChar('${p.id}')">+ Přidat postavu / alt</button>
+      </div></td></tr>`;
+    }
+  });
+  html+='</tbody></table>';
+  wrap.innerHTML=html;
+}
+function trkAddPerson(){
+  const name=(window.prompt('Jméno hráče (hlavní postava):')||'').trim();
+  if(!name) return;
+  const id=_trkUid();
+  _trkPeople.push({id,name,rank:'Trial',note:'',cls:'',chars:[{name,h:0,m:0}]});
+  _trkExpanded[id]=true;
+  trkSave(); trkRender();
+}
+function trkAddRank(){
+  const r=(window.prompt('Nový rank:')||'').trim();
+  if(!r) return;
+  if(!_trkRanks.includes(r)) _trkRanks.push(r);
+  trkSave(); trkRender();
+}
+function trkToggle(id){ _trkExpanded[id]=!_trkExpanded[id]; trkRender(); }
+function trkSetRank(id,v){ const p=_trkFind(id); if(p){ p.rank=v; trkSave(); trkRender(); } }
+function trkSetNote(id,v){ const p=_trkFind(id); if(p){ p.note=v; trkSave(); } }
+function trkSetChar(id,ci,key,v){ const p=_trkFind(id); if(p&&p.chars[ci]){ p.chars[ci][key]=(key==='name')?v:(+v||0); trkSave(); trkRender(); } }
+function trkAddChar(id){ const p=_trkFind(id); if(p){ (p.chars=p.chars||[]).push({name:'',h:0,m:0}); trkSave(); trkRender(); } }
+function trkDelChar(id,ci){ const p=_trkFind(id); if(p&&p.chars){ p.chars.splice(ci,1); trkSave(); trkRender(); } }
+function trkDelete(id){ const p=_trkFind(id); if(!p) return; if(!confirm(`Smazat „${p.name}" z rosteru?`)) return; _trkPeople=_trkPeople.filter(x=>x.id!==id); trkSave(); trkRender(); }
+function trkPromote(id){
+  const p=_trkFind(id); if(!p) return;
+  if(!confirm(`Přesunout „${p.name}" do hlavního rosteru?`)) return;
+  if(typeof roster!=='undefined' && Array.isArray(roster)){
+    if(!roster.find(r=>(r.name||'').toLowerCase()===p.name.toLowerCase())){
+      roster.push({id:(typeof uid==='function'?uid():_trkUid()), name:p.name, class:(p.cls||'warrior'), spec:'', role:'dps'});
+      if(typeof saveState==='function') saveState();
+      if(typeof renderAll==='function') renderAll();
+    }
+  }
+  _trkPeople=_trkPeople.filter(x=>x.id!==id);
+  trkSave(); trkRender();
+  if(typeof toast==='function') toast(`${p.name} přesunut do hlavního rosteru.`);
+}
+
 // ═══════════════ THEME (Classic / Glass) ═══════════════
 let themeMode='classic';   // aktuální zobrazení (lokální)
 let savedTheme='classic';  // uložený default (jde do payloadu, vidí všichni)
@@ -9451,6 +9594,27 @@ function _tlHideTip(){ const t=document.getElementById('tlTip'); if(t) t.style.d
   </div>
 </div>
 <!-- ====== END TIMELINE PANEL ====== -->
+
+<!-- ═══ ROSTER / TRIAL TRACKER ═══ -->
+<div id="trkModal" class="modal-bg">
+  <div class="modal">
+    <div class="trk-head">
+      <div style="flex:1">
+        <h2>Roster</h2>
+        <div class="trk-sub">Globální přehled hráčů, ranků a účasti (Heroic / Mythic). Nezávislé na konkrétním guide.</div>
+      </div>
+      <button onclick="closeModal('trkModal')" class="btn btn-ghost" style="padding:4px 10px">✕</button>
+    </div>
+    <div class="trk-toolbar">
+      <button class="btn btn-accent" onclick="trkAddPerson()">+ Přidat hráče</button>
+      <button class="btn btn-ghost" onclick="trkAddRank()">+ Rank</button>
+      <span style="flex:1"></span>
+      <span class="trk-sub" id="trkStatus"></span>
+    </div>
+    <div id="trkTableWrap"></div>
+    <p class="trk-sub" style="margin-top:12px">⚠ Trial bez jediného Heroic raidu je červeně zvýrazněný. WCL auto-načítání účasti přidáme v dalším kroku.</p>
+  </div>
+</div>
 
 </body>
 </html>
