@@ -57,6 +57,21 @@
   .legend{font-size:11px;color:var(--text-dim);margin-top:12px}
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--accent-border);border-radius:8px;padding:9px 16px;color:var(--accent);font-size:13px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none}
   .toast.show{opacity:1}
+  .wcl-panel{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+  .wcl-grid{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .wcl-field{display:flex;flex-direction:column;gap:3px;flex:1;min-width:150px}
+  .wcl-field label{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);font-weight:700}
+  .wcl-panel input,.wcl-panel select,.wcl-panel textarea{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:6px 9px;outline:none;width:100%;font-family:inherit}
+  .wcl-panel input:focus,.wcl-panel textarea:focus,.wcl-panel select:focus{border-color:var(--accent-border)}
+  .wcl-row{margin-bottom:10px}
+  .wcl-chk{font-size:13px;color:var(--text);display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+  .wcl-log{font-size:11px;color:var(--text-dim);font-family:monospace;max-height:160px;overflow-y:auto;margin-top:8px;white-space:pre-wrap;line-height:1.5}
+  .wcl-log .ok{color:#4ade80}
+  .wcl-log .err{color:#f87171}
+  .wcl-unassigned{background:rgba(250,204,21,.07);border:1px solid rgba(250,204,21,.25);border-radius:8px;padding:10px 12px;margin-top:10px}
+  .wcl-un-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;font-size:12px}
+  .wcl-un-row .nm{font-weight:700;min-width:140px}
+  .wcl-un-row select{background:var(--surface2);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:3px 5px;width:auto}
 </style>
 </head>
 <body>
@@ -72,8 +87,32 @@
   <div class="toolbar">
     <button class="btn btn-accent" onclick="addPerson()">+ Přidat hráče</button>
     <button class="btn btn-ghost" onclick="addRank()">+ Rank</button>
+    <button class="btn btn-ghost" onclick="wclToggle()">↻ WCL účast</button>
     <input class="search" id="search" placeholder="Hledat hráče / poznámku…" oninput="render()">
     <span class="status" id="status"></span>
+  </div>
+
+  <!-- WCL panel -->
+  <div class="wcl-panel" id="wclPanel" style="display:none">
+    <div class="wcl-grid">
+      <div class="wcl-field"><label>WCL Client ID</label><input id="wclId" placeholder="z warcraftlogs.com/api/clients"></div>
+      <div class="wcl-field"><label>Client Secret</label><input id="wclSec" type="password" placeholder="secret"></div>
+      <button class="btn btn-ghost" onclick="wclSaveCreds()" style="align-self:end">Uložit klíče</button>
+    </div>
+    <div class="wcl-row"><label class="wcl-chk"><input type="checkbox" id="wclGuildChk"> Načíst i <b>guild log</b> (posledních 6 týdnů)</label></div>
+    <div class="wcl-grid" id="wclGuildFields" style="display:none">
+      <div class="wcl-field"><label>Guild</label><input id="wclGuild" placeholder="Název guildy"></div>
+      <div class="wcl-field"><label>Realm (slug)</label><input id="wclRealm" placeholder="napr. twisting-nether"></div>
+      <div class="wcl-field"><label>Region</label><select id="wclRegion"><option>EU</option><option>US</option><option>KR</option><option>TW</option></select></div>
+    </div>
+    <div class="wcl-row"><label style="display:block;margin-bottom:4px;font-size:11px;color:var(--text-dim)">Ruční reporty (URL nebo kódy, jeden na řádek) — i personal logy</label>
+      <textarea id="wclReports" rows="3" placeholder="https://www.warcraftlogs.com/reports/aBcD1234...&#10;aBcD1234..."></textarea></div>
+    <div class="wcl-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-accent" onclick="wclRun()" id="wclRunBtn">↻ Načíst účast (6 týdnů)</button>
+      <span class="status" id="wclStatus"></span>
+    </div>
+    <div id="wclUnassigned"></div>
+    <div id="wclLog" class="wcl-log"></div>
   </div>
 
   <div class="card"><div id="tableWrap"></div></div>
@@ -209,6 +248,139 @@ async function promote(id){
     toast(`${p.name} přesunut do hlavního rosteru.`);
   }catch(e){toast('Promote selhalo: '+e.message);}
 }
+
+/* ───────── WarcraftLogs napojení ───────── */
+let _wclUn=[];
+function wclToggle(){
+  const p=document.getElementById('wclPanel');
+  const show=p.style.display==='none';
+  p.style.display=show?'block':'none';
+  if(show){
+    document.getElementById('wclId').value=localStorage.getItem('wcl_id')||'';
+    document.getElementById('wclSec').value=localStorage.getItem('wcl_sec')||'';
+    document.getElementById('wclGuild').value=localStorage.getItem('wcl_guild')||'';
+    document.getElementById('wclRealm').value=localStorage.getItem('wcl_realm')||'';
+    document.getElementById('wclRegion').value=localStorage.getItem('wcl_region')||'EU';
+  }
+}
+function wclSaveCreds(){
+  localStorage.setItem('wcl_id',document.getElementById('wclId').value.trim());
+  localStorage.setItem('wcl_sec',document.getElementById('wclSec').value.trim());
+  wclLog('Klíče uloženy do prohlížeče.','ok');
+}
+function wclLog(msg,cls){ const el=document.getElementById('wclLog'); if(!el)return; el.innerHTML+=`<div class="${cls||''}">${esc(msg)}</div>`; el.scrollTop=el.scrollHeight; }
+async function wclToken(){
+  const id=(document.getElementById('wclId').value||localStorage.getItem('wcl_id')||'').trim();
+  const sec=(document.getElementById('wclSec').value||localStorage.getItem('wcl_sec')||'').trim();
+  if(!id||!sec) throw new Error('Chybí WCL Client ID / Secret.');
+  const res=await fetch('https://www.warcraftlogs.com/oauth/token',{method:'POST',headers:{'Authorization':'Basic '+btoa(id+':'+sec),'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=client_credentials'});
+  if(!res.ok) throw new Error('Token selhal ('+res.status+'). Zkontroluj klíče.');
+  const j=await res.json();
+  if(!j.access_token) throw new Error('Token nevrácen.');
+  return j.access_token;
+}
+async function wclGQL(token,query,variables){
+  const res=await fetch('https://www.warcraftlogs.com/api/v2/client',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({query,variables})});
+  const j=await res.json();
+  if(j.errors) throw new Error('GraphQL: '+JSON.stringify(j.errors).slice(0,180));
+  return j.data;
+}
+function parseReportCodes(text){
+  const codes=[];
+  (text||'').split(/[\s,]+/).forEach(tok=>{
+    tok=(tok||'').trim(); if(!tok) return;
+    const m=tok.match(/reports\/([a-zA-Z0-9]{16})/)||tok.match(/^([a-zA-Z0-9]{16})$/);
+    if(m) codes.push(m[1]);
+  });
+  return codes;
+}
+async function wclGuildReportCodes(token,guild,realm,region,sinceTs){
+  const q=`query($n:String!,$s:String!,$r:String!,$start:Float!){guildData{guild(name:$n,serverSlug:$s,serverRegion:$r){reports(limit:50,startTime:$start){data{code startTime}}}}}`;
+  const d=await wclGQL(token,q,{n:guild,s:realm,r:region,start:sinceTs});
+  const reps=(d&&d.guildData&&d.guildData.guild&&d.guildData.guild.reports&&d.guildData.guild.reports.data)||[];
+  return reps.map(r=>r.code);
+}
+function _wclNames(pd){
+  try{
+    const o=(pd&&pd.data&&pd.data.playerDetails)||(pd&&pd.playerDetails)||pd||{};
+    return [].concat(o.tanks||[],o.healers||[],o.dps||[]).map(x=>x&&x.name).filter(Boolean);
+  }catch(e){ return []; }
+}
+async function wclReportAttendance(token,code){
+  const q=`query($c:String!){reportData{report(code:$c){fights{difficulty} heroic:playerDetails(difficulty:4) mythic:playerDetails(difficulty:5)}}}`;
+  const d=await wclGQL(token,q,{c:code});
+  const rep=d&&d.reportData&&d.reportData.report;
+  return { h:new Set(_wclNames(rep&&rep.heroic)), m:new Set(_wclNames(rep&&rep.mythic)) };
+}
+async function wclRun(){
+  const btn=document.getElementById('wclRunBtn'); btn.disabled=true;
+  document.getElementById('wclLog').innerHTML='';
+  const st=document.getElementById('wclStatus'); st.textContent='Pracuji…';
+  try{
+    wclLog('Získávám token…');
+    const token=await wclToken(); wclLog('Token OK.','ok');
+    const sinceTs=Date.now()-42*24*3600*1000;
+    let codes=parseReportCodes(document.getElementById('wclReports').value);
+    wclLog('Ruční reporty: '+codes.length);
+    if(document.getElementById('wclGuildChk').checked){
+      const g=document.getElementById('wclGuild').value.trim();
+      const rl=document.getElementById('wclRealm').value.trim();
+      const rg=document.getElementById('wclRegion').value.trim();
+      localStorage.setItem('wcl_guild',g);localStorage.setItem('wcl_realm',rl);localStorage.setItem('wcl_region',rg);
+      if(g&&rl){ wclLog('Načítám guild reporty (6 týdnů)…'); const gc=await wclGuildReportCodes(token,g,rl,rg,sinceTs); wclLog('Guild reportů: '+gc.length); codes=codes.concat(gc); }
+      else wclLog('Guild jméno/realm chybí — přeskakuji guild.','err');
+    }
+    codes=[...new Set(codes)];
+    wclLog('Celkem reportů po dedup: '+codes.length);
+    if(!codes.length) throw new Error('Žádné reporty k načtení.');
+    const counts={};
+    let i=0;
+    for(const code of codes){
+      i++; st.textContent=`Report ${i}/${codes.length}…`;
+      try{
+        const att=await wclReportAttendance(token,code);
+        att.h.forEach(n=>{ (counts[n]=counts[n]||{h:0,m:0}).h++; });
+        att.m.forEach(n=>{ (counts[n]=counts[n]||{h:0,m:0}).m++; });
+        wclLog(`✓ ${code}: Heroic ${att.h.size} · Mythic ${att.m.size}`);
+      }catch(e){ wclLog(`✗ ${code}: ${e.message}`,'err'); }
+      await new Promise(r=>setTimeout(r,120));
+    }
+    applyWclCounts(counts);
+    st.textContent='Hotovo ✓';
+    wclLog('Hotovo. Postav z logů: '+Object.keys(counts).length,'ok');
+  }catch(e){ st.textContent='Chyba'; wclLog('CHYBA: '+e.message,'err'); }
+  btn.disabled=false;
+}
+function applyWclCounts(counts){
+  _wclUn=[];
+  const map={};
+  people.forEach(p=>(p.chars||[]).forEach((c,ci)=>{ if(c.name) map[c.name.toLowerCase()]={p,ci}; }));
+  Object.keys(counts).forEach(name=>{
+    const cnt=counts[name]; const hit=map[name.toLowerCase()];
+    if(hit){ hit.p.chars[hit.ci].h=cnt.h; hit.p.chars[hit.ci].m=cnt.m; }
+    else _wclUn.push({name,h:cnt.h,m:cnt.m});
+  });
+  save(); render(); renderUnassigned();
+}
+function renderUnassigned(){
+  const el=document.getElementById('wclUnassigned');
+  if(!_wclUn.length){ el.innerHTML=''; return; }
+  const opts=people.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  el.innerHTML=`<div class="wcl-unassigned"><div style="font-size:12px;font-weight:700;margin-bottom:8px;color:#facc15">Nepřiřazené postavy z logů (${_wclUn.length}) — přiřaď k hráči (alt) nebo vytvoř nového:</div>`+
+    _wclUn.map((u,i)=>`<div class="wcl-un-row"><span class="nm">${esc(u.name)}</span><span style="color:var(--text-dim)">H ${u.h}× · M ${u.m}×</span>
+      <select id="un_${i}"><option value="">— přiřadit k —</option>${opts}<option value="__new">+ nový hráč</option></select>
+      <button class="iconbtn" onclick="wclAssign(${i})">OK</button></div>`).join('')+`</div>`;
+}
+function wclAssign(i){
+  const u=_wclUn[i]; if(!u) return;
+  const sel=document.getElementById('un_'+i); if(!sel) return;
+  const v=sel.value;
+  if(v==='__new'){ const id=uid(); people.push({id,name:u.name,rank:'Trial',note:'',cls:'',chars:[{name:u.name,h:u.h,m:u.m}]}); }
+  else if(v){ const p=find(v); if(p){ (p.chars=p.chars||[]).push({name:u.name,h:u.h,m:u.m}); } }
+  else return;
+  _wclUn.splice(i,1); save(); render(); renderUnassigned();
+}
+document.getElementById('wclGuildChk').addEventListener('change',function(){ document.getElementById('wclGuildFields').style.display=this.checked?'flex':'none'; });
 
 load();
 </script>
