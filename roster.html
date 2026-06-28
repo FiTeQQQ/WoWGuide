@@ -326,7 +326,16 @@
     </div>
     <label class="am-lbl">Rank</label>
     <select id="apRank" class="am-input"></select>
-    <div class="am-actions"><button class="btn btn-accent" onclick="apAdd()">Přidat</button><button class="btn btn-ghost" onclick="closeAdd()">Zrušit</button></div>
+    <div style="border-top:1px solid var(--border2);margin:16px 0 0;padding-top:14px">
+      <label class="am-lbl" style="margin-top:0">Přidat přímo přes WarcraftLogs (zjistí server, třídu a rovnou natáhne progress)</label>
+      <div style="display:flex;gap:6px">
+        <input id="apRealm" class="am-input" list="euRealms" value="drakthul" placeholder="realm (slug)" autocomplete="off" style="flex:1">
+        <select id="apRegion" class="am-input" style="width:84px"><option>EU</option><option>US</option><option>KR</option><option>TW</option></select>
+      </div>
+      <button class="btn btn-accent" onclick="apAddWcl()" id="apWclBtn" style="margin-top:8px;width:100%">⚡ Najít a přidat přes WCL</button>
+      <div id="apWclStatus" class="am-hint" style="margin-top:7px"></div>
+    </div>
+    <div class="am-actions"><button class="btn btn-ghost" onclick="apAdd()">Přidat ručně</button><button class="btn btn-ghost" onclick="closeAdd()">Zrušit</button></div>
   </div>
 </div>
 
@@ -699,10 +708,50 @@ function apAdd(){
   else if(_apSpec){ cls=_apCls; spec=_apSpec.name; specIcon=WH_ICON(_apSpec.icon); }
   else if(_apCls){ cls=_apCls; }
   const id=uid();
-  people.push({id,_mainId:id,name:nm,rank,note:'',cls,spec,specIcon,prog:{},chars:[{name:nm,h:0,m:0,cls,specIcon,_pid:id,_role:'dps',_spec:spec}]});
+  people.push({id,_mainId:id,name:nm,rank,note:'',cls,spec,specIcon,prog:{},custom:{},chars:[{name:nm,h:0,m:0,cls,specIcon,_pid:id,_role:'dps',_spec:spec}]});
   expanded[id]=true;
   save(); render(); closeAdd();
   toast(`${nm} přidán.`);
+}
+function _classFromId(id){ return ({1:'warrior',2:'paladin',3:'hunter',4:'rogue',5:'priest',6:'deathknight',7:'shaman',8:'mage',9:'warlock',10:'monk',11:'druid',12:'demonhunter',13:'evoker'})[+id]||''; }
+async function apAddWcl(){
+  const nm=(document.getElementById('apName').value||'').trim();
+  const stEl=document.getElementById('apWclStatus'); const btn=document.getElementById('apWclBtn');
+  if(!nm){ stEl.textContent='Zadej jméno postavy.'; return; }
+  if(people.some(p=>(p.name||'').toLowerCase()===nm.toLowerCase()||(p.chars||[]).some(c=>(c.name||'').toLowerCase()===nm.toLowerCase()))){ stEl.textContent='Tento hráč už v rosteru je.'; return; }
+  const realm=_slugRealm(document.getElementById('apRealm').value||'drakthul');
+  const region=(document.getElementById('apRegion').value||'EU').trim();
+  if(btn) btn.disabled=true; stEl.textContent='Hledám '+nm+' na '+realm+' ('+region+')…';
+  try{
+    const token=await wclToken();
+    let cls='', found=false;
+    try{
+      const d=await wclGQL(token,`query($n:String!,$s:String!,$r:String!){characterData{character(name:$n,serverSlug:$s,serverRegion:$r){name classID}}}`,{n:nm,s:realm,r:region});
+      const ch=d&&d.characterData&&d.characterData.character; if(ch){ found=true; cls=_classFromId(ch.classID); }
+    }catch(e){
+      try{ const d2=await wclGQL(token,`query($n:String!,$s:String!,$r:String!){characterData{character(name:$n,serverSlug:$s,serverRegion:$r){name}}}`,{n:nm,s:realm,r:region}); if(d2&&d2.characterData&&d2.characterData.character) found=true; }catch(_){}
+    }
+    if(!found){ stEl.textContent='Postava nenalezena na realmu '+realm+' ('+region+'). Zkontroluj jméno/realm.'; if(btn)btn.disabled=false; return; }
+    const rank=document.getElementById('apRank').value||'Trial';
+    const nid=uid();
+    people.push({id:nid,_mainId:nid,name:nm,rank,note:'',cls,spec:'',specIcon:'',prog:{},custom:{},chars:[{name:nm,h:0,m:0,cls,specIcon:'',server:realm,_pid:nid,_role:'dps',_spec:''}]});
+    expanded[nid]=true; save(); render();
+    stEl.textContent='✓ Přidán'+(cls?(' ('+cls+')'):'')+'. Načítám progress…';
+    const zones=progZones();
+    if(zones.length){
+      try{
+        const p=find(nid); p.prog={};
+        for(const z of zones){
+          const pr=await wclCharProgress(token,nm,realm,region,z.id);
+          const obj={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills};
+          p.prog[z.id]=obj; if(p.chars&&p.chars[0]){ p.chars[0].prog=p.chars[0].prog||{}; p.chars[0].prog[z.id]=obj; }
+        }
+        save(); render(); _wclCfgTouch();
+      }catch(e){}
+    }
+    toast(nm+' přidán (server '+realm+').'); closeAdd();
+  }catch(e){ stEl.textContent='Chyba: '+e.message; }
+  if(btn) btn.disabled=false;
 }
 function addRank(){const r=(window.prompt('Nový rank:')||'').trim();if(!r)return;if(!ranks.includes(r))ranks.push(r);save();render();}
 function toggle(id){expanded[id]=!expanded[id];render();}
