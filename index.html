@@ -147,7 +147,8 @@ table.roster tr:hover td{background:rgba(255,255,255,.03)}
 .eb-sep{width:1px;height:22px;background:var(--line)}
 
 /* ═══════════ GLASS MODE (1:1 s guide/roster) ═══════════ */
-.glass-bg{position:fixed;inset:0;z-index:-3;display:none;background-position:center;background-size:cover;background-repeat:no-repeat;filter:brightness(.6) saturate(.9)}
+.glass-bg{position:fixed;inset:0;z-index:-3;display:none;background-position:center;background-size:cover;background-repeat:no-repeat;filter:brightness(.6) saturate(.9);
+  background-color:#0b1020;background-image:radial-gradient(120% 100% at 50% 0%, #1a2348 0%, #0d1430 45%, #070a16 100%)}
 .glass-bg::after{content:'';position:absolute;inset:0;background:
   radial-gradient(135% 115% at 50% 32%, transparent 0%, transparent 34%, rgba(2,3,8,.58) 82%, rgba(1,2,6,.84) 100%),
   linear-gradient(180deg, rgba(4,6,14,.42) 0%, rgba(3,4,10,.60) 60%, rgba(2,3,8,.76) 100%)}
@@ -321,8 +322,9 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
     </div>
     <div id="editorBody"></div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeEditor()">Zavřít</button>
-      <button class="btn btn-success" onclick="downloadManifest()">⬇ Stáhnout manifest.json</button>
+      <span style="flex:1;font-size:11px;color:var(--faint)">☁️ Změny se ukládají do cloudu automaticky</span>
+      <button class="btn btn-ghost" onclick="downloadManifest()">⬇ Export</button>
+      <button class="btn btn-success" onclick="closeEditor()">Hotovo</button>
     </div>
   </div>
 </div>
@@ -349,10 +351,11 @@ function escH(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g
 function toSlug(s){ return s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
 function maxLevel(){ return _guild ? Math.max(0,..._guild.members.map(m=>m.level||0)) : 80; }
 
-/* ---------- theme / edit mode ---------- */
-const TRK_KEY = 'trial-roster';
+/* ---------- index config — VLASTNÍ cloud klíč, oddělený od rosteru ---------- */
+const CFG_KEY = 'index-cfg';              // index má svůj klíč; roster má 'trial-roster'
 const GLASS_BG = GH_RAW + 'Images/Roster/Index_Background.jpg';
 let themeMode = 'classic';
+let _cfgLoaded = false;
 
 function applyTheme(m){
   themeMode = (m === 'glass') ? 'glass' : 'classic';
@@ -364,36 +367,45 @@ function applyTheme(m){
 }
 function toggleTheme(){
   applyTheme(themeMode === 'glass' ? 'classic' : 'glass');
-  try{ localStorage.setItem('siteTheme', themeMode); }catch(e){}
-  saveTheme();
+  try{ localStorage.setItem('indexTheme', themeMode); }catch(e){}
+  saveCfg();
 }
-function toggleEdit(){
-  document.getElementById('editBar').classList.toggle('open');
-}
-async function loadTheme(){
+function toggleEdit(){ document.getElementById('editBar').classList.toggle('open'); }
+
+// Načte VŠECHNO indexu (theme + raidy) z jeho vlastního cloud klíče
+async function loadCfg(){
   let pref = 'classic';
-  try{ pref = localStorage.getItem('siteTheme') || 'classic'; }catch(e){}
+  try{ pref = localStorage.getItem('indexTheme') || 'classic'; }catch(e){}
   applyTheme(pref);
   try{
-    const r = await fetch(API_BASE + '/api/roster/' + TRK_KEY + '?_=' + Date.now());
-    if(r.ok){ const m = await r.json(); if(m && m.theme){ applyTheme(m.theme); try{ localStorage.setItem('siteTheme', m.theme); }catch(e){} } }
+    const r = await fetch(API_BASE + '/api/roster/' + CFG_KEY + '?_=' + Date.now());
+    if(r.ok){
+      const m = await r.json();
+      if(m && m.theme){ applyTheme(m.theme); try{ localStorage.setItem('indexTheme', m.theme); }catch(e){} }
+      if(m && Array.isArray(m.raids) && m.raids.length){ _manifest = { raids: m.raids }; }
+    }
   }catch(e){}
+  _cfgLoaded = true;
+  if(_manifest.raids && _manifest.raids.length){ renderRaids(); }
+  else { await loadManifestFromGitHub(); }   // první spuštění: vezmi GitHub manifest jako základ
 }
-async function saveTheme(){
+
+// Uloží VŠECHNO indexu (theme + raidy) do vlastního cloud klíče
+async function saveCfg(){
+  if(!_cfgLoaded) return;
   try{
-    const r = await fetch(API_BASE + '/api/roster/' + TRK_KEY);
-    let m = {}; if(r.ok) m = await r.json();
-    m.theme = themeMode; m.updatedAt = new Date().toISOString();
-    await fetch(API_BASE + '/api/roster/' + TRK_KEY, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(m) });
+    await fetch(API_BASE + '/api/roster/' + CFG_KEY, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ theme: themeMode, raids: (_manifest.raids || []), updatedAt: new Date().toISOString() })
+    });
   }catch(e){}
 }
 
 /* ---------- init ---------- */
 async function init(){
-  loadTheme();
+  loadCfg();
   loadGuild();
   loadRankings();
-  loadManifest();
 }
 
 async function loadGuild(){
@@ -564,7 +576,7 @@ function renderRankings(d){
 }
 
 /* ---------- raids / boss grid ---------- */
-async function loadManifest(){
+async function loadManifestFromGitHub(){
   try{
     const r = await fetch(GH_RAW + 'Images/manifest.json?_=' + Date.now());
     if(r.ok) _manifest = await r.json();
@@ -624,18 +636,18 @@ function addBoss(ri){
   const b={slug:toSlug(name),name,thumbnail:img,image:img};
   if(cloud) b.cloud=cloud;
   (_manifest.raids[ri].bosses=_manifest.raids[ri].bosses||[]).push(b);
-  renderEditor();renderRaids();
+  renderEditor();renderRaids();saveCfg();
 }
 function setCloud(ri,bi){
   const b=_manifest.raids[ri].bosses[bi];
   const v=prompt('Cloud share id (?r=) pro „'+b.name+'". Prázdné = jen slug.', b.cloud||'');
   if(v===null) return;
   if(v.trim()) b.cloud=v.trim(); else delete b.cloud;
-  renderEditor();renderRaids();
+  renderEditor();renderRaids();saveCfg();
 }
-function removeBoss(ri,bi){ if(!confirm('Smazat bosse?'))return; _manifest.raids[ri].bosses.splice(bi,1); renderEditor();renderRaids(); }
-function addRaid(){ const name=(document.getElementById('newRaidName').value||'').trim(); if(!name){alert('Vyplň název raidu');return;} _manifest.raids.push({slug:toSlug(name),name,bosses:[]}); renderEditor();renderRaids(); }
-function removeRaid(ri){ if(!confirm('Smazat celý raid?'))return; _manifest.raids.splice(ri,1); renderEditor();renderRaids(); }
+function removeBoss(ri,bi){ if(!confirm('Smazat bosse?'))return; _manifest.raids[ri].bosses.splice(bi,1); renderEditor();renderRaids();saveCfg(); }
+function addRaid(){ const name=(document.getElementById('newRaidName').value||'').trim(); if(!name){alert('Vyplň název raidu');return;} _manifest.raids.push({slug:toSlug(name),name,bosses:[]}); renderEditor();renderRaids();saveCfg(); }
+function removeRaid(ri){ if(!confirm('Smazat celý raid?'))return; _manifest.raids.splice(ri,1); renderEditor();renderRaids();saveCfg(); }
 function downloadManifest(){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(_manifest,null,2)],{type:'application/json'})); a.download='manifest.json';a.click(); }
 
 init();
