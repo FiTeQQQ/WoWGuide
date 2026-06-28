@@ -41,6 +41,7 @@
   .rank{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:4px 7px;outline:none;cursor:pointer}
   .cnt{font-weight:800;font-size:15px}
   .cnt.zero{color:#5b6070}
+  .cnt.na{color:#3f4452;font-weight:600}
   .break{font-size:10px;color:var(--text-dim);margin-top:1px}
   .note-in{width:100%;background:transparent;border:1px solid transparent;border-radius:5px;color:var(--text-mid);font-size:12px;padding:4px 6px;outline:none}
   .note-in:focus{border-color:var(--border2);background:rgba(255,255,255,.05)}
@@ -208,12 +209,13 @@ function render(){
     const bh=breakdown(p,'h'),bm=breakdown(p,'m');
     const altN=(p.chars||[]).length-1;
     const ico=p.specIcon?`<img class="spec-ic" src="${esc(p.specIcon)}" onerror="this.style.display='none'">`:'';
+    const naCore=p.rank==='Core';
     html+=`<tr class="${flag?'flag':''}">
       <td><span class="expand" onclick="toggle('${p.id}')">${exp?'▾':'▸'}</span></td>
       <td>${ico}<span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${altN>0?`<span class="altcnt">+${altN} alt</span>`:''}${flag?'<span class="warn">⚠ 0× Heroic</span>':''}</td>
       <td><select class="rank" onchange="setRank('${p.id}',this.value)">${rankOpts(p.rank)}</select></td>
-      <td><div class="cnt ${t.h===0?'zero':''}">${t.h}×</div>${bh?`<div class="break">${esc(bh)}</div>`:''}</td>
-      <td><div class="cnt ${t.m===0?'zero':''}">${t.m}×</div>${bm?`<div class="break">${esc(bm)}</div>`:''}</td>
+      <td>${naCore?'<span class="cnt na" title="U Core hráče se účast neřeší">—</span>':`<div class="cnt ${t.h===0?'zero':''}">${t.h}×</div>${bh?`<div class="break">${esc(bh)}</div>`:''}`}</td>
+      <td>${naCore?'<span class="cnt na">—</span>':`<div class="cnt ${t.m===0?'zero':''}">${t.m}×</div>${bm?`<div class="break">${esc(bm)}</div>`:''}`}</td>
       <td><input class="note-in" value="${esc(p.note||'')}" placeholder="…" onchange="setNote('${p.id}',this.value)"></td>
       <td><div class="act">
         <button class="iconbtn promo" title="Přesunout do hlavního rosteru" onclick="promote('${p.id}')">↗ Promote</button>
