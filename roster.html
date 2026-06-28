@@ -42,6 +42,9 @@
   .cnt{font-weight:800;font-size:15px}
   .cnt.zero{color:#5b6070}
   .cnt.na{color:#3f4452;font-weight:600}
+  .prog{font-size:12px;font-weight:700;line-height:1.5}
+  .prog b{color:var(--text-dim);font-weight:700;font-size:10px;margin-right:3px}
+  .prog .full{color:#4ade80}
   .break{font-size:10px;color:var(--text-dim);margin-top:1px}
   .note-in{width:100%;background:transparent;border:1px solid transparent;border-radius:5px;color:var(--text-mid);font-size:12px;padding:4px 6px;outline:none}
   .note-in:focus{border-color:var(--border2);background:rgba(255,255,255,.05)}
@@ -97,6 +100,7 @@
     <button class="btn btn-ghost" onclick="addRank()">+ Rank</button>
     <button class="btn btn-ghost" onclick="importRoster()" title="Naimportovat hráče z hlavního rosteru (Assignments)">⬇ Import z rosteru</button>
     <button class="btn btn-ghost" onclick="wclToggle()">↻ WCL účast</button>
+    <button class="btn btn-ghost" onclick="clearAll()" title="Smazat všechny hráče" style="color:#f87171;border-color:rgba(239,68,68,.3)">🗑 Vymazat vše</button>
     <input class="search" id="search" placeholder="Hledat hráče / poznámku…" oninput="render()">
     <span class="status" id="status"></span>
   </div>
@@ -115,6 +119,10 @@
       <div class="wcl-field"><label>Guild</label><input id="wclGuild" placeholder="Název guildy"></div>
       <div class="wcl-field"><label>Realm (slug)</label><input id="wclRealm" placeholder="napr. twisting-nether"></div>
       <div class="wcl-field"><label>Region</label><select id="wclRegion"><option>EU</option><option>US</option><option>KR</option><option>TW</option></select></div>
+    </div>
+    <div class="wcl-row" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <div class="wcl-field" style="flex:1;min-width:220px"><label>Raid pro progress (kolik bossů zabito)</label><select id="wclZone"><option value="">— načti raidy —</option></select></div>
+      <button class="btn btn-ghost" onclick="wclLoadZones()">Načíst raidy</button>
     </div>
     <div class="wcl-row"><label style="display:block;margin-bottom:4px;font-size:11px;color:var(--text-dim)">Ruční reporty (URL nebo kódy, jeden na řádek) — i personal logy</label>
       <textarea id="wclReports" rows="3" placeholder="https://www.warcraftlogs.com/reports/aBcD1234...&#10;aBcD1234..."></textarea></div>
@@ -199,8 +207,9 @@ function render(){
     <th style="width:18px"></th>
     <th onclick="setSort('name')">Hráč ${arrow('name')}</th>
     <th style="width:110px" onclick="setSort('rank')">Rank ${arrow('rank')}</th>
-    <th style="width:100px" onclick="setSort('h')">Heroic ${arrow('h')}</th>
-    <th style="width:100px" onclick="setSort('m')">Mythic ${arrow('m')}</th>
+    <th style="width:120px" title="Aktuální progress postavy v tieru (kolik bossů zabito)">Progress H/M</th>
+    <th style="width:100px" onclick="setSort('h')" title="Kolik raidů odehrál s námi (Heroic)">S námi H ${arrow('h')}</th>
+    <th style="width:100px" onclick="setSort('m')" title="Kolik raidů odehrál s námi (Mythic)">S námi M ${arrow('m')}</th>
     <th>Poznámka</th>
     <th style="width:150px"></th></tr></thead><tbody>`;
   arr.forEach(p=>{
@@ -214,6 +223,7 @@ function render(){
       <td><span class="expand" onclick="toggle('${p.id}')">${exp?'▾':'▸'}</span></td>
       <td>${ico}<span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${altN>0?`<span class="altcnt">+${altN} alt</span>`:''}${flag?'<span class="warn">⚠ 0× Heroic</span>':''}</td>
       <td><select class="rank" onchange="setRank('${p.id}',this.value)">${rankOpts(p.rank)}</select></td>
+      <td>${naCore?'<span class="cnt na">—</span>':`<div class="prog"><b>H</b>${esc(p.progH||'—')}</div><div class="prog"><b>M</b>${esc(p.progM||'—')}</div>`}</td>
       <td>${naCore?'<span class="cnt na" title="U Core hráče se účast neřeší">—</span>':`<div class="cnt ${t.h===0?'zero':''}">${t.h}×</div>${bh?`<div class="break">${esc(bh)}</div>`:''}`}</td>
       <td>${naCore?'<span class="cnt na">—</span>':`<div class="cnt ${t.m===0?'zero':''}">${t.m}×</div>${bm?`<div class="break">${esc(bm)}</div>`:''}`}</td>
       <td><input class="note-in" value="${esc(p.note||'')}" placeholder="…" onchange="setNote('${p.id}',this.value)"></td>
@@ -222,7 +232,7 @@ function render(){
         <button class="iconbtn del" title="Smazat hráče" onclick="del('${p.id}')">✕</button>
       </div></td></tr>`;
     if(exp){
-      html+=`<tr><td></td><td colspan="6"><div class="chars">
+      html+=`<tr><td></td><td colspan="7"><div class="chars">
         <div class="sub" style="margin-bottom:7px">Postavy / alty — počty se sčítají pod hráče (H = Heroic, M = Mythic).</div>
         ${(p.chars||[]).map((c,ci)=>`<div class="char-row">
           <input type="text" value="${esc(c.name||'')}" placeholder="jméno postavy" onchange="setChar('${p.id}',${ci},'name',this.value)">
@@ -247,6 +257,12 @@ function setChar(id,ci,key,v){const p=find(id);if(p&&p.chars[ci]){p.chars[ci][ke
 function addChar(id){const p=find(id);if(p){(p.chars=p.chars||[]).push({name:'',h:0,m:0});save();render();}}
 function delChar(id,ci){const p=find(id);if(p&&p.chars){p.chars.splice(ci,1);save();render();}}
 function del(id){const p=find(id);if(!p)return;if(!confirm(`Smazat „${p.name}" z rosteru?`))return;people=people.filter(x=>x.id!==id);save();render();}
+function clearAll(){
+  if(!people.length){ toast('Roster je už prázdný.'); return; }
+  if(!confirm(`Smazat VŠECHNY hráče (${people.length})? Nevratné.`)) return;
+  if(!confirm('Opravdu? Tohle vymaže celý seznam.')) return;
+  people=[]; _wclUn=[]; save(); render(); toast('Roster vymazán.');
+}
 
 async function promote(id){
   const p=find(id);if(!p)return;
@@ -389,6 +405,25 @@ async function wclReportAttendance(token,code){
   [].concat(he,me).forEach(x=>{ if(x.name&&x.type) _wclMeta[String(x.name).toLowerCase()]=String(x.type).toLowerCase(); });
   return { h:new Set(he.map(x=>x.name)), m:new Set(me.map(x=>x.name)) };
 }
+async function wclLoadZones(){
+  const sel=document.getElementById('wclZone'); if(!sel) return;
+  try{
+    const token=await wclToken();
+    const d=await wclGQL(token,`query{worldData{zones{id name encounters{id}}}}`,{});
+    let zones=(d&&d.worldData&&d.worldData.zones)||[];
+    zones=zones.filter(z=>z.encounters&&z.encounters.length).sort((a,b)=>b.id-a.id);
+    const cur=localStorage.getItem('wcl_zone')||'';
+    sel.innerHTML='<option value="">— vyber raid —</option>'+zones.map(z=>`<option value="${z.id}" data-bosses="${z.encounters.length}" ${String(z.id)===cur?'selected':''}>${esc(z.name)} (${z.encounters.length} bossů)</option>`).join('');
+    wclLog('Raidů načteno: '+zones.length,'ok');
+  }catch(e){ wclLog('Načtení raidů selhalo: '+e.message,'err'); }
+}
+async function wclCharProgress(token,name,realm,region,zoneID){
+  const q=`query($n:String!,$s:String!,$r:String!,$z:Int!){characterData{character(name:$n,serverSlug:$s,serverRegion:$r){h:zoneRankings(zoneID:$z,difficulty:4) m:zoneRankings(zoneID:$z,difficulty:5)}}}`;
+  const d=await wclGQL(token,q,{n:name,s:realm,r:region,z:zoneID});
+  const ch=d&&d.characterData&&d.characterData.character;
+  const killed=zr=>{ try{ const rk=(zr&&zr.rankings)||[]; return rk.filter(x=>x&&((x.totalKills||0)>0||x.rankPercent!=null)).length; }catch(e){ return 0; } };
+  return { h:killed(ch&&ch.h), m:killed(ch&&ch.m) };
+}
 async function wclRun(){
   const btn=document.getElementById('wclRunBtn'); btn.disabled=true;
   _wclMeta={};
@@ -424,6 +459,27 @@ async function wclRun(){
       await new Promise(r=>setTimeout(r,120));
     }
     applyWclCounts(counts);
+    // Progress (Trial/Member) z aktuálního raidu
+    const zoneID=parseInt(document.getElementById('wclZone').value||'0');
+    if(zoneID){
+      const bossTotal=parseInt(localStorage.getItem('wcl_zone_bosses')||'0')||'?';
+      const realm=(document.getElementById('wclRealm').value||localStorage.getItem('wcl_realm')||'').trim();
+      const region=(document.getElementById('wclRegion').value||localStorage.getItem('wcl_region')||'EU').trim();
+      if(!realm){ wclLog('Pro progress vyplň Realm (slug) v poli guildy.','err'); }
+      else{
+        const targets=people.filter(p=>p.rank==='Trial'||p.rank==='Member');
+        wclLog('Načítám progress pro '+targets.length+' hráčů (Trial/Member)…');
+        let j=0;
+        for(const p of targets){
+          j++; st.textContent=`Progress ${j}/${targets.length}…`;
+          const mc=(p.chars&&p.chars[0]&&p.chars[0].name)||p.name;
+          try{ const pr=await wclCharProgress(token,mc,realm,region,zoneID); p.progH=pr.h+'/'+bossTotal; p.progM=pr.m+'/'+bossTotal; wclLog(`✓ ${mc}: progress H ${pr.h} · M ${pr.m}`); }
+          catch(e){ wclLog(`✗ progress ${mc}: ${e.message}`,'err'); }
+          await new Promise(r=>setTimeout(r,140));
+        }
+        save(); render();
+      }
+    }
     st.textContent='Hotovo ✓';
     wclLog('Hotovo. Postav z logů: '+Object.keys(counts).length,'ok');
   }catch(e){ st.textContent='Chyba'; wclLog('CHYBA: '+e.message,'err'); }
@@ -459,6 +515,7 @@ function wclAssign(i){
   _wclUn.splice(i,1); save(); render(); renderUnassigned();
 }
 document.getElementById('wclGuildChk').addEventListener('change',function(){ document.getElementById('wclGuildFields').style.display=this.checked?'flex':'none'; });
+(function(){ const z=document.getElementById('wclZone'); if(z) z.addEventListener('change',function(){ const o=this.selectedOptions[0]; localStorage.setItem('wcl_zone',this.value||''); localStorage.setItem('wcl_zone_bosses',o?(o.dataset.bosses||''):''); }); })();
 
 load();
 </script>
