@@ -427,7 +427,7 @@ function buildPeopleFromFlat(flat){
   people=Object.keys(groups).map(mid=>{
     const m=byId[mid];
     const members=groups[mid].slice().sort((a,b)=>(a.id===mid?-1:b.id===mid?1:0));
-    const chars=members.map(pl=>({name:pl.name||'',h:+pl.h||0,m:+pl.m||0,cls:(pl.class||'').toLowerCase(),specIcon:pl.specIcon||'',prog:pl.prog||{},_pid:pl.id,_role:pl.role||'',_spec:pl.spec||''}));
+    const chars=members.map(pl=>({name:pl.name||'',h:+pl.h||0,m:+pl.m||0,cls:(pl.class||'').toLowerCase(),specIcon:pl.specIcon||'',prog:pl.prog||{},server:pl.server||'',_pid:pl.id,_role:pl.role||'',_spec:pl.spec||''}));
     return {id:mid,_mainId:mid,name:m.name||'',rank:m.rank||'Core',note:m.note||'',cls:(m.class||'').toLowerCase(),spec:m.spec||'',specIcon:m.specIcon||'',prog:m.prog||{},chars};
   });
 }
@@ -448,6 +448,7 @@ function buildFlatFromPeople(){
       base.spec=(c._spec!==undefined&&c._spec!=='')?c._spec:(isMain?(per.spec||base.spec||''):(base.spec||''));
       base.role=(c._role!==undefined&&c._role!=='')?c._role:(base.role||'dps');
       base.h=+c.h||0; base.m=+c.m||0;
+      if(c.server) base.server=c.server;
       if(isMain){
         delete base.altOf;
         base.rank=per.rank||'Core';
@@ -785,6 +786,8 @@ async function importRoster(){
 /* ───────── WarcraftLogs napojení ───────── */
 let _wclUn=[];
 let _wclMeta={};
+let _wclServer={};   // realm (slug) postavy z logu — pro progress na správném serveru
+function _slugRealm(s){ return String(s||'').toLowerCase().replace(/['`’]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
 function wclToggle(){
   const p=document.getElementById('wclPanel');
   const show=p.style.display==='none';
@@ -867,7 +870,7 @@ async function wclReportAttendance(token,code){
     if(!fids.length) return;
     const d=await wclGQL(token,`query($c:String!,$f:[Int]){reportData{report(code:$c){playerDetails(fightIDs:$f)}}}`,{c:code,f:fids});
     const pd=d&&d.reportData&&d.reportData.report&&d.reportData.report.playerDetails;
-    _wclEntries(pd).forEach(x=>{ if(x.name){ const ln=String(x.name).toLowerCase(); set.add(x.name); if(x.type){ _wclMeta[ln]=String(x.type).toLowerCase(); const si=_deriveSpecIcon(x.type,x.icon); if(si) _wclIcon[ln]=si; } } });
+    _wclEntries(pd).forEach(x=>{ if(x.name){ const ln=String(x.name).toLowerCase(); set.add(x.name); if(x.server) _wclServer[ln]=_slugRealm(x.server); if(x.type){ _wclMeta[ln]=String(x.type).toLowerCase(); const si=_deriveSpecIcon(x.type,x.icon); if(si) _wclIcon[ln]=si; } } });
   };
   await fetchPlayers(hf,result.h);
   await fetchPlayers(mf,result.m);
@@ -936,7 +939,7 @@ async function wclLoadProgress(){
         const hSet=new Set(), mSet=new Set();
         for(const ch of (p.chars||[])){
           if(!ch.name) continue;
-          try{ const pr=await wclCharProgress(token,ch.name,realm,region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
+          try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
           catch(e){ wclLog(`✗ progress ${ch.name} (${z.name}): ${e.message}`,'err'); }
           await new Promise(r=>setTimeout(r,120));
         }
@@ -952,7 +955,7 @@ async function wclLoadProgress(){
 }
 async function wclRun(){
   const btn=document.getElementById('wclRunBtn'); btn.disabled=true;
-  _wclMeta={}; _wclIcon={};
+  _wclMeta={}; _wclIcon={}; _wclServer={};
   document.getElementById('wclLog').innerHTML='';
   const st=document.getElementById('wclStatus'); st.textContent='Pracuji…';
   try{
@@ -1003,7 +1006,7 @@ async function wclRun(){
             const hSet=new Set(), mSet=new Set();
             for(const ch of (p.chars||[])){
               if(!ch.name) continue;
-              try{ const pr=await wclCharProgress(token,ch.name,realm,region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
+              try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
               catch(e){ wclLog(`✗ progress ${ch.name} (${z.name}): ${e.message}`,'err'); }
               await new Promise(r=>setTimeout(r,120));
             }
@@ -1030,12 +1033,13 @@ function applyWclCounts(counts){
       const ln=name.toLowerCase();
       if(!c.cls&&_wclMeta[ln]) c.cls=_wclMeta[ln];
       if(!c.specIcon&&_wclIcon[ln]) c.specIcon=_wclIcon[ln];
+      if(_wclServer[ln]) c.server=_wclServer[ln];
       if(hit.ci===0){ if(!hit.p.cls&&_wclMeta[ln]) hit.p.cls=_wclMeta[ln]; if(!hit.p.specIcon&&_wclIcon[ln]) hit.p.specIcon=_wclIcon[ln]; }
     }
     else {
-      const ln=name.toLowerCase(); const cls=_wclMeta[ln]||''; const si=_wclIcon[ln]||'';
+      const ln=name.toLowerCase(); const cls=_wclMeta[ln]||''; const si=_wclIcon[ln]||''; const srv=_wclServer[ln]||'';
       const nid=uid();
-      people.push({id:nid,_mainId:nid,name,rank:'Trial',note:'',cls,spec:'',specIcon:si,prog:{},chars:[{name,h:cnt.h,m:cnt.m,cls,specIcon:si,_pid:nid,_role:'dps',_spec:''}]});
+      people.push({id:nid,_mainId:nid,name,rank:'Trial',note:'',cls,spec:'',specIcon:si,prog:{},chars:[{name,h:cnt.h,m:cnt.m,cls,specIcon:si,server:srv,_pid:nid,_role:'dps',_spec:''}]});
       added++;
     }
   });
