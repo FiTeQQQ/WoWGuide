@@ -417,9 +417,11 @@ async function load(){
     const rc=await fetch(API_BASE+'/api/roster/wcl-creds',{cache:'no-cache'});
     if(rc.ok){const jc=await rc.json();if(jc&&jc.id){localStorage.setItem('wcl_id',jc.id);if(jc.sec)localStorage.setItem('wcl_sec',jc.sec);}}
   }catch(e){}
+  await _wclCfgLoad();
   buildPeopleFromFlat(flat);
   st.textContent='';
   render();
+  _autoRefreshProgress();
 }
 // Plochý hlavní roster → vnořený model people[] (main + alty pod ním přes altOf)
 function buildPeopleFromFlat(flat){
@@ -913,7 +915,7 @@ function toggleZone(id){
   if(sel.some(s=>String(s.id)===String(id))) sel=sel.filter(s=>String(s.id)!==String(id));
   else sel.push({id:z.id,name:z.name,total:z.total});
   localStorage.setItem('wcl_zones',JSON.stringify(sel));
-  renderZoneChips(); render();
+  renderZoneChips(); render(); _wclCfgPut();
 }
 // Vrátí seznamy zabitých bossů (jména) pro H a M
 async function wclCharProgress(token,name,realm,region,zoneID){
@@ -925,6 +927,30 @@ async function wclCharProgress(token,name,realm,region,zoneID){
 }
 // Vybrané raidy pro progress (z localStorage) — pole {id,name,total}
 function progZones(){ try{ return JSON.parse(localStorage.getItem('wcl_zones')||'[]'); }catch(e){ return []; } }
+// ── Sdílená WCL konfigurace (vybrané raidy + čas posledního progressu) ──
+const WCL_CFG_KEY='wcl-cfg';
+let _progUpdatedAt=0;
+async function _wclCfgLoad(){
+  try{
+    const r=await fetch(API_BASE+'/api/roster/'+WCL_CFG_KEY,{cache:'no-cache'});
+    if(r.ok){ const j=await r.json(); if(j){ _progUpdatedAt=+j.progUpdatedAt||0;
+      if(Array.isArray(j.zones)&&j.zones.length){ const lz=localStorage.getItem('wcl_zones'); if(!lz||lz==='[]'){ localStorage.setItem('wcl_zones',JSON.stringify(j.zones)); } }
+      if(Array.isArray(j.zonesAll)&&j.zonesAll.length){ const la=localStorage.getItem('wcl_zones_all'); if(!la||la==='[]'){ localStorage.setItem('wcl_zones_all',JSON.stringify(j.zonesAll)); } }
+    } }
+  }catch(e){}
+}
+function _wclCfgPut(){
+  try{ fetch(API_BASE+'/api/roster/'+WCL_CFG_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({zones:progZones(),zonesAll:_zonesAll(),progUpdatedAt:_progUpdatedAt,updatedAt:new Date().toISOString()})}); }catch(e){}
+}
+function _wclCfgTouch(){ _progUpdatedAt=Date.now(); _wclCfgPut(); }
+// Auto-obnova progressu při otevření, když jsou data starší než 12 h
+function _autoRefreshProgress(){
+  if(!localStorage.getItem('wcl_id')||!localStorage.getItem('wcl_sec')) return;
+  if(!progZones().length) return;
+  if(Date.now()-_progUpdatedAt < 12*3600*1000) return;
+  _progUpdatedAt=Date.now(); _wclCfgPut();   // claim, ať to neběží víckrát naráz
+  wclLoadProgress();
+}
 // Samostatné načtení progressu (9/9 H/M) — bez logů, jen z žebříčků postav. Jen Trial/Member.
 async function wclLoadProgress(){
   const btn=document.getElementById('wclProgBtn'); if(btn) btn.disabled=true;
@@ -956,7 +982,7 @@ async function wclLoadProgress(){
       }
       wclLog(`✓ progress ${p.name}`);
     }
-    save(); render();
+    save(); render(); _wclCfgTouch();
     st.textContent='Progress hotov ✓';
     wclLog('Progress načten pro '+targets.length+' hráčů.','ok');
   }catch(e){ st.textContent='Chyba'; wclLog('CHYBA progress: '+e.message,'err'); }
@@ -1023,7 +1049,7 @@ async function wclRun(){
           }
           wclLog(`✓ progress ${p.name}`);
         }
-        save(); render();
+        save(); render(); _wclCfgTouch();
       }
     }
     st.textContent='Hotovo ✓';
