@@ -140,6 +140,44 @@ table.roster tr:hover td{background:rgba(255,255,255,.03)}
 .errbox{padding:16px 18px;color:#f0a4a4;font-size:12.5px;line-height:1.5}
 .errbox code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:11.5px}
 
+/* edit bar */
+.editbar{display:none;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px}
+.editbar.open{display:flex}
+.eb-label{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.eb-sep{width:1px;height:22px;background:var(--line)}
+
+/* ═══════════ GLASS MODE (1:1 s guide/roster) ═══════════ */
+.glass-bg{position:fixed;inset:0;z-index:-3;display:none;background-position:center;background-size:cover;background-repeat:no-repeat;filter:brightness(.6) saturate(.9)}
+.glass-bg::after{content:'';position:absolute;inset:0;background:
+  radial-gradient(135% 115% at 50% 32%, transparent 0%, transparent 34%, rgba(2,3,8,.58) 82%, rgba(1,2,6,.84) 100%),
+  linear-gradient(180deg, rgba(4,6,14,.42) 0%, rgba(3,4,10,.60) 60%, rgba(2,3,8,.76) 100%)}
+body.glass-on .glass-bg{display:block}
+body.glass-on{background:transparent !important}
+body.glass-on .panel,
+body.glass-on .editbar{
+  background:rgba(12,16,28,.40) !important;
+  backdrop-filter:blur(20px) saturate(165%);-webkit-backdrop-filter:blur(20px) saturate(165%);
+  border:1px solid rgba(255,255,255,.12) !important;box-shadow:none !important;
+}
+body.glass-on .hero{border-color:rgba(255,255,255,.14)}
+body.glass-on .panel-head{border-bottom-color:rgba(255,255,255,.12) !important}
+body.glass-on .filters{background:rgba(255,255,255,.04) !important;border-bottom-color:rgba(255,255,255,.12) !important}
+body.glass-on .ffield select{background:rgba(255,255,255,.07) !important;border:1px solid rgba(255,255,255,.14) !important}
+body.glass-on table.roster th{border-bottom-color:rgba(255,255,255,.12) !important}
+body.glass-on table.roster td{border-bottom-color:rgba(255,255,255,.06) !important}
+body.glass-on table.roster tr:hover td{background:rgba(255,255,255,.07) !important}
+body.glass-on .navbtn{background:rgba(255,255,255,.08) !important;border:1px solid rgba(255,255,255,.16) !important}
+body.glass-on .navbtn:hover{background:rgba(255,255,255,.16) !important}
+body.glass-on .btn-ghost{background:rgba(255,255,255,.08) !important;border:1px solid rgba(255,255,255,.16) !important;color:#eef2fb !important;box-shadow:none !important}
+body.glass-on .btn-ghost:hover{background:rgba(255,255,255,.16) !important}
+body.glass-on .ach,body.glass-on .rank-raid{border-bottom-color:rgba(255,255,255,.08) !important}
+body.glass-on .classbars,body.glass-on .classlegend{border-bottom-color:rgba(255,255,255,.12) !important}
+body.glass-on .showmore{background:rgba(255,255,255,.05) !important;border-top-color:rgba(255,255,255,.12) !important}
+body.glass-on .rbar-wrap{background:rgba(255,255,255,.08) !important}
+body.glass-on .boss-card{border-color:rgba(255,255,255,.12)}
+body.glass-on .raid-title{border-bottom-color:rgba(255,255,255,.12)}
+body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%)}
+
 /* editor modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
@@ -168,12 +206,24 @@ table.roster tr:hover td{background:rgba(255,255,255,.03)}
 </head>
 <body>
 
+<div class="glass-bg"></div>
+
 <header class="site-header">
   <div class="site-logo">Rapid<span>Evolution</span></div>
-  <button class="btn btn-ghost" onclick="openEditor()">⚙ Upravit raidy</button>
+  <button class="btn btn-ghost" id="editToggle" onclick="toggleEdit()">✏ Upravit</button>
 </header>
 
 <div class="wrap">
+
+  <!-- EDIT BAR -->
+  <div class="editbar" id="editBar">
+    <span class="eb-label">Vzhled</span>
+    <button class="btn btn-ghost" id="themeBtn" onclick="toggleTheme()">🪟 Glass</button>
+    <span class="eb-sep"></span>
+    <span class="eb-label">Obsah</span>
+    <button class="btn btn-ghost" onclick="openEditor()">⚙ Upravit raidy</button>
+  </div>
+
 
   <!-- HERO -->
   <section class="hero">
@@ -193,7 +243,7 @@ table.roster tr:hover td{background:rgba(255,255,255,.03)}
       </div>
       <div class="hero-nav">
         <a class="navbtn" href="roster.html"><span class="ni">📋</span><span><span class="nt">Roster</span><br><span class="nd">Účast & progress</span></span></a>
-        <a class="navbtn" href="guide.html"><span class="ni">📖</span><span><span class="nt">Guide</span><br><span class="nd">Boss strategie</span></span></a>
+        <a class="navbtn" href="#raidsRoot" onclick="event.preventDefault();document.getElementById('raidsRoot').scrollIntoView({behavior:'smooth'})"><span class="ni">📖</span><span><span class="nt">Guide</span><br><span class="nd">Vyber bosse níž</span></span></a>
       </div>
     </div>
   </section>
@@ -299,8 +349,48 @@ function escH(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g
 function toSlug(s){ return s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
 function maxLevel(){ return _guild ? Math.max(0,..._guild.members.map(m=>m.level||0)) : 80; }
 
+/* ---------- theme / edit mode ---------- */
+const TRK_KEY = 'trial-roster';
+const GLASS_BG = GH_RAW + 'Images/Roster/Index_Background.jpg';
+let themeMode = 'classic';
+
+function applyTheme(m){
+  themeMode = (m === 'glass') ? 'glass' : 'classic';
+  document.body.classList.toggle('glass-on', themeMode === 'glass');
+  const b = document.getElementById('themeBtn');
+  if(b) b.textContent = themeMode === 'glass' ? '🪟 Glass' : '🗔 Classic';
+  const bg = document.querySelector('.glass-bg');
+  if(bg && !bg.style.backgroundImage) bg.style.backgroundImage = `url('${GLASS_BG}?v=1')`;
+}
+function toggleTheme(){
+  applyTheme(themeMode === 'glass' ? 'classic' : 'glass');
+  try{ localStorage.setItem('siteTheme', themeMode); }catch(e){}
+  saveTheme();
+}
+function toggleEdit(){
+  document.getElementById('editBar').classList.toggle('open');
+}
+async function loadTheme(){
+  let pref = 'classic';
+  try{ pref = localStorage.getItem('siteTheme') || 'classic'; }catch(e){}
+  applyTheme(pref);
+  try{
+    const r = await fetch(API_BASE + '/api/roster/' + TRK_KEY + '?_=' + Date.now());
+    if(r.ok){ const m = await r.json(); if(m && m.theme){ applyTheme(m.theme); try{ localStorage.setItem('siteTheme', m.theme); }catch(e){} } }
+  }catch(e){}
+}
+async function saveTheme(){
+  try{
+    const r = await fetch(API_BASE + '/api/roster/' + TRK_KEY);
+    let m = {}; if(r.ok) m = await r.json();
+    m.theme = themeMode; m.updatedAt = new Date().toISOString();
+    await fetch(API_BASE + '/api/roster/' + TRK_KEY, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(m) });
+  }catch(e){}
+}
+
 /* ---------- init ---------- */
 async function init(){
+  loadTheme();
   loadGuild();
   loadRankings();
   loadManifest();
