@@ -411,12 +411,13 @@ let hiddenCols=[];          // skryté sloupce (klíče) — sdílené
 let colWidths={};           // šířky sloupců (px), klíč = klíč sloupce — lokální preference
 function _colW(key){ const d={name:180,progress:118,h:100,m:100,note:160}; return (colWidths&&colWidths[key])||d[key]||120; }
 function _thW(key){ return `data-colkey="${key}" style="width:${_colW(key)}px"`; }
-function _rzH(key){ return `<span class="colresize" onmousedown="colResizeStart(event,'${key}')" onclick="event.stopPropagation()"></span>`; }
+function _rzH(key){ return `<span class="colresize" draggable="false" onmousedown="colResizeStart(event,'${key}')" onclick="event.stopPropagation()" ondragstart="event.preventDefault();return false;"></span>`; }
 let _rz=null;
 function colResizeStart(e,key){
   e.preventDefault(); e.stopPropagation();
   const th=e.target.closest('th'); if(!th) return;
-  _rz={key,startX:e.clientX,startW:th.getBoundingClientRect().width};
+  th.draggable=false; // ať tažení nespustí reorder-drag v edit módu
+  _rz={key,startX:e.clientX,startW:th.getBoundingClientRect().width,th};
   document.addEventListener('mousemove',colResizeMove);
   document.addEventListener('mouseup',colResizeEnd);
   document.body.style.userSelect='none';
@@ -433,7 +434,7 @@ function colResizeEnd(){
   document.removeEventListener('mouseup',colResizeEnd);
   document.body.style.userSelect='';
   try{localStorage.setItem('colWidths',JSON.stringify(colWidths));}catch(e){}
-  _rz=null; save();
+  _rz=null; save(); render();
 }
 let hiddenDefault=[];       // ranky skryté ve výchozím (perzistentní)
 let rankColors={};          // barvy štítků ranků (sdílené)
