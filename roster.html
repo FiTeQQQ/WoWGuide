@@ -135,6 +135,7 @@
   .progtip .ptip-n{color:var(--text-mid)}
   .progtip .ptip-empty{color:var(--text-dim)}
   .pg{font-weight:700;font-size:12px;white-space:nowrap}
+  .pg-g{color:#4ade80}
   .pg-h{color:#a335ee}
   .pg-m{color:#ff8000}
   .altrow{background:rgba(255,255,255,.02)}
@@ -479,7 +480,7 @@ function headFor(key,ctx){
   const arrow=ctx.arrow, zonesP=ctx.zonesP;
   const so=k=>editMode?'':`onclick="setSort('${k}')"`;
   if(key==='name') return `<th class="coldrag"${dragA('name')} ${so('name')}>${_dh()}Hráč ${arrow('name')}</th>`;
-  if(key==='progress'){ if(!zonesP.length) return `<th class="coldrag" style="width:118px"${dragA('progress')}>${_dh()}Progress H/M</th>`; return zonesP.map((z,i)=>`<th class="coldrag" style="width:118px"${dragA('progress')} title="Progress v ${esc(z.name)} (součet přes alty)">${i===0?_dh():''}${esc(_shortRaid(z.name))} H/M</th>`).join(''); }
+  if(key==='progress'){ if(!zonesP.length) return `<th class="coldrag" style="width:118px"${dragA('progress')}>${_dh()}Progress H/M</th>`; return zonesP.map((z,i)=>`<th class="coldrag" style="width:118px"${dragA('progress')} title="Progress v ${esc(z.name)} (součet přes alty)">${i===0?_dh():''}${esc(_shortRaid(z.name))} ${(+z.total===1)?'M':'H/M'}</th>`).join(''); }
   if(key==='h') return `<th class="coldrag" style="width:100px"${dragA('h')} ${so('h')} title="Kolik raidů odehrál s námi (Heroic)">${_dh()}S námi H ${arrow('h')}</th>`;
   if(key==='m') return `<th class="coldrag" style="width:100px"${dragA('m')} ${so('m')} title="Kolik raidů odehrál s námi (Mythic)">${_dh()}S námi M ${arrow('m')}</th>`;
   if(key==='note') return `<th class="coldrag"${dragA('note')}>${_dh()}Poznámka</th>`;
@@ -538,8 +539,16 @@ function applyTheme(m){
   const bg=document.querySelector('.glass-bg'); if(bg && !bg.style.backgroundImage) bg.style.backgroundImage="url('Images/Roster/Roster_Background.jpg?v=2')";
 }
 function toggleTheme(){ applyTheme(themeMode==='glass'?'classic':'glass'); try{localStorage.setItem('rosterTheme',themeMode);}catch(e){} }
-// Barevný progress H (epic) + M (legendary) vedle sebe
-function progCell(pr){ if(!pr) return '<span class="cnt na">—</span>'; const tot=pr.total||'?'; return `<span class="pg pg-h">H ${pr.hKills.length}/${tot}</span><span class="pg pg-m">M ${pr.mKills.length}/${tot}</span>`; }
+// Progress: zelená dokud není plné; H plné = epic fialová, M plné = legendary oranžová. 1-boss raid = jen M.
+function progCell(pr){
+  if(!pr) return '<span class="cnt na">—</span>';
+  const tot=pr.total||'?'; const totN=+pr.total||0;
+  const hc=(pr.hKills||[]).length, mc=(pr.mKills||[]).length;
+  const hCls=(totN>0&&hc>=totN)?'pg-h':'pg-g';
+  const mCls=(totN>0&&mc>=totN)?'pg-m':'pg-g';
+  if(totN===1) return `<span class="pg ${mCls}">M ${mc}/${tot}</span>`;
+  return `<span class="pg ${hCls}">H ${hc}/${tot}</span><span class="pg ${mCls}">M ${mc}/${tot}</span>`;
+}
 // Buňka progressu se stylovaným tooltipem (data v _progTips, index v data-tip)
 function progTd(zoneName,pr){
   if(!pr) return '<td><span class="cnt na">—</span></td>';
@@ -555,7 +564,7 @@ function showProgTip(e,td){
   d.mKills.forEach(n=>{ const k=String(n).toLowerCase(); if(!seen.has(k)){ seen.add(k); rows.push({n,d:'M'}); } });
   d.hKills.forEach(n=>{ const k=String(n).toLowerCase(); if(!seen.has(k)){ seen.add(k); rows.push({n,d:'H'}); } });
   const list=rows.length?rows.map(b=>`<div class="ptip-row"><span class="ptip-d ${b.d==='M'?'pd-m':'pd-h'}">${b.d}</span><span class="ptip-n">${esc(b.n)}</span></div>`).join(''):'<div class="ptip-empty">Žádné zabití</div>';
-  tip.innerHTML=`<div class="ptip-head">${esc(d.zone)}</div><div class="ptip-sub"><span class="pg pg-h">H ${d.hKills.length}/${d.total}</span><span class="pg pg-m">M ${d.mKills.length}/${d.total}</span></div><div class="ptip-list">${list}</div>`;
+  tip.innerHTML=`<div class="ptip-head">${esc(d.zone)}</div><div class="ptip-sub">${progCell({total:d.total,hKills:d.hKills,mKills:d.mKills})}</div><div class="ptip-list">${list}</div>`;
   tip.style.display='block'; _posProgTip(tip,e);
 }
 document.addEventListener('mouseover',e=>{ const td=e.target.closest&&e.target.closest('.prog-cell'); if(td) showProgTip(e,td); });
