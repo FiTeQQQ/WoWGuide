@@ -122,6 +122,9 @@
   .cnt{font-weight:800;font-size:15px}
   .cnt.zero{color:#5b6070}
   .cnt.na{color:#3f4452;font-weight:600}
+  .att{font-weight:800;font-size:15px}
+  .att.yes{color:#4ade80}
+  .att.no{color:#f87171}
   .prog{font-size:12px;font-weight:700;line-height:1.5}
   .prog b{color:var(--text-dim);font-weight:700;font-size:10px;margin-right:3px}
   .prog .full{color:#4ade80}
@@ -404,6 +407,7 @@ let _progTips=[];        // data pro stylované tooltipy progressu
 let ranks=['Core','Member','Trial'];
 let customCols=[];          // vlastní sloupce [{id,name,type,options}]
 let colOrder=[];            // pořadí VŠECH sloupců (klíče: name/progress/h/m/note + custom id)
+let hiddenCols=[];          // skryté sloupce (klíče) — sdílené
 let colWidths={};           // šířky sloupců (px), klíč = klíč sloupce — lokální preference
 function _colW(key){ const d={name:180,progress:118,h:100,m:100,note:160}; return (colWidths&&colWidths[key])||d[key]||120; }
 function _thW(key){ return `data-colkey="${key}" style="width:${_colW(key)}px"`; }
@@ -525,8 +529,8 @@ function cellFor(p,key,c){
   const zonesP=c.zonesP, naCore=c.naCore, t=c.t, bh=c.bh, bm=c.bm;
   if(key==='name'){ const clr=CC[(p.cls||'').toLowerCase()]||'var(--text)'; const ico=p.specIcon?`<img class="spec-ic" src="${esc(p.specIcon)}" onerror="this.style.display='none'">`:''; const altN=(p.chars||[]).length-1; return `<td style="white-space:nowrap">${ico}<span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${rankChip(p.rank)}${altN>0?`<span class="altcnt">+${altN} alt</span>`:''}</td>`; }
   if(key==='progress') return (zonesP.length?zonesP:[{id:'_',name:'',total:0}]).map(z=>progTd(z.name,(p.prog||{})[z.id])).join('');
-  if(key==='h') return `<td>${naCore?'<span class="cnt na" title="U Core hráče se účast neřeší">—</span>':`<div class="cnt ${t.h===0?'zero':''}">${t.h}×</div>${bh?`<div class="break">${esc(bh)}</div>`:''}`}</td>`;
-  if(key==='m') return `<td>${naCore?'<span class="cnt na">—</span>':`<div class="cnt ${t.m===0?'zero':''}">${t.m}×</div>${bm?`<div class="break">${esc(bm)}</div>`:''}`}</td>`;
+  if(key==='h') return `<td style="text-align:center">${naCore?'<span class="cnt na" title="U Core hráče se účast neřeší">—</span>':`<span class="att ${t.h>0?'yes':'no'}" title="${t.h>0?('S námi Heroic'+(bh?': '+esc(bh):'')):'Nebyl s námi na Heroicu'}">${t.h>0?'✓':'✕'}</span>`}</td>`;
+  if(key==='m') return `<td style="text-align:center">${naCore?'<span class="cnt na">—</span>':`<span class="att ${t.m>0?'yes':'no'}" title="${t.m>0?('S námi Mythic'+(bm?': '+esc(bm):'')):'Nebyl s námi na Mythicu'}">${t.m>0?'✓':'✕'}</span>`}</td>`;
   if(key==='note') return `<td><input class="note-in" value="${esc(p.note||'')}" placeholder="…" onchange="setNote('${p.id}',this.value)"></td>`;
   const col=customCols.find(x=>x.id===key); if(col) return colCell(p,col);
   return '';
@@ -534,8 +538,8 @@ function cellFor(p,key,c){
 function altCellFor(p,c,ci,key,zlist,naCore){
   if(key==='name'){ const icon=c.specIcon?`<img class="spec-ic" src="${esc(c.specIcon)}" onerror="this.style.display='none'">`:''; const cclr=CC[(c.cls||'').toLowerCase()]||'var(--text)'; return `<td><div class="altname">${icon}<span class="name" style="color:${cclr}">${esc(c.name||'?')}</span></div></td>`; }
   if(key==='progress') return zlist.map(z=>progTd(z.name,(c.prog||{})[z.id])).join('');
-  if(key==='h'){ const chh=+c.h||0; return naCore?'<td><span class="cnt na">—</span></td>':`<td><div class="cnt ${chh===0?'zero':''}">${chh}×</div></td>`; }
-  if(key==='m'){ const chm=+c.m||0; return naCore?'<td><span class="cnt na">—</span></td>':`<td><div class="cnt ${chm===0?'zero':''}">${chm}×</div></td>`; }
+  if(key==='h'){ const chh=+c.h||0; return naCore?'<td><span class="cnt na">—</span></td>':`<td style="text-align:center"><span class="att ${chh>0?'yes':'no'}">${chh>0?'✓':'✕'}</span></td>`; }
+  if(key==='m'){ const chm=+c.m||0; return naCore?'<td><span class="cnt na">—</span></td>':`<td style="text-align:center"><span class="att ${chm>0?'yes':'no'}">${chm>0?'✓':'✕'}</span></td>`; }
   if(key==='note') return '<td></td>';
   if(customCols.find(x=>x.id===key)) return '<td></td>';
   return '';
@@ -545,6 +549,8 @@ function delCol(id){ if(!confirm('Smazat sloupec i jeho data?'))return; customCo
 function renameCol(id,v){ const c=customCols.find(x=>x.id===id); if(c){ c.name=(v||'').trim()||'Sloupec'; save(); } }
 function setColType(id,t){ const c=customCols.find(x=>x.id===id); if(c){ c.type=t; if(t==='select'&&!Array.isArray(c.options))c.options=[]; save(); render(); } }
 function setColOptions(id,v){ const c=customCols.find(x=>x.id===id); if(c){ c.options=String(v||'').split(',').map(s=>s.trim()).filter(Boolean); save(); render(); } }
+function _colLabel(key){ if(key==='name')return 'Hráč'; if(key==='progress')return 'Progress (raidy)'; if(key==='h')return 'S námi H'; if(key==='m')return 'S námi M'; if(key==='note')return 'Poznámka'; const c=customCols.find(x=>x.id===key); return c?(c.name||'Sloupec'):key; }
+function toggleColHidden(key){ if(hiddenCols.includes(key)) hiddenCols=hiddenCols.filter(k=>k!==key); else hiddenCols.push(key); save(); render(); }
 let _dragCol=null;
 function colDragStart(e,key){ _dragCol=key; if(e.dataTransfer)e.dataTransfer.effectAllowed='move'; }
 function colDrop(e,targetKey){ e.preventDefault(); if(!_dragCol||_dragCol===targetKey)return; _ensureColOrder(); const from=colOrder.indexOf(_dragCol); const tgt=colOrder.indexOf(targetKey); _dragCol=null; if(from<0||tgt<0)return; const m=colOrder.splice(from,1)[0]; colOrder.splice(tgt,0,m); save(); render(); }
@@ -558,9 +564,11 @@ function renderEditBar(){
   el.style.display='block';
   const q=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   const rankRows=ranks.map(r=>`<div class="eb-rank"><input class="eb-rankname" value="${esc(r)}" onchange="renameRank('${q(r)}',this.value)"><label class="eb-hidechk"><input type="checkbox" ${hiddenDefault.includes(r)?'checked':''} onchange="toggleRankDefaultHidden('${q(r)}')"> skrýt ve výchozím</label><button class="iconbtn del" title="Smazat rank" onclick="delRank('${q(r)}')">✕</button></div>`).join('');
+  _ensureColOrder();
+  const visList=colOrder.filter(k=>k!=='name').map(k=>`<label class="eb-hidechk" style="display:block;margin:3px 0"><input type="checkbox" ${!hiddenCols.includes(k)?'checked':''} onchange="toggleColHidden('${k}')"> ${esc(_colLabel(k))}</label>`).join('');
   el.innerHTML=`<div class="eb-grid">
     <div class="eb-sec"><div class="eb-title">Ranky — přejmenování / výchozí skrytí</div>${rankRows}<button class="btn btn-ghost" style="margin-top:6px" onclick="addRank()">+ Rank</button></div>
-    <div class="eb-sec"><div class="eb-title">Sloupce</div><div class="eb-hint">Vlastní sloupec přidáš tlačítkem a upravíš přímo v hlavičce tabulky (název, typ, u dropdownu volby oddělené čárkou). Pořadí změníš přetažením hlavičky.</div><button class="btn btn-accent" onclick="addCol()">+ Přidat sloupec</button></div>
+    <div class="eb-sec"><div class="eb-title">Sloupce — zobrazit / skrýt</div>${visList}<div class="eb-hint" style="margin-top:6px">Vlastní sloupec: přidej tlačítkem, uprav v hlavičce (název, typ), pořadí i šířku tažením hlavičky.</div><button class="btn btn-accent" onclick="addCol()">+ Přidat sloupec</button></div>
     <div class="eb-sec"><div class="eb-title">Vzhled</div><button class="btn btn-ghost" id="themeBtn" onclick="toggleTheme()">${themeMode==='glass'?'🪟 Glass':'🗔 Classic'}</button><div style="margin-top:8px"><div class="eb-hint" style="margin-bottom:4px">Rozložení</div><select class="ctype" style="width:100%" onchange="setLayout(this.value)"><option value="side" ${layoutMode==='side'?'selected':''}>Roster vedle složení</option><option value="top" ${layoutMode==='top'?'selected':''}>Složení (2×2) nahoře, roster pod</option></select></div><div style="margin-top:8px"><label class="eb-hidechk" style="display:flex;gap:6px;align-items:center">Max postav v tabulce <input type="number" min="1" max="50" value="${compMaxRows}" class="mini-num" onchange="setCompRows(this.value)" style="width:54px"></label></div></div>
   </div>`;
 }
@@ -616,7 +624,7 @@ async function load(){
   // seznam ranků (meta klíč — guide ho nepřepisuje)
   try{
     const rm=await fetch(API_BASE+'/api/roster/'+TRK_KEY,{cache:'no-cache'});
-    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.colOrder))colOrder=jm.colOrder;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;}
+    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.colOrder))colOrder=jm.colOrder;if(Array.isArray(jm.hiddenCols))hiddenCols=jm.hiddenCols;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;}
   }catch(e){
     try{const lr=JSON.parse(localStorage.getItem('trkRanks')||'null');if(Array.isArray(lr)&&lr.length)ranks=lr;}catch(_){}
   }
@@ -703,12 +711,12 @@ async function flushCloud(){
   _saving=true; _updateSaveBtn();
   try{
     await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()})});
-    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenDefault,updatedAt:new Date().toISOString()})});
+    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,updatedAt:new Date().toISOString()})});
     _dirty=false;
   }catch(e){ const st=document.getElementById('status'); if(st)st.textContent='⚠ Cloud offline (změny zatím jen lokálně)'; }
   _saving=false; _updateSaveBtn();
 }
-function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenDefault,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
+function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
 window.addEventListener('beforeunload',_flushBeacon);
 
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}render();}
@@ -758,11 +766,12 @@ function render(){
   const rankOpts=name=>ranks.map(r=>`<option ${r===name?'selected':''}>${esc(r)}</option>`).join('');
   const zonesP=progZones();
   _ensureColOrder();
-  const colCount=colOrder.reduce((a,k)=>a+(k==='progress'?(zonesP.length||1):1),0);
+  const visCols=colOrder.filter(k=>!hiddenCols.includes(k));
+  const colCount=visCols.reduce((a,k)=>a+(k==='progress'?(zonesP.length||1):1),0);
   const hctx={arrow,zonesP};
   let html=`<table><thead><tr>
     <th style="width:18px"></th>
-    ${colOrder.map(k=>headFor(k,hctx)).join('')}
+    ${visCols.map(k=>headFor(k,hctx)).join('')}
     <th style="width:180px"></th></tr></thead><tbody>`;
   arr.forEach(p=>{
     const t=totals(p);const flag=p.rank==='Trial'&&t.h===0;const exp=!!expanded[p.id];
@@ -771,7 +780,7 @@ function render(){
     const rctx={zonesP,naCore,t,bh,bm};
     html+=`<tr class="prow ${flag?'flag':''}" onclick="prowClick(event,'${p.id}')" oncontextmenu="rosterCtx(event,'${p.id}');return false;">
       <td><span class="expand">${exp?'▾':'▸'}</span></td>
-      ${colOrder.map(k=>cellFor(p,k,rctx)).join('')}
+      ${visCols.map(k=>cellFor(p,k,rctx)).join('')}
       <td><div class="act">
         <button class="iconbtn promo" title="Přesunout do hlavního rosteru" onclick="promote('${p.id}')">↗ Promote</button>
         <button class="iconbtn del" title="Smazat hráče" onclick="del('${p.id}')">✕</button>
@@ -781,7 +790,7 @@ function render(){
       const zlist=(zonesP.length?zonesP:[{id:'_',name:'',total:0}]);
       const altRows=(p.chars||[]).map((c,ci)=>{
         if(ci===0) return ''; // hlavní postava = sám hráč
-        return `<tr class="altrow" oncontextmenu="altCtx(event,'${p.id}',${ci});return false;"><td></td>${colOrder.map(k=>altCellFor(p,c,ci,k,zlist,naCore)).join('')}<td><div class="act"><button class="iconbtn" title="Zrušit jako alta → samostatný main (smazat úplně: pravý klik)" onclick="unAlt('${p.id}',${ci})">✕</button></div></td></tr>`;
+        return `<tr class="altrow" oncontextmenu="altCtx(event,'${p.id}',${ci});return false;"><td></td>${visCols.map(k=>altCellFor(p,c,ci,k,zlist,naCore)).join('')}<td><div class="act"><button class="iconbtn" title="Zrušit jako alta → samostatný main (smazat úplně: pravý klik)" onclick="unAlt('${p.id}',${ci})">✕</button></div></td></tr>`;
       }).join('');
       html+=altRows;
       html+=`<tr class="altrow altadd"><td></td><td colspan="${colCount+1}"><button class="iconbtn" onclick="addChar('${p.id}')">+ Přidat alta</button></td></tr>`;
