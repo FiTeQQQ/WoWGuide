@@ -272,6 +272,7 @@
   table.loot tr.lpar:hover td{background:rgba(255,255,255,.04)}
   table.loot tr.lsub td{background:rgba(0,0,0,.18);font-size:12px;color:var(--text-mid)}
   .lpug{color:#fb923c;font-size:10px;font-weight:800;border:1px solid #fb923c55;border-radius:4px;padding:0 4px;margin-left:6px}
+  .lroll{font-size:10px;font-weight:800;border:1px solid;border-radius:4px;padding:0 5px;margin-left:2px;vertical-align:middle}
   .lslot{display:inline-block;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:10px;padding:0 7px;font-size:10px;color:var(--text-mid);margin:1px 2px}
   .lwk{display:inline-block;background:rgba(79,142,255,.16);color:#9cc4ff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:800}
   .q4{color:#a335ee}.q5{color:#ff8000}.q3{color:#0070dd}.q2{color:#1eff00}.q1{color:#fff}
@@ -1593,7 +1594,7 @@ const LOOT_KEY='loot-archive';
 let lootData=[];
 let _lootTimer=null;
 let lootView='players';
-let lootFilter={ week:'', player:'', boss:'', guild:'' };
+let lootFilter={ week:'', player:'', boss:'', guild:'', roll:'' };
 let _lootExpanded={};
 let _lootPage=1;
 
@@ -1611,7 +1612,12 @@ function _lootWeekKey(ts){ return Math.floor(_lootWeekStart(ts).getTime()/1000);
 function _lootWeekLabel(ts){ const s=_lootWeekStart(ts); const e=new Date(s); e.setDate(e.getDate()+6); const f=x=>x.getDate()+'.'+(x.getMonth()+1)+'.'; return f(s)+'–'+f(e); }
 const _LOOT_CUR_WEEK=_lootWeekKey(Math.floor(Date.now()/1000));
 function _lootDate(ts){ const d=new Date(ts*1000); return ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'. '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
-function _itemHTML(e){ const q='q'+(e.quality||4); if(e.itemID&&e.itemID>0) return `<a href="https://www.wowhead.com/item=${e.itemID}" data-wowhead="item=${e.itemID}" target="_blank" rel="noopener" class="${q}">${esc(e.name||'?')}</a>`; return `<span class="${q}">${esc(e.name||'?')}</span>`; }
+function _itemHTML(e){ const q='q'+(e.quality||4);
+  if(e.itemID&&e.itemID>0) return `<a href="https://www.wowhead.com/item=${e.itemID}" data-wowhead="item=${e.itemID}" target="_blank" rel="noopener" class="${q}">${esc(e.name||'?')}</a>`;
+  return `<a href="https://www.wowhead.com/search?q=${encodeURIComponent(e.name||'')}" target="_blank" rel="noopener" class="${q}">${esc(e.name||'?')}</a>`;
+}
+let _lootClsMap={};
+function _lootClass(e){ return _lootClsMap[(e.player||'').toLowerCase()] || (e.class||'').toLowerCase(); }
 function _classColor(cls){ return CC[(cls||'').toLowerCase()]||'var(--text)'; }
 
 function _lootFiltered(){
@@ -1622,9 +1628,11 @@ function _lootFiltered(){
     if(lootFilter.boss && (e.boss||'')!==lootFilter.boss) return false;
     if(lootFilter.guild==='guild' && !e.guilded) return false;
     if(lootFilter.guild==='pug' && e.guilded) return false;
+    if(lootFilter.roll && (e.roll||'')!==lootFilter.roll) return false;
     return true;
   });
 }
+function _rollChip(r){ if(!r) return ''; const map={Need:'#4ade80',Greed:'#9ca3af',Transmog:'#a335ee',Disenchant:'#33937f',Bonus:'#f0c674',Personal:'#8b92a6',Pass:'#8b92a6'}; const c=map[r]||'#9ca3af'; return ` <span class="lroll" style="color:${c};border-color:${c}55">${esc(r)}</span>`; }
 function setLootView(v){ lootView=v; _lootPage=1; render(); }
 function setLootFilter(k,v){ lootFilter[k]=v; _lootPage=1; render(); }
 function toggleLootRow(p){ _lootExpanded[p]=!_lootExpanded[p]; render(); }
@@ -1656,12 +1664,13 @@ function _lootBars(){
   const wopt=`<option value="">Všechny týdny</option><option value="cur" ${lootFilter.week==='cur'?'selected':''}>Tento týden</option>`+weeks.map(w=>`<option value="${w}" ${lootFilter.week===String(w)?'selected':''}>${_lootWeekLabel(w)}</option>`).join('');
   const popt=`<option value="">Všichni hráči</option>`+players.map(p=>`<option ${lootFilter.player===p?'selected':''}>${esc(p)}</option>`).join('');
   const bopt=`<option value="">Všichni bossové</option>`+bosses.map(b=>`<option ${lootFilter.boss===b?'selected':''}>${esc(b)}</option>`).join('');
-  const gopt=`<option value="">Guild + PUG</option><option value="guild" ${lootFilter.guild==='guild'?'selected':''}>Jen guild</option><option value="pug" ${lootFilter.guild==='pug'?'selected':''}>Jen PUG</option>`;
+  const rolls=[...new Set(lootData.map(e=>e.roll).filter(Boolean))];
+  const ropt=`<option value="">Need/Greed/Bonus…</option>`+rolls.map(r=>`<option ${lootFilter.roll===r?'selected':''}>${esc(r)}</option>`).join('');
   return `<div class="loot-bar">
     <select onchange="setLootFilter('week',this.value)">${wopt}</select>
     <select onchange="setLootFilter('player',this.value)">${popt}</select>
     <select onchange="setLootFilter('boss',this.value)">${bopt}</select>
-    <select onchange="setLootFilter('guild',this.value)">${gopt}</select>
+    ${rolls.length?`<select onchange="setLootFilter('roll',this.value)">${ropt}</select>`:''}
     <button class="btn btn-ghost" onclick="toggleLootImport()" style="padding:6px 10px;font-size:12px">⬇ Import</button>
     <div class="loot-views">
       <button class="${lootView==='players'?'on':''}" onclick="setLootView('players')">Podle hráče</button>
@@ -1678,6 +1687,7 @@ function _lootBars(){
 
 function renderLoot(){
   const wrap=document.getElementById('lootWrap'); if(!wrap) return;
+  _lootClsMap={}; (people||[]).forEach(p=>{ if(p.name) _lootClsMap[p.name.toLowerCase()]=(p.cls||'').toLowerCase(); });
   const all=_lootFiltered();
   const sumWeek=all.filter(e=>_lootWeekKey(e.ts)===_LOOT_CUR_WEEK).length;
   const sumPlayers=new Set(all.map(e=>e.player)).size;
@@ -1708,18 +1718,17 @@ function _lootByPlayer(all){
     const last=items[0];
     const slotCount={}; items.forEach(e=>{ slotCount[e.slot]=(slotCount[e.slot]||0)+1; });
     const slots=Object.keys(slotCount).sort((a,b)=>slotCount[b]-slotCount[a]).map(s=>`<span class="lslot">${esc(s)} ×${slotCount[s]}</span>`).join('');
-    const pug=items.every(e=>!e.guilded)?'<span class="lpug">PUG</span>':'';
     const exp=_lootExpanded[p];
     const pid=esc(p).replace(/'/g,"&#39;");
     h+=`<tr class="lpar" onclick="toggleLootRow('${pid}')">
-      <td><span class="expand">${exp?'▾':'▸'}</span> <b style="color:${_classColor(last.class)}">${esc(p)}</b>${pug}</td>
+      <td><span class="expand">${exp?'▾':'▸'}</span> <b style="color:${_classColor(_lootClass(last))}">${esc(p)}</b></td>
       <td style="text-align:center;font-weight:700">${items.length}</td>
       <td style="text-align:center">${wk?`<span class="lwk">${wk}</span>`:'<span style="color:var(--text-dim)">0</span>'}</td>
       <td style="color:var(--text-dim)">${_lootDate(last.ts).split(' ')[0]}</td>
       <td>${slots}</td></tr>`;
     if(exp){
       h+=`<tr class="lsub"><td colspan="5" style="padding:0"><table class="loot" style="margin:0"><tbody>`;
-      items.forEach(e=>{ h+=`<tr><td style="padding-left:30px;width:120px;color:var(--text-dim)">${_lootDate(e.ts)}</td><td style="width:120px"><span class="lslot">${_lootWeekLabel(e.ts)}</span></td><td style="width:90px"><span class="lslot">${esc(e.slot)}</span></td><td>${_itemHTML(e)}</td><td style="color:var(--text-dim)">${esc(e.boss)}</td></tr>`; });
+      items.forEach(e=>{ h+=`<tr><td style="padding-left:30px;width:90px"><span class="lslot">${esc(e.slot)}</span></td><td>${_itemHTML(e)}${_rollChip(e.roll)}</td><td style="color:var(--text-dim)">${esc(e.boss)}</td><td style="width:120px;color:var(--text-dim);text-align:right">${_lootDate(e.ts)}</td></tr>`; });
       h+=`</tbody></table></td></tr>`;
     }
   });
@@ -1734,7 +1743,7 @@ function _lootByWeek(all){
     const items=by[k].slice().sort((a,b)=>b.ts-a.ts);
     h+=`<div style="padding:10px 14px;border-bottom:1px solid var(--border2);background:var(--surface2);font-weight:800;font-size:12px">${_lootWeekLabel(k)} <span style="color:var(--text-dim);font-weight:400">· ${items.length} kusů${k===_LOOT_CUR_WEEK?' · tento týden':''}</span></div>`;
     h+=`<table class="loot"><tbody>`;
-    items.forEach(e=>{ const pug=e.guilded?'':'<span class="lpug">PUG</span>'; h+=`<tr><td style="width:120px;color:var(--text-dim)">${_lootDate(e.ts)}</td><td style="width:160px"><b style="color:${_classColor(e.class)}">${esc(e.player)}</b>${pug}</td><td style="width:90px"><span class="lslot">${esc(e.slot)}</span></td><td>${_itemHTML(e)}</td><td style="color:var(--text-dim)">${esc(e.boss)}</td></tr>`; });
+    items.forEach(e=>{ h+=`<tr><td style="width:90px"><span class="lslot">${esc(e.slot)}</span></td><td>${_itemHTML(e)}${_rollChip(e.roll)}</td><td style="width:150px"><b style="color:${_classColor(_lootClass(e))}">${esc(e.player)}</b></td><td style="color:var(--text-dim)">${esc(e.boss)}</td><td style="width:120px;color:var(--text-dim);text-align:right">${_lootDate(e.ts)}</td></tr>`; });
     h+='</tbody></table>';
   });
   return h;
@@ -1744,8 +1753,8 @@ function _lootLog(all){
   const per=50; const pages=Math.max(1,Math.ceil(rows.length/per));
   if(_lootPage>pages)_lootPage=pages;
   const shown=rows.slice((_lootPage-1)*per,_lootPage*per);
-  let h=`<table class="loot"><thead><tr><th style="width:120px">Datum</th><th style="width:110px">Týden</th><th>Hráč</th><th style="width:90px">Slot</th><th>Item</th><th>Boss</th></tr></thead><tbody>`;
-  shown.forEach(e=>{ const pug=e.guilded?'':'<span class="lpug">PUG</span>'; h+=`<tr><td style="color:var(--text-dim)">${_lootDate(e.ts)}</td><td style="color:var(--text-dim)">${_lootWeekLabel(e.ts)}</td><td><b style="color:${_classColor(e.class)}">${esc(e.player)}</b>${pug}</td><td><span class="lslot">${esc(e.slot)}</span></td><td>${_itemHTML(e)}</td><td style="color:var(--text-dim)">${esc(e.boss)}</td></tr>`; });
+  let h=`<table class="loot"><thead><tr><th style="width:90px">Slot</th><th>Item</th><th style="width:150px">Hráč</th><th>Boss</th><th style="width:110px">Týden</th><th style="width:120px;text-align:right">Datum</th></tr></thead><tbody>`;
+  shown.forEach(e=>{ h+=`<tr><td><span class="lslot">${esc(e.slot)}</span></td><td>${_itemHTML(e)}${_rollChip(e.roll)}</td><td><b style="color:${_classColor(_lootClass(e))}">${esc(e.player)}</b></td><td style="color:var(--text-dim)">${esc(e.boss)}</td><td style="color:var(--text-dim)">${_lootWeekLabel(e.ts)}</td><td style="color:var(--text-dim);text-align:right">${_lootDate(e.ts)}</td></tr>`; });
   h+='</tbody></table>';
   if(pages>1) h+=`<div style="display:flex;justify-content:center;gap:14px;padding:12px;border-top:1px solid var(--border2)"><button class="btn btn-ghost" onclick="_lootPage=Math.max(1,_lootPage-1);render()" ${_lootPage<=1?'disabled':''}>‹</button><span style="font-size:12px;color:var(--text-dim)">${_lootPage} / ${pages}</span><button class="btn btn-ghost" onclick="_lootPage=Math.min(${pages},_lootPage+1);render()" ${_lootPage>=pages?'disabled':''}>›</button></div>`;
   return h;
