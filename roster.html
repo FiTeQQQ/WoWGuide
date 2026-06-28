@@ -35,6 +35,8 @@
   tr.flag{background:rgba(220,60,60,.10)}
   tr.flag td:first-child{box-shadow:inset 3px 0 0 0 #ef4444}
   .name{font-weight:700}
+  .spec-ic{width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:7px;border:1px solid rgba(255,255,255,.12)}
+  .altcnt{font-size:10px;color:var(--text-dim);background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:10px;padding:1px 7px;margin-left:7px;font-weight:600}
   .warn{font-size:10px;color:#f87171;font-weight:700;margin-left:6px}
   .rank{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:4px 7px;outline:none;cursor:pointer}
   .cnt{font-weight:800;font-size:15px}
@@ -72,6 +74,11 @@
   .wcl-un-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;font-size:12px}
   .wcl-un-row .nm{font-weight:700;min-width:140px}
   .wcl-un-row select{background:var(--surface2);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:3px 5px;width:auto}
+  .filterbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .filterbar .lbl{font-size:11px;color:var(--text-dim);margin-right:2px}
+  .fchip{padding:4px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);color:var(--text-dim);font-size:12px;font-weight:600;cursor:pointer;user-select:none;transition:all .12s}
+  .fchip.on{border-color:var(--accent-border);color:var(--accent);background:rgba(79,142,255,.12)}
+  .fchip:hover{border-color:var(--accent-border)}
 </style>
 </head>
 <body>
@@ -87,10 +94,13 @@
   <div class="toolbar">
     <button class="btn btn-accent" onclick="addPerson()">+ Přidat hráče</button>
     <button class="btn btn-ghost" onclick="addRank()">+ Rank</button>
+    <button class="btn btn-ghost" onclick="importRoster()" title="Naimportovat hráče z hlavního rosteru (Assignments)">⬇ Import z rosteru</button>
     <button class="btn btn-ghost" onclick="wclToggle()">↻ WCL účast</button>
     <input class="search" id="search" placeholder="Hledat hráče / poznámku…" oninput="render()">
     <span class="status" id="status"></span>
   </div>
+
+  <div class="filterbar" id="filterbar"></div>
 
   <!-- WCL panel -->
   <div class="wcl-panel" id="wclPanel" style="display:none">
@@ -129,6 +139,7 @@ let people=[];
 let ranks=['Core','Member','Trial'];
 let expanded={};
 let sortKey='rank', sortDir=1;
+let hiddenRanks=new Set();
 let saveTimer=null;
 
 function uid(){return 't'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);}
@@ -174,9 +185,10 @@ function sortedPeople(filtered){
 }
 
 function render(){
+  renderFilter();
   const wrap=document.getElementById('tableWrap');
   const q=(document.getElementById('search').value||'').toLowerCase().trim();
-  const filtered=people.filter(p=>!q||(p.name||'').toLowerCase().includes(q)||(p.note||'').toLowerCase().includes(q)||(p.chars||[]).some(c=>(c.name||'').toLowerCase().includes(q)));
+  const filtered=people.filter(p=>(!q||(p.name||'').toLowerCase().includes(q)||(p.note||'').toLowerCase().includes(q)||(p.chars||[]).some(c=>(c.name||'').toLowerCase().includes(q)))&&!hiddenRanks.has(p.rank));
   if(!people.length){wrap.innerHTML='<div class="empty">Zatím žádní hráči. Přidej prvního přes „+ Přidat hráče".</div>';return;}
   if(!filtered.length){wrap.innerHTML='<div class="empty">Žádný hráč neodpovídá hledání.</div>';return;}
   const arr=sortedPeople(filtered);
@@ -194,9 +206,11 @@ function render(){
     const t=totals(p);const flag=p.rank==='Trial'&&t.h===0;const exp=!!expanded[p.id];
     const clr=CC[(p.cls||'').toLowerCase()]||'var(--text)';
     const bh=breakdown(p,'h'),bm=breakdown(p,'m');
+    const altN=(p.chars||[]).length-1;
+    const ico=p.specIcon?`<img class="spec-ic" src="${esc(p.specIcon)}" onerror="this.style.display='none'">`:'';
     html+=`<tr class="${flag?'flag':''}">
       <td><span class="expand" onclick="toggle('${p.id}')">${exp?'▾':'▸'}</span></td>
-      <td><span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${flag?'<span class="warn">⚠ 0× Heroic</span>':''}</td>
+      <td>${ico}<span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${altN>0?`<span class="altcnt">+${altN} alt</span>`:''}${flag?'<span class="warn">⚠ 0× Heroic</span>':''}</td>
       <td><select class="rank" onchange="setRank('${p.id}',this.value)">${rankOpts(p.rank)}</select></td>
       <td><div class="cnt ${t.h===0?'zero':''}">${t.h}×</div>${bh?`<div class="break">${esc(bh)}</div>`:''}</td>
       <td><div class="cnt ${t.m===0?'zero':''}">${t.m}×</div>${bm?`<div class="break">${esc(bm)}</div>`:''}</td>
@@ -249,8 +263,43 @@ async function promote(id){
   }catch(e){toast('Promote selhalo: '+e.message);}
 }
 
+/* ───────── Filtr ranků ───────── */
+function renderFilter(){
+  const el=document.getElementById('filterbar'); if(!el)return;
+  if(!people.length){ el.innerHTML=''; return; }
+  el.innerHTML='<span class="lbl">Filtr:</span>'+ranks.map((r,i)=>{
+    const cnt=people.filter(p=>p.rank===r).length;
+    return `<span class="fchip ${hiddenRanks.has(r)?'':'on'}" onclick="toggleFilter(${i})">${esc(r)} (${cnt})</span>`;
+  }).join('');
+}
+function toggleFilter(i){ const r=ranks[i]; if(r==null)return; if(hiddenRanks.has(r))hiddenRanks.delete(r); else hiddenRanks.add(r); render(); }
+
+/* ───────── Import z hlavního rosteru (Assignments) ───────── */
+async function importRoster(){
+  if(!confirm('Naimportovat hráče z hlavního rosteru (Assignments)? Stávající se nezduplikují.')) return;
+  const st=document.getElementById('status'); st.textContent='Importuji…';
+  try{
+    const r=await fetch(API_BASE+'/api/roster/main',{cache:'no-cache'});
+    const data=r.ok?await r.json():{};
+    const rl=Array.isArray(data.roster)?data.roster:[];
+    const existing=new Set();
+    people.forEach(p=>{ if(p.name)existing.add(p.name.toLowerCase()); (p.chars||[]).forEach(c=>{if(c.name)existing.add(c.name.toLowerCase());}); });
+    let added=0;
+    rl.forEach(pl=>{
+      const nm=(pl.name||'').trim(); if(!nm) return;
+      if(existing.has(nm.toLowerCase())) return;
+      people.push({id:uid(),name:nm,rank:'Core',note:'',cls:(pl.class||'').toLowerCase(),spec:pl.spec||'',specIcon:pl.specIcon||'',chars:[{name:nm,h:0,m:0}]});
+      existing.add(nm.toLowerCase()); added++;
+    });
+    save(); render();
+    st.textContent='';
+    toast(`Importováno ${added} hráčů z rosteru.`);
+  }catch(e){ st.textContent=''; toast('Import selhal: '+e.message); }
+}
+
 /* ───────── WarcraftLogs napojení ───────── */
 let _wclUn=[];
+let _wclMeta={};
 function wclToggle(){
   const p=document.getElementById('wclPanel');
   const show=p.style.display==='none';
@@ -300,10 +349,10 @@ async function wclGuildReportCodes(token,guild,realm,region,sinceTs){
   const reps=(d&&d.guildData&&d.guildData.guild&&d.guildData.guild.reports&&d.guildData.guild.reports.data)||[];
   return reps.map(r=>r.code);
 }
-function _wclNames(pd){
+function _wclEntries(pd){
   try{
     const o=(pd&&pd.data&&pd.data.playerDetails)||(pd&&pd.playerDetails)||pd||{};
-    return [].concat(o.tanks||[],o.healers||[],o.dps||[]).map(x=>x&&x.name).filter(Boolean);
+    return [].concat(o.tanks||[],o.healers||[],o.dps||[]).filter(x=>x&&x.name);
   }catch(e){ return []; }
 }
 async function wclReportAttendance(token,code){
@@ -311,10 +360,13 @@ async function wclReportAttendance(token,code){
   const d=await wclGQL(token,q,{c:code});
   const rep=d&&d.reportData&&d.reportData.report;
   try{ console.log('WCL report',code,rep); }catch(e){}
-  return { h:new Set(_wclNames(rep&&rep.heroic)), m:new Set(_wclNames(rep&&rep.mythic)) };
+  const he=_wclEntries(rep&&rep.heroic), me=_wclEntries(rep&&rep.mythic);
+  [].concat(he,me).forEach(x=>{ if(x.name&&x.type) _wclMeta[String(x.name).toLowerCase()]=String(x.type).toLowerCase(); });
+  return { h:new Set(he.map(x=>x.name)), m:new Set(me.map(x=>x.name)) };
 }
 async function wclRun(){
   const btn=document.getElementById('wclRunBtn'); btn.disabled=true;
+  _wclMeta={};
   document.getElementById('wclLog').innerHTML='';
   const st=document.getElementById('wclStatus'); st.textContent='Pracuji…';
   try{
@@ -368,7 +420,7 @@ function renderUnassigned(){
   if(!_wclUn.length){ el.innerHTML=''; return; }
   const opts=people.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
   el.innerHTML=`<div class="wcl-unassigned"><div style="font-size:12px;font-weight:700;margin-bottom:8px;color:#facc15">Nepřiřazené postavy z logů (${_wclUn.length}) — přiřaď k hráči (alt) nebo vytvoř nového:</div>`+
-    _wclUn.map((u,i)=>`<div class="wcl-un-row"><span class="nm">${esc(u.name)}</span><span style="color:var(--text-dim)">H ${u.h}× · M ${u.m}×</span>
+    _wclUn.map((u,i)=>`<div class="wcl-un-row"><span class="nm" style="color:${CC[(_wclMeta[u.name.toLowerCase()]||'')]||'var(--text)'}">${esc(u.name)}</span><span style="color:var(--text-dim)">H ${u.h}× · M ${u.m}×</span>
       <select id="un_${i}"><option value="">— přiřadit k —</option>${opts}<option value="__new">+ nový hráč</option></select>
       <button class="iconbtn" onclick="wclAssign(${i})">OK</button></div>`).join('')+`</div>`;
 }
@@ -376,7 +428,7 @@ function wclAssign(i){
   const u=_wclUn[i]; if(!u) return;
   const sel=document.getElementById('un_'+i); if(!sel) return;
   const v=sel.value;
-  if(v==='__new'){ const id=uid(); people.push({id,name:u.name,rank:'Trial',note:'',cls:'',chars:[{name:u.name,h:u.h,m:u.m}]}); }
+  if(v==='__new'){ const id=uid(); people.push({id,name:u.name,rank:'Trial',note:'',cls:(_wclMeta[u.name.toLowerCase()]||''),spec:'',specIcon:'',chars:[{name:u.name,h:u.h,m:u.m}]}); }
   else if(v){ const p=find(v); if(p){ (p.chars=p.chars||[]).push({name:u.name,h:u.h,m:u.m}); } }
   else return;
   _wclUn.splice(i,1); save(); render(); renderUnassigned();
