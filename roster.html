@@ -473,7 +473,7 @@ function render(){
         const chh=+c.h||0, chm=+c.m||0;
         const hTd=naCore?'<td><span class="cnt na">—</span></td>':`<td><div class="cnt ${chh===0?'zero':''}">${chh}×</div></td>`;
         const mTd=naCore?'<td><span class="cnt na">—</span></td>':`<td><div class="cnt ${chm===0?'zero':''}">${chm}×</div></td>`;
-        return `<tr class="altrow" oncontextmenu="altCtx(event,'${p.id}',${ci});return false;"><td></td><td><div class="altname">${icon}<input type="text" style="color:${cclr}" value="${esc(c.name||'')}" placeholder="jméno alta" onchange="setChar('${p.id}',${ci},'name',this.value)"></div></td>${progTds}${hTd}${mTd}<td></td><td><div class="act"><button class="iconbtn" title="Zrušit jako alta → samostatný main (smazat úplně: pravý klik)" onclick="unAlt('${p.id}',${ci})">✕</button></div></td></tr>`;
+        return `<tr class="altrow" oncontextmenu="altCtx(event,'${p.id}',${ci});return false;"><td></td><td><div class="altname">${icon}<span class="name" style="color:${cclr}">${esc(c.name||'?')}</span></div></td>${progTds}${hTd}${mTd}<td></td><td><div class="act"><button class="iconbtn" title="Zrušit jako alta → samostatný main (smazat úplně: pravý klik)" onclick="unAlt('${p.id}',${ci})">✕</button></div></td></tr>`;
       }).join('');
       html+=altRows;
       html+=`<tr class="altrow altadd"><td></td><td colspan="${5+(zonesP.length||1)}"><button class="iconbtn" onclick="addChar('${p.id}')">+ Přidat alta</button></td></tr>`;
