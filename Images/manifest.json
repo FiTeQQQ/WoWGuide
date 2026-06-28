@@ -20,7 +20,8 @@
           "slug": "rotmire",
           "name": "Rotmire",
           "thumbnail": "Images/Sporefall/Rotmire.png",
-          "image": "Images/Sporefall/Rotmire.png"
+          "image": "Images/Sporefall/Rotmire.png",
+          "cloud": "v1"
         }
       ]
     }

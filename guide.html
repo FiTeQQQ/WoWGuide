@@ -2754,7 +2754,9 @@ function loadState(){
   }catch(e){}
 }
 let _autoCloudTimer = null;
+let _suppressCloudSync = false; // true během/po načtení z cloudu → load nikdy nepřepíše cloud
 function _autoCloudSync(){
+  if(_suppressCloudSync) return; // nezapisuj zpět to, co jsme právě načetli
   const id = getCloudId();
   if(!id) return;
   clearTimeout(_autoCloudTimer);
@@ -6051,6 +6053,9 @@ async function cloudFork(){
 }
 
 async function loadFromCloud(id, silent){
+  // Po dobu načítání blokuj zpětný zápis do cloudu (jinak by load přepsal cloud prázdnými slidy)
+  _suppressCloudSync = true;
+  setTimeout(()=>{ _suppressCloudSync = false; }, 2500);
   try {
     const res = await fetch(`${API_BASE}/api/roster/${id}`);
     if(!res.ok){ if(!silent) toast('❌ Roster nenalezen.'); return; }

@@ -579,11 +579,13 @@ function renderRaids(){
     <section class="raid-section">
       <div class="raid-title">${escH(raid.name)} — Guides</div>
       <div class="boss-grid">
-        ${(raid.bosses||[]).map(boss=>`
-          <a class="boss-card" href="guide.html?boss=${encodeURIComponent(boss.slug)}">
+        ${(raid.bosses||[]).map(boss=>{
+          const href = 'guide.html?boss=' + encodeURIComponent(boss.slug) + (boss.cloud ? '&r=' + encodeURIComponent(boss.cloud) : '');
+          return `
+          <a class="boss-card" href="${href}">
             <img src="${GH_RAW}${escH(boss.thumbnail||boss.image)}" alt="${escH(boss.name)}" onerror="this.style.opacity='0'">
             <div class="boss-card-label"><div class="boss-card-name">${escH(boss.name)}</div></div>
-          </a>`).join('')}
+          </a>`;}).join('')}
         <div class="empty-card" onclick="openEditor()">+ Přidat bosse</div>
       </div>
     </section>`).join('');
@@ -601,11 +603,13 @@ function renderEditor(){
       ${(raid.bosses||[]).map((boss,bi)=>`
         <div class="ed-boss-row"><span class="ed-boss-name">${escH(boss.name)}</span>
           <span class="ed-boss-path" title="${escH(boss.image)}">${escH(boss.image)}</span>
+          <button class="btn btn-ghost" onclick="setCloud(${ri},${bi})" style="padding:2px 8px;font-size:11px" title="Cloud share id (?r=)">🔗${boss.cloud?(' '+escH(boss.cloud)):''}</button>
           <button class="btn btn-danger" onclick="removeBoss(${ri},${bi})" style="padding:2px 8px;font-size:11px">×</button></div>`).join('')}
       <div class="ed-add"><div class="ed-add-title">Přidat bosse do ${escH(raid.name)}</div>
         <div class="ed-row"><input type="text" id="bossName_${ri}" placeholder="Název bosse">
           <input type="text" id="bossImg_${ri}" placeholder="Images/${escH(raid.slug)}/NazevBosse.png"></div>
-        <div class="ed-hint">Slug se vygeneruje automaticky z názvu</div>
+        <div class="ed-row"><input type="text" id="bossCloud_${ri}" placeholder="Cloud id (?r=), nepovinné — např. v1"></div>
+        <div class="ed-hint">Slug se vygeneruje z názvu. Cloud id = sdílecí ?r= odkaz guide (nech prázdné, pokud boss používá jen slug).</div>
         <button class="btn btn-primary" style="margin-top:8px;font-size:11px" onclick="addBoss(${ri})">+ Přidat bosse</button></div>
     </div>`).join('') + `
     <div class="ed-new-raid"><div class="ed-new-raid-title">Přidat nový raid</div>
@@ -615,8 +619,18 @@ function renderEditor(){
 function addBoss(ri){
   const name=(document.getElementById('bossName_'+ri).value||'').trim();
   const img=(document.getElementById('bossImg_'+ri).value||'').trim();
+  const cloud=(document.getElementById('bossCloud_'+ri).value||'').trim();
   if(!name||!img){alert('Vyplň název i cestu k obrázku');return;}
-  (_manifest.raids[ri].bosses=_manifest.raids[ri].bosses||[]).push({slug:toSlug(name),name,thumbnail:img,image:img});
+  const b={slug:toSlug(name),name,thumbnail:img,image:img};
+  if(cloud) b.cloud=cloud;
+  (_manifest.raids[ri].bosses=_manifest.raids[ri].bosses||[]).push(b);
+  renderEditor();renderRaids();
+}
+function setCloud(ri,bi){
+  const b=_manifest.raids[ri].bosses[bi];
+  const v=prompt('Cloud share id (?r=) pro „'+b.name+'". Prázdné = jen slug.', b.cloud||'');
+  if(v===null) return;
+  if(v.trim()) b.cloud=v.trim(); else delete b.cloud;
   renderEditor();renderRaids();
 }
 function removeBoss(ri,bi){ if(!confirm('Smazat bosse?'))return; _manifest.raids[ri].bosses.splice(bi,1); renderEditor();renderRaids(); }
