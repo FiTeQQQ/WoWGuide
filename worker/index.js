@@ -303,7 +303,7 @@ export default {
       const name = (url.searchParams.get('name') || '').trim();
       const region = url.searchParams.get('region') || GUILD_DEFAULT.region;
       if (!name) return json({ id: 0 });
-      const cacheKey = `itemid:${region}:${name.toLowerCase()}`;
+      const cacheKey = `itemid2:${region}:${name.toLowerCase()}`;
       try {
         const cached = await env.ROSTERS.get(cacheKey, { type: 'json' });
         if (cached) return json(cached);
@@ -324,7 +324,7 @@ export default {
             const vals = (nm && typeof nm === 'object') ? Object.values(nm) : [nm];
             if (vals.some(v => String(v || '').toLowerCase() === lc)) { id = (r.data && r.data.id) || 0; break; }
           }
-          if (!id && results[0] && results[0].data) id = results[0].data.id || 0;
+          // jen PŘESNÁ shoda názvu — žádné hádání (jinak vrátí nesmyslný item)
         }
         const rec = { id };
         await env.ROSTERS.put(cacheKey, JSON.stringify(rec), { expirationTtl: 60 * 60 * 24 * 30 });
