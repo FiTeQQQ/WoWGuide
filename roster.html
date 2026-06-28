@@ -307,9 +307,10 @@ function _wclNames(pd){
   }catch(e){ return []; }
 }
 async function wclReportAttendance(token,code){
-  const q=`query($c:String!){reportData{report(code:$c){fights{difficulty} heroic:playerDetails(difficulty:4) mythic:playerDetails(difficulty:5)}}}`;
+  const q=`query($c:String!){reportData{report(code:$c){heroic:playerDetails(startTime:0,endTime:99999999999,difficulty:4) mythic:playerDetails(startTime:0,endTime:99999999999,difficulty:5)}}}`;
   const d=await wclGQL(token,q,{c:code});
   const rep=d&&d.reportData&&d.reportData.report;
+  try{ console.log('WCL report',code,rep); }catch(e){}
   return { h:new Set(_wclNames(rep&&rep.heroic)), m:new Set(_wclNames(rep&&rep.mythic)) };
 }
 async function wclRun(){
