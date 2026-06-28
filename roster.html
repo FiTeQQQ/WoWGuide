@@ -64,8 +64,26 @@
   .mini-num{width:58px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:5px;outline:none;text-align:center}
   .empty{text-align:center;color:var(--text-dim);font-size:14px;padding:50px 10px}
   .legend{font-size:11px;color:var(--text-dim);margin-top:12px}
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--accent-border);border-radius:8px;padding:9px 16px;color:var(--accent);font-size:13px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--accent-border);border-radius:8px;padding:9px 16px;color:var(--accent);font-size:13px;z-index:300;opacity:0;transition:opacity .2s;pointer-events:none}
   .toast.show{opacity:1}
+  .addmodal-bg{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+  .addmodal-bg.open{display:flex}
+  .addmodal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:22px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+  .am-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .am-head h2{margin:0;font-size:18px}
+  .am-lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);font-weight:700;margin:12px 0 5px}
+  .am-input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-size:13px;padding:8px 11px;outline:none;font-family:inherit}
+  .am-input:focus{border-color:var(--accent-border)}
+  .am-classes{display:flex;flex-wrap:wrap;gap:5px}
+  .am-cls{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;font-size:11px;font-weight:600;padding:5px 9px;cursor:pointer;text-transform:capitalize}
+  .am-cls.sel{background:rgba(255,255,255,.10);box-shadow:0 0 0 1px currentColor inset}
+  .am-specs{display:flex;flex-wrap:wrap;gap:5px;min-height:30px;align-items:center}
+  .am-spec{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;font-size:11px;padding:4px 8px;cursor:pointer;color:var(--text)}
+  .am-spec img{width:16px;height:16px;border-radius:3px}
+  .am-spec.sel{border-color:var(--accent-border);background:rgba(79,142,255,.14)}
+  .am-hint{font-size:11px;color:var(--text-dim)}
+  .am-match{font-size:12px;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.25);border-radius:8px;padding:8px 11px;margin-top:8px}
+  .am-actions{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
   .wcl-panel{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;margin-bottom:12px}
   .wcl-grid{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
   .wcl-field{display:flex;flex-direction:column;gap:3px;flex:1;min-width:150px}
@@ -99,7 +117,7 @@
   </div>
 
   <div class="toolbar">
-    <button class="btn btn-accent" onclick="addPerson()">+ Přidat hráče</button>
+    <button class="btn btn-accent" onclick="openAdd()">+ Přidat hráče</button>
     <button class="btn btn-ghost" onclick="addRank()">+ Rank</button>
     <button class="btn btn-ghost" onclick="importRoster()" title="Naimportovat hráče z hlavního rosteru (Assignments)">⬇ Import z rosteru</button>
     <button class="btn btn-ghost" onclick="wclToggle()">↻ WCL účast</button>
@@ -141,12 +159,48 @@
   <div class="card"><div id="tableWrap"></div></div>
   <div class="legend">⚠ Trial bez jediného Heroic raidu je červeně zvýrazněný. WCL auto-načítání účasti přidáme v dalším kroku. Klikni na ▸ u hráče pro slučování altů.</div>
 </div>
+<!-- Přidat hráče modal -->
+<div class="addmodal-bg" id="addModal">
+  <div class="addmodal">
+    <div class="am-head"><h2>Přidat hráče</h2><button onclick="closeAdd()" class="iconbtn">✕</button></div>
+    <label class="am-lbl">Jméno postavy</label>
+    <input id="apName" class="am-input" placeholder="napiš jméno…" oninput="apLookup()" autocomplete="off">
+    <div id="apFound" class="am-found"></div>
+    <div id="apManual">
+      <label class="am-lbl">Class</label>
+      <div class="am-classes" id="apClasses"></div>
+      <label class="am-lbl">Spec</label>
+      <div class="am-specs" id="apSpecs"></div>
+    </div>
+    <label class="am-lbl">Rank</label>
+    <select id="apRank" class="am-input"></select>
+    <div class="am-actions"><button class="btn btn-accent" onclick="apAdd()">Přidat</button><button class="btn btn-ghost" onclick="closeAdd()">Zrušit</button></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 const API_BASE='https://raidguide-api.filip-tesarik1.workers.dev';
 const TRK_KEY='trial-roster';
 const CC={deathknight:'#C41E3A',demonhunter:'#A330C9',druid:'#FF7C0A',evoker:'#33937F',hunter:'#AAD372',mage:'#3FC7EB',monk:'#00FF98',paladin:'#F48CBA',priest:'#FFFFFF',rogue:'#FFF468',shaman:'#0070DD',warlock:'#8788EE',warrior:'#C69B3A'};
+const WH_ICON=n=>n?`https://wow.zamimg.com/images/wow/icons/small/${n}.jpg`:'';
+const SPECS={
+  deathknight:[{name:'Blood',icon:'spell_deathknight_bloodpresence'},{name:'Frost',icon:'spell_deathknight_frostpresence'},{name:'Unholy',icon:'spell_deathknight_unholypresence'}],
+  demonhunter:[{name:'Havoc',icon:'ability_demonhunter_specdps'},{name:'Vengeance',icon:'ability_demonhunter_spectank'},{name:'Devourer',icon:'classicon_demonhunter_void'}],
+  druid:[{name:'Balance',icon:'spell_nature_starfall'},{name:'Feral',icon:'ability_druid_catform'},{name:'Guardian',icon:'ability_racial_bearform'},{name:'Restoration',icon:'spell_nature_healingtouch'}],
+  evoker:[{name:'Devastation',icon:'classicon_evoker_devastation'},{name:'Augmentation',icon:'classicon_evoker_augmentation'},{name:'Preservation',icon:'classicon_evoker_preservation'}],
+  hunter:[{name:'Beast Mastery',icon:'ability_hunter_bestialdiscipline'},{name:'Marksmanship',icon:'ability_hunter_focusedaim'},{name:'Survival',icon:'ability_hunter_camouflage'}],
+  mage:[{name:'Arcane',icon:'spell_holy_magicalsentry'},{name:'Fire',icon:'spell_fire_firebolt02'},{name:'Frost',icon:'spell_frost_frostbolt02'}],
+  monk:[{name:'Brewmaster',icon:'monk_stance_drunkenox'},{name:'Mistweaver',icon:'monk_stance_wiseserpent'},{name:'Windwalker',icon:'monk_stance_whitetiger'}],
+  paladin:[{name:'Holy',icon:'spell_holy_holybolt'},{name:'Protection',icon:'ability_paladin_shieldofthetemplar'},{name:'Retribution',icon:'spell_holy_auraoflight'}],
+  priest:[{name:'Discipline',icon:'spell_holy_powerwordshield'},{name:'Holy',icon:'spell_holy_guardianspirit'},{name:'Shadow',icon:'spell_shadow_shadowwordpain'}],
+  rogue:[{name:'Assassination',icon:'ability_rogue_deadlybrew'},{name:'Outlaw',icon:'ability_rogue_waylay'},{name:'Subtlety',icon:'ability_stealth'}],
+  shaman:[{name:'Elemental',icon:'spell_nature_lightning'},{name:'Enhancement',icon:'spell_shaman_improvedstormstrike'},{name:'Restoration',icon:'spell_nature_magicimmunity'}],
+  warlock:[{name:'Affliction',icon:'spell_shadow_deathcoil'},{name:'Demonology',icon:'spell_shadow_metamorphosis'},{name:'Destruction',icon:'spell_shadow_rainoffire'}],
+  warrior:[{name:'Arms',icon:'ability_warrior_savageblow'},{name:'Fury',icon:'ability_warrior_innerrage'},{name:'Protection',icon:'ability_warrior_defensivestance'}]
+};
+let _apCls='',_apSpec=null,_apMatch=null,_mainRosterCache=null,_apTimer=null;
 
 let people=[];
 let ranks=['Core','Member','Trial'];
@@ -256,7 +310,57 @@ function render(){
   wrap.innerHTML=html;
 }
 
-function addPerson(){const name=(window.prompt('Jméno hráče (hlavní postava):')||'').trim();if(!name)return;const id=uid();people.push({id,name,rank:'Trial',note:'',cls:'',chars:[{name,h:0,m:0}]});expanded[id]=true;save();render();}
+async function openAdd(){
+  document.getElementById('apName').value='';
+  document.getElementById('apFound').innerHTML='';
+  _apCls=''; _apSpec=null; _apMatch=null;
+  document.getElementById('apRank').innerHTML=ranks.map(r=>`<option ${r==='Trial'?'selected':''}>${esc(r)}</option>`).join('');
+  renderApClasses(); renderApSpecs();
+  document.getElementById('apManual').style.display='block';
+  document.getElementById('addModal').classList.add('open');
+  setTimeout(()=>document.getElementById('apName').focus(),50);
+  if(!_mainRosterCache){ try{ const r=await fetch(API_BASE+'/api/roster/main',{cache:'no-cache'}); const d=r.ok?await r.json():{}; _mainRosterCache=Array.isArray(d.roster)?d.roster:[]; }catch(e){ _mainRosterCache=[]; } }
+}
+function closeAdd(){ document.getElementById('addModal').classList.remove('open'); }
+function renderApClasses(){
+  document.getElementById('apClasses').innerHTML=Object.keys(SPECS).map(cl=>`<button class="am-cls ${_apCls===cl?'sel':''}" style="color:${CC[cl]};border-color:${CC[cl]}55" onclick="apPickClass('${cl}')">${cl}</button>`).join('');
+}
+function renderApSpecs(){
+  const el=document.getElementById('apSpecs'); if(!el) return;
+  if(!_apCls){ el.innerHTML='<span class="am-hint">Vyber nejdřív class.</span>'; return; }
+  el.innerHTML=(SPECS[_apCls]||[]).map(s=>`<button class="am-spec ${_apSpec&&_apSpec.name===s.name?'sel':''}" onclick="apPickSpec('${s.name.replace(/'/g,'')}')"><img src="${WH_ICON(s.icon)}" onerror="this.style.display='none'">${esc(s.name)}</button>`).join('');
+}
+function apPickClass(cl){ _apCls=cl; _apSpec=null; renderApClasses(); renderApSpecs(); }
+function apPickSpec(name){ _apSpec=(SPECS[_apCls]||[]).find(s=>s.name===name)||null; renderApSpecs(); }
+function apLookup(){
+  clearTimeout(_apTimer);
+  _apTimer=setTimeout(()=>{
+    const nm=(document.getElementById('apName').value||'').trim();
+    const fe=document.getElementById('apFound'); _apMatch=null;
+    if(!nm||!_mainRosterCache){ fe.innerHTML=''; document.getElementById('apManual').style.display='block'; return; }
+    const hit=_mainRosterCache.find(p=>(p.name||'').toLowerCase()===nm.toLowerCase());
+    if(hit){
+      _apMatch=hit;
+      fe.innerHTML=`<div class="am-match">✓ Nalezen v hlavním rosteru: <b style="color:${CC[(hit.class||'').toLowerCase()]||'#fff'}">${esc(hit.name)}</b> — ${esc(hit.spec||hit.class||'')} · class/spec se doplní samo.</div>`;
+      document.getElementById('apManual').style.display='none';
+    } else { fe.innerHTML=''; document.getElementById('apManual').style.display='block'; }
+  },250);
+}
+function apAdd(){
+  const nm=(document.getElementById('apName').value||'').trim();
+  if(!nm){ toast('Zadej jméno.'); return; }
+  if(people.some(p=>(p.name||'').toLowerCase()===nm.toLowerCase()||(p.chars||[]).some(c=>(c.name||'').toLowerCase()===nm.toLowerCase()))){ toast('Tento hráč/postava už v rosteru je.'); return; }
+  const rank=document.getElementById('apRank').value||'Trial';
+  let cls='',spec='',specIcon='';
+  if(_apMatch){ cls=(_apMatch.class||'').toLowerCase(); spec=_apMatch.spec||''; specIcon=_apMatch.specIcon||WH_ICON(((SPECS[cls]||[]).find(s=>s.name===spec)||{}).icon); }
+  else if(_apSpec){ cls=_apCls; spec=_apSpec.name; specIcon=WH_ICON(_apSpec.icon); }
+  else if(_apCls){ cls=_apCls; }
+  const id=uid();
+  people.push({id,name:nm,rank,note:'',cls,spec,specIcon,chars:[{name:nm,h:0,m:0,cls,specIcon}]});
+  expanded[id]=true;
+  save(); render(); closeAdd();
+  toast(`${nm} přidán.`);
+}
 function addRank(){const r=(window.prompt('Nový rank:')||'').trim();if(!r)return;if(!ranks.includes(r))ranks.push(r);save();render();}
 function toggle(id){expanded[id]=!expanded[id];render();}
 function setRank(id,v){const p=find(id);if(p){p.rank=v;save();render();}}
