@@ -808,7 +808,7 @@ async function wclLoadProgress(){
         const hSet=new Set(), mSet=new Set();
         for(const ch of (p.chars||[])){
           if(!ch.name) continue;
-          try{ const pr=await wclCharProgress(token,ch.name,realm,region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); }
+          try{ const pr=await wclCharProgress(token,ch.name,realm,region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
           catch(e){ wclLog(`✗ progress ${ch.name} (${z.name}): ${e.message}`,'err'); }
           await new Promise(r=>setTimeout(r,120));
         }
