@@ -292,6 +292,7 @@
         <div class="wcl-field"><label>Realm (EU) — nutné i pro progress</label><input id="wclRealm" list="euRealms" value="drakthul" placeholder="vyber / napiš realm" autocomplete="off"></div>
         <div class="wcl-field"><label>Region</label><select id="wclRegion"><option>EU</option><option>US</option><option>KR</option><option>TW</option></select></div>
       </div>
+      <div class="wcl-row" style="margin-top:8px"><label style="display:block;margin-bottom:4px;font-size:11px;color:var(--text-dim)">Další realmy guildy (slugy, čárkou) — pro hráče na jiném serveru než hlavním (zkusí se postupně)</label><input id="wclRealmsExtra" list="euRealms" placeholder="burning-blade, twisting-nether" autocomplete="off" oninput="try{localStorage.setItem('wcl_realms_extra',this.value.trim())}catch(e){}"></div>
     </div>
     <div class="wcl-row" style="position:relative;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
       <div style="flex:1;min-width:200px">
@@ -591,7 +592,7 @@ async function load(){
   // WCL klíče z cloudu (sdílené) — aby progress mohl načíst i ten, kdo otevře sdílený odkaz
   try{
     const rc=await fetch(API_BASE+'/api/roster/wcl-creds',{cache:'no-cache'});
-    if(rc.ok){const jc=await rc.json();if(jc&&jc.id){localStorage.setItem('wcl_id',jc.id);if(jc.sec)localStorage.setItem('wcl_sec',jc.sec);}}
+    if(rc.ok){const jc=await rc.json();if(jc&&jc.id){localStorage.setItem('wcl_id',jc.id);if(jc.sec)localStorage.setItem('wcl_sec',jc.sec);}if(jc&&jc.realmsExtra!=null)localStorage.setItem('wcl_realms_extra',jc.realmsExtra);}
   }catch(e){}
   await _wclCfgLoad();
   buildPeopleFromFlat(flat);
@@ -1009,6 +1010,7 @@ function wclToggle(){
     document.getElementById('wclGuild').value=localStorage.getItem('wcl_guild')||'';
     document.getElementById('wclRealm').value=localStorage.getItem('wcl_realm')||'drakthul';
     document.getElementById('wclRegion').value=localStorage.getItem('wcl_region')||'EU';
+    document.getElementById('wclRealmsExtra').value=localStorage.getItem('wcl_realms_extra')||'';
     renderZoneChips();
   }
 }
@@ -1021,9 +1023,11 @@ function wclToggleSettings(){
 function wclSaveCreds(){
   const id=document.getElementById('wclId').value.trim();
   const sec=document.getElementById('wclSec').value.trim();
+  const realmsExtra=(document.getElementById('wclRealmsExtra')&&document.getElementById('wclRealmsExtra').value.trim())||'';
   localStorage.setItem('wcl_id',id);
   localStorage.setItem('wcl_sec',sec);
-  fetch(API_BASE+'/api/roster/wcl-creds',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,sec,updatedAt:new Date().toISOString()})})
+  localStorage.setItem('wcl_realms_extra',realmsExtra);
+  fetch(API_BASE+'/api/roster/wcl-creds',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,sec,realmsExtra,updatedAt:new Date().toISOString()})})
     .then(r=>{ if(r.ok) wclLog('Klíče uloženy do cloudu — progress půjde načíst i ostatním přes sdílený odkaz.','ok'); else throw 0; })
     .catch(()=>wclLog('Klíče uloženy lokálně (cloud offline).','err'));
 }
@@ -1129,6 +1133,24 @@ async function wclCharProgress(token,name,realm,region,zoneID){
   const kills=zr=>{ try{ return ((zr&&zr.rankings)||[]).filter(x=>x&&((x.totalKills||0)>0)).map(x=>x.encounter&&x.encounter.name).filter(Boolean); }catch(e){ return []; } };
   return { hKills:kills(ch&&ch.h), mKills:kills(ch&&ch.m) };
 }
+// Seznam realmů guildy (hlavní + další z nastavení) — pro hráče bez známého serveru
+function _guildRealms(){
+  const fld=document.getElementById('wclRealm');
+  const main=_slugRealm((fld&&fld.value)||localStorage.getItem('wcl_realm')||'drakthul');
+  const extraRaw=(document.getElementById('wclRealmsExtra')&&document.getElementById('wclRealmsExtra').value)||localStorage.getItem('wcl_realms_extra')||'';
+  const extra=String(extraRaw).split(',').map(s=>_slugRealm(s)).filter(Boolean);
+  return [...new Set([main].concat(extra).filter(Boolean))];
+}
+// Zjisti realm postavy: známý server, nebo probni guild realmy (první s killy vyhraje)
+async function _resolveCharRealm(token,name,region,probeZoneId){
+  const realms=_guildRealms();
+  if(realms.length<=1) return realms[0]||'drakthul';
+  for(const rl of realms){
+    try{ const pr=await wclCharProgress(token,name,rl,region,probeZoneId); if((pr.hKills.length+pr.mKills.length)>0) return rl; }catch(e){}
+    await new Promise(r=>setTimeout(r,80));
+  }
+  return ''; // žádný realm neměl killy → neukládej (zkusí se znovu příště)
+}
 // Vybrané raidy pro progress (z localStorage) — pole {id,name,total}
 function progZones(){ try{ return JSON.parse(localStorage.getItem('wcl_zones')||'[]'); }catch(e){ return []; } }
 // ── Sdílená WCL konfigurace (vybrané raidy + čas posledního progressu) ──
@@ -1178,7 +1200,7 @@ async function wclLoadProgress(){
         const hSet=new Set(), mSet=new Set();
         for(const ch of (p.chars||[])){
           if(!ch.name) continue;
-          try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
+          if(!ch.server){ try{ const _r=await _resolveCharRealm(token,ch.name,region,z.id); if(_r) ch.server=_r; }catch(_e){} } try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
           catch(e){ wclLog(`✗ progress ${ch.name} (${z.name}): ${e.message}`,'err'); }
           await new Promise(r=>setTimeout(r,120));
         }
@@ -1245,7 +1267,7 @@ async function wclRun(){
             const hSet=new Set(), mSet=new Set();
             for(const ch of (p.chars||[])){
               if(!ch.name) continue;
-              try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
+              if(!ch.server){ try{ const _r=await _resolveCharRealm(token,ch.name,region,z.id); if(_r) ch.server=_r; }catch(_e){} } try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
               catch(e){ wclLog(`✗ progress ${ch.name} (${z.name}): ${e.message}`,'err'); }
               await new Promise(r=>setTimeout(r,120));
             }
