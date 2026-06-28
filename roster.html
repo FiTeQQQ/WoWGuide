@@ -32,8 +32,8 @@
   th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);font-weight:700;padding:10px 12px;border-bottom:1px solid var(--border2);cursor:pointer;user-select:none;white-space:nowrap}
   th .arr{opacity:.5;font-size:9px}
   td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle}
-  tr.flag{background:rgba(220,60,60,.10)}
-  tr.flag td:first-child{box-shadow:inset 3px 0 0 0 #ef4444}
+  tr.flag{background:rgba(220,60,60,.045)}
+  tr.flag td:first-child{box-shadow:inset 2px 0 0 0 rgba(239,68,68,.45)}
   .name{font-weight:700}
   .spec-ic{width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:7px;border:1px solid rgba(255,255,255,.12)}
   .altcnt{font-size:10px;color:var(--text-dim);background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:10px;padding:1px 7px;margin-left:7px;font-weight:600}
@@ -151,9 +151,9 @@
       <button class="btn btn-ghost" onclick="wclSaveCreds()" style="align-self:end">Uložit klíče</button>
     </div>
     <div class="wcl-row"><label class="wcl-chk"><input type="checkbox" id="wclGuildChk"> Načíst i <b>guild log</b> (posledních 6 týdnů)</label></div>
-    <div class="wcl-grid" id="wclGuildFields" style="display:none">
-      <div class="wcl-field"><label>Guild</label><input id="wclGuild" placeholder="Název guildy"></div>
-      <div class="wcl-field"><label>Realm (slug)</label><input id="wclRealm" placeholder="napr. twisting-nether"></div>
+    <div class="wcl-grid" id="wclGuildFields">
+      <div class="wcl-field"><label>Guild (jen pro guild log)</label><input id="wclGuild" placeholder="Název guildy"></div>
+      <div class="wcl-field"><label>Realm (slug) — nutné i pro progress</label><input id="wclRealm" placeholder="napr. twisting-nether"></div>
       <div class="wcl-field"><label>Region</label><select id="wclRegion"><option>EU</option><option>US</option><option>KR</option><option>TW</option></select></div>
     </div>
     <div class="wcl-row" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
@@ -295,7 +295,7 @@ function render(){
     const naCore=p.rank==='Core';
     html+=`<tr class="${flag?'flag':''}" oncontextmenu="rosterCtx(event,'${p.id}');return false;">
       <td><span class="expand" onclick="toggle('${p.id}')">${exp?'▾':'▸'}</span></td>
-      <td>${ico}<span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${altN>0?`<span class="altcnt">+${altN} alt</span>`:''}${flag?'<span class="warn">⚠ 0× Heroic</span>':''}</td>
+      <td>${ico}<span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${altN>0?`<span class="altcnt">+${altN} alt</span>`:''}</td>
       <td><select class="rank" onchange="setRank('${p.id}',this.value)">${rankOpts(p.rank)}</select></td>
       <td>${naCore?'<span class="cnt na">—</span>':`<div class="prog"><b>H</b>${esc(p.progH||'—')}</div><div class="prog"><b>M</b>${esc(p.progM||'—')}</div>`}</td>
       <td>${naCore?'<span class="cnt na" title="U Core hráče se účast neřeší">—</span>':`<div class="cnt ${t.h===0?'zero':''}">${t.h}×</div>${bh?`<div class="break">${esc(bh)}</div>`:''}`}</td>
@@ -640,8 +640,9 @@ async function wclRun(){
       const bossTotal=parseInt(localStorage.getItem('wcl_zone_bosses')||'0')||'?';
       const realm=(document.getElementById('wclRealm').value||localStorage.getItem('wcl_realm')||'').trim();
       const region=(document.getElementById('wclRegion').value||localStorage.getItem('wcl_region')||'EU').trim();
-      if(!realm){ wclLog('Pro progress vyplň Realm (slug) v poli guildy.','err'); }
+      if(!realm){ wclLog('Pro progress vyplň Realm (slug) + vyber raid.','err'); }
       else{
+        localStorage.setItem('wcl_realm',realm); localStorage.setItem('wcl_region',region);
         const targets=people.filter(p=>p.rank==='Trial'||p.rank==='Member');
         wclLog('Načítám progress pro '+targets.length+' hráčů (Trial/Member)…');
         let j=0;
@@ -695,7 +696,6 @@ function wclAssign(i){
   else return;
   _wclUn.splice(i,1); save(); render(); renderUnassigned();
 }
-document.getElementById('wclGuildChk').addEventListener('change',function(){ document.getElementById('wclGuildFields').style.display=this.checked?'flex':'none'; });
 (function(){ const z=document.getElementById('wclZone'); if(z) z.addEventListener('change',function(){ const o=this.selectedOptions[0]; localStorage.setItem('wcl_zone',this.value||''); localStorage.setItem('wcl_zone_bosses',o?(o.dataset.bosses||''):''); }); })();
 
 load();
