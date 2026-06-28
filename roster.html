@@ -436,6 +436,7 @@ function colResizeEnd(){
   _rz=null;
 }
 let hiddenDefault=[];       // ranky skryté ve výchozím (perzistentní)
+let rankColors={};          // barvy štítků ranků (sdílené)
 let editMode=false;
 let expanded={};
 let sortKey='rank', sortDir=1;
@@ -464,7 +465,10 @@ function _defaultRank(){ return (ranks&&ranks.length)?ranks[ranks.length-1]:'Tri
 function totals(p){let h=0,m=0;(p.chars||[]).forEach(c=>{h+=(+c.h||0);m+=(+c.m||0);});return{h,m};}
 function breakdown(p,key){const a=(p.chars||[]).filter(c=>(+c[key]||0)>0).map(c=>`${c.name||'?'} ${+c[key]||0}×`);return a.length>1?a.join(' · '):'';}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200);}
-function rankChip(r){ if(!r||r==='Core') return ''; const c=r==='Trial'?'#f59e0b':'#2563eb'; return `<span class="rankchip" style="color:${c};border-color:${c}55;background:${c}1a">${esc(r)}</span>`; }
+const _RANK_PALETTE=['#2563eb','#f59e0b','#a855f7','#10b981','#ec4899','#06b6d4','#ef4444'];
+function _rankColor(r){ if(rankColors&&rankColors[r]!=null&&rankColors[r]!=='') return rankColors[r]; const i=ranks.indexOf(r); if(i<=0) return ''; return _RANK_PALETTE[(i-1)%_RANK_PALETTE.length]; }
+function setRankColor(r,color){ rankColors=rankColors||{}; rankColors[r]=color; save(); render(); }
+function rankChip(r){ const c=_rankColor(r); if(!c) return ''; return `<span class="rankchip" style="color:${c};border-color:${c}55;background:${c}1a">${esc(r)}</span>`; }
 // ════════ CUSTOM SLOUPCE + EDIT MÓD ════════
 function colHead(col){
   if(!editMode) return `<th class="ccol coldrag" ${_thW(col.id)}>${esc(col.name)}${_rzH(col.id)}</th>`;
@@ -555,8 +559,8 @@ function toggleColHidden(key){ if(hiddenCols.includes(key)) hiddenCols=hiddenCol
 let _dragCol=null;
 function colDragStart(e,key){ _dragCol=key; if(e.dataTransfer)e.dataTransfer.effectAllowed='move'; }
 function colDrop(e,targetKey){ e.preventDefault(); if(!_dragCol||_dragCol===targetKey)return; _ensureColOrder(); const from=colOrder.indexOf(_dragCol); const tgt=colOrder.indexOf(targetKey); _dragCol=null; if(from<0||tgt<0)return; const m=colOrder.splice(from,1)[0]; colOrder.splice(tgt,0,m); save(); render(); }
-function renameRank(oldName,newName){ newName=(newName||'').trim(); if(!newName||newName===oldName){render();return;} if(ranks.includes(newName)){toast('Rank toho jména už existuje.');render();return;} const i=ranks.indexOf(oldName); if(i<0)return; ranks[i]=newName; people.forEach(p=>{ if(p.rank===oldName)p.rank=newName; }); hiddenDefault=hiddenDefault.map(r=>r===oldName?newName:r); if(hiddenRanks.has(oldName)){hiddenRanks.delete(oldName);hiddenRanks.add(newName);} save(); render(); }
-function delRank(name){ if(ranks.length<=1){toast('Musí zůstat aspoň jeden rank.');return;} if(!confirm(`Smazat rank „${name}"? Hráči s ním dostanou jiný rank.`))return; const fb=ranks.find(r=>r!==name)||'Core'; ranks=ranks.filter(r=>r!==name); people.forEach(p=>{ if(p.rank===name)p.rank=fb; }); hiddenDefault=hiddenDefault.filter(r=>r!==name); hiddenRanks.delete(name); save(); render(); }
+function renameRank(oldName,newName){ newName=(newName||'').trim(); if(!newName||newName===oldName){render();return;} if(ranks.includes(newName)){toast('Rank toho jména už existuje.');render();return;} const i=ranks.indexOf(oldName); if(i<0)return; ranks[i]=newName; people.forEach(p=>{ if(p.rank===oldName)p.rank=newName; }); hiddenDefault=hiddenDefault.map(r=>r===oldName?newName:r); if(hiddenRanks.has(oldName)){hiddenRanks.delete(oldName);hiddenRanks.add(newName);} if(rankColors&&rankColors[oldName]!=null){ rankColors[newName]=rankColors[oldName]; delete rankColors[oldName]; } save(); render(); }
+function delRank(name){ if(ranks.length<=1){toast('Musí zůstat aspoň jeden rank.');return;} if(!confirm(`Smazat rank „${name}"? Hráči s ním dostanou jiný rank.`))return; const fb=ranks.find(r=>r!==name)||'Core'; ranks=ranks.filter(r=>r!==name); people.forEach(p=>{ if(p.rank===name)p.rank=fb; }); hiddenDefault=hiddenDefault.filter(r=>r!==name); hiddenRanks.delete(name); if(rankColors)delete rankColors[name]; save(); render(); }
 function toggleRankDefaultHidden(name){ if(hiddenDefault.includes(name)){ hiddenDefault=hiddenDefault.filter(r=>r!==name); hiddenRanks.delete(name); } else { hiddenDefault.push(name); hiddenRanks.add(name); } save(); render(); }
 function toggleEdit(){ editMode=!editMode; document.body.classList.toggle('edit-on',editMode); const b=document.getElementById('editBtn'); if(b)b.textContent=editMode?'✓ Hotovo':'✏ Edit'; render(); }
 function renderEditBar(){
@@ -564,7 +568,7 @@ function renderEditBar(){
   if(!editMode){ el.style.display='none'; return; }
   el.style.display='block';
   const q=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  const rankRows=ranks.map(r=>`<div class="eb-rank"><input class="eb-rankname" value="${esc(r)}" onchange="renameRank('${q(r)}',this.value)"><label class="eb-hidechk"><input type="checkbox" ${hiddenDefault.includes(r)?'checked':''} onchange="toggleRankDefaultHidden('${q(r)}')"> skrýt ve výchozím</label><button class="iconbtn del" title="Smazat rank" onclick="delRank('${q(r)}')">✕</button></div>`).join('');
+  const rankRows=ranks.map(r=>`<div class="eb-rank"><input class="eb-rankname" value="${esc(r)}" onchange="renameRank('${q(r)}',this.value)"><input type="color" value="${_rankColor(r)||'#5b6070'}" onchange="setRankColor('${q(r)}',this.value)" title="Barva štítku ranku" style="width:30px;height:26px;padding:0;border:1px solid var(--border2);border-radius:6px;background:none;cursor:pointer;flex:0 0 auto"><label class="eb-hidechk"><input type="checkbox" ${hiddenDefault.includes(r)?'checked':''} onchange="toggleRankDefaultHidden('${q(r)}')"> skrýt</label><button class="iconbtn del" title="Smazat rank" onclick="delRank('${q(r)}')">✕</button></div>`).join('');
   _ensureColOrder();
   const visList=colOrder.filter(k=>k!=='name').map(k=>`<label class="eb-hidechk" style="display:block;margin:3px 0"><input type="checkbox" ${!hiddenCols.includes(k)?'checked':''} onchange="toggleColHidden('${k}')"> ${esc(_colLabel(k))}</label>`).join('');
   el.innerHTML=`<div class="eb-grid">
@@ -625,7 +629,7 @@ async function load(){
   // seznam ranků (meta klíč — guide ho nepřepisuje)
   try{
     const rm=await fetch(API_BASE+'/api/roster/'+TRK_KEY,{cache:'no-cache'});
-    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.colOrder))colOrder=jm.colOrder;if(Array.isArray(jm.hiddenCols))hiddenCols=jm.hiddenCols;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;}
+    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.colOrder))colOrder=jm.colOrder;if(Array.isArray(jm.hiddenCols))hiddenCols=jm.hiddenCols;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;if(jm.rankColors&&typeof jm.rankColors==='object')rankColors=jm.rankColors;}
   }catch(e){
     try{const lr=JSON.parse(localStorage.getItem('trkRanks')||'null');if(Array.isArray(lr)&&lr.length)ranks=lr;}catch(_){}
   }
@@ -712,12 +716,12 @@ async function flushCloud(){
   _saving=true; _updateSaveBtn();
   try{
     await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()})});
-    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,updatedAt:new Date().toISOString()})});
+    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,updatedAt:new Date().toISOString()})});
     _dirty=false;
   }catch(e){ const st=document.getElementById('status'); if(st)st.textContent='⚠ Cloud offline (změny zatím jen lokálně)'; }
   _saving=false; _updateSaveBtn();
 }
-function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
+function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
 window.addEventListener('beforeunload',_flushBeacon);
 
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}render();}
