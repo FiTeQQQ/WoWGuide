@@ -3,79 +3,270 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Raid Dashboard</title>
+<title>Rapid Evolution EU — Guild Hub</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0b0f;color:#e0e2ea;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+:root{
+  --bg:#0a0b0f; --panel:#13151f; --panel2:#171a26; --line:rgba(255,255,255,.08);
+  --txt:#e0e2ea; --dim:#8b92a6; --faint:#5a6173; --accent:#4f8eff;
+  --horde:#c41e3a; --ally:#2b73d6;
+  --gold:#f0c674;
+}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
 a{text-decoration:none;color:inherit}
-.site-header{padding:28px 40px 0;display:flex;align-items:center;justify-content:space-between}
-.site-logo{font-size:18px;font-weight:700;letter-spacing:.04em;color:#fff}
-.site-logo span{color:#4f8eff}
-main{padding:32px 40px 60px}
-.raid-section{margin-bottom:48px}
-.raid-title{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#6b7080;margin-bottom:18px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.06)}
-.boss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-.boss-card{position:relative;height:110px;border-radius:8px;overflow:hidden;cursor:pointer;border:1px solid rgba(255,255,255,.08);transition:border-color .2s,transform .15s;display:block}
+.wrap{max-width:1320px;margin:0 auto;padding:0 24px 80px}
+
+/* header bar */
+.site-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;max-width:1320px;margin:0 auto}
+.site-logo{font-size:17px;font-weight:800;letter-spacing:.04em;color:#fff}
+.site-logo span{color:var(--accent)}
+
+/* hero */
+.hero{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-bottom:22px;min-height:190px;display:flex;align-items:center}
+.hero-bg{position:absolute;inset:0;background-size:cover;background-position:center 30%;filter:brightness(.4) saturate(1.1)}
+.hero-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,11,15,.92) 0%,rgba(10,11,15,.55) 55%,rgba(10,11,15,.25) 100%)}
+.hero-inner{position:relative;display:flex;align-items:center;gap:22px;padding:26px 30px;width:100%;flex-wrap:wrap}
+.crest{width:78px;height:78px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:radial-gradient(circle at 50% 35%,rgba(196,30,58,.35),rgba(0,0,0,.5));border:2px solid rgba(196,30,58,.6);box-shadow:0 0 24px rgba(196,30,58,.35)}
+.crest.ally{background:radial-gradient(circle at 50% 35%,rgba(43,115,214,.35),rgba(0,0,0,.5));border-color:rgba(43,115,214,.6);box-shadow:0 0 24px rgba(43,115,214,.35)}
+.crest svg{width:46px;height:46px}
+.hero-meta{flex:1;min-width:240px}
+.guild-name{font-size:34px;font-weight:800;line-height:1.05;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+.guild-realm{font-size:14px;color:var(--dim);margin-top:2px;font-weight:600}
+.guild-stats{display:flex;gap:26px;margin-top:14px;flex-wrap:wrap}
+.gstat{display:flex;flex-direction:column}
+.gstat .v{font-size:19px;font-weight:800;color:#fff}
+.gstat .v .ic{color:var(--gold);font-size:14px}
+.gstat .l{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:2px}
+.hero-nav{display:flex;gap:12px;flex-wrap:wrap}
+.navbtn{display:flex;align-items:center;gap:10px;padding:14px 22px;border-radius:11px;border:1px solid var(--line);
+  background:rgba(255,255,255,.04);backdrop-filter:blur(6px);transition:all .15s;cursor:pointer}
+.navbtn:hover{transform:translateY(-2px);border-color:rgba(79,142,255,.55);background:rgba(79,142,255,.12)}
+.navbtn .ni{font-size:22px}
+.navbtn .nt{font-size:15px;font-weight:800;color:#fff;letter-spacing:.02em}
+.navbtn .nd{font-size:11px;color:var(--dim)}
+
+/* layout */
+.grid2{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(280px,1fr);gap:22px;align-items:start}
+@media(max-width:960px){.grid2{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:22px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+.panel-title{font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#cdd3e0}
+.panel-body{padding:16px 18px}
+
+/* roster filters */
+.filters{display:flex;gap:14px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.ffield{display:flex;flex-direction:column;gap:4px;min-width:140px;flex:1}
+.ffield label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.ffield select{background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:7px 9px;outline:none;cursor:pointer}
+.ffield select:focus{border-color:rgba(79,142,255,.5)}
+
+/* roster table */
+table.roster{width:100%;border-collapse:collapse;font-size:13px}
+table.roster th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none}
+table.roster th.c{text-align:center}
+table.roster td{padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.04)}
+table.roster td.c{text-align:center}
+table.roster tr:hover td{background:rgba(255,255,255,.03)}
+.pname{font-weight:700}
+.cls-pill{font-weight:700}
+.role-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;font-size:11px;font-weight:800;color:#fff}
+.role-tank{background:#2b73d6}.role-healer{background:#3aa757}.role-dps{background:#c0392b}.role-unk{background:#3a3d4a;color:#8b92a6}
+.rank-cell{color:var(--dim);font-weight:600}
+.rank-gm{color:var(--gold);font-weight:800}
+.lvl{font-weight:700;color:#cdd3e0}
+.showmore{display:block;width:100%;padding:12px;background:var(--panel2);border:none;border-top:1px solid var(--line);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer}
+.showmore:hover{background:rgba(79,142,255,.1)}
+
+/* charts */
+.chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.chart-name{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#cdd3e0}
+.maxtoggle{font-size:11px;color:var(--dim);display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.classbars{display:flex;align-items:flex-end;gap:5px;height:120px;padding:0 2px;border-bottom:1px solid var(--line)}
+.cbar{flex:1;border-radius:3px 3px 0 0;min-height:3px;transition:height .3s;position:relative}
+.cbar:hover::after{content:attr(data-tip);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);white-space:nowrap;background:#000;color:#fff;font-size:11px;padding:3px 7px;border-radius:4px;margin-bottom:4px;z-index:5}
+.classlegend{display:flex;flex-wrap:wrap;gap:3px;margin-top:8px;justify-content:center}
+.cldot{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.4)}
+.rolebars{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+.rolerow{display:flex;align-items:center;gap:10px}
+.rolerow .ricon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
+.rbar-wrap{flex:1;background:rgba(255,255,255,.05);border-radius:5px;overflow:hidden;height:26px;display:flex;align-items:center}
+.rbar{height:100%;border-radius:5px;transition:width .4s;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:12px;font-weight:800;color:#fff;min-width:28px}
+
+/* rankings */
+.rank-raid{padding:14px 16px;border-bottom:1px solid var(--line)}
+.rank-raid:last-child{border-bottom:none}
+.rr-name{font-size:13px;font-weight:800;color:#fff;margin-bottom:8px}
+.rr-prog{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.rr-bar{flex:1;height:16px;background:rgba(255,255,255,.06);border-radius:8px;overflow:hidden}
+.rr-fill{height:100%;border-radius:8px}
+.rr-sum{font-size:12px;font-weight:800;color:#ffd86b;min-width:58px;text-align:right}
+.rr-ranks{display:flex;justify-content:space-around;text-align:center;gap:8px}
+.rr-rk .n{font-size:20px;font-weight:800;color:#5bd66a;line-height:1}
+.rr-rk .n.region{color:#5bd66a}
+.rr-rk .n.realm{color:#f0a44a}
+.rr-rk .l{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:3px}
+
+/* achievements */
+.ach{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line)}
+.ach:last-child{border-bottom:none}
+.ach-ic{width:38px;height:38px;border-radius:8px;background:linear-gradient(135deg,#5a3a8f,#8e5fd0);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;border:1px solid rgba(255,255,255,.15)}
+.ach-meta{flex:1;min-width:0}
+.ach-name{font-size:12.5px;font-weight:700;color:#e8c66a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ach-date{font-size:11px;color:var(--faint)}
+
+/* boss grid (raids) */
+.raid-section{margin-bottom:30px}
+.raid-title{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.boss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.boss-card{position:relative;height:104px;border-radius:9px;overflow:hidden;cursor:pointer;border:1px solid var(--line);transition:border-color .2s,transform .15s;display:block}
 .boss-card:hover{border-color:rgba(79,142,255,.5);transform:translateY(-2px)}
 .boss-card img{width:100%;height:100%;object-fit:cover;display:block;filter:brightness(.55);transition:filter .2s}
-.boss-card:hover img{filter:brightness(.75)}
+.boss-card:hover img{filter:brightness(.78)}
 .boss-card-label{position:absolute;bottom:0;left:0;right:0;padding:10px 14px;background:linear-gradient(transparent,rgba(0,0,0,.85))}
-.boss-card-name{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff}
-.empty-card{height:110px;border-radius:8px;border:1px dashed rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:#3a3d4a;font-size:13px;cursor:pointer;transition:border-color .2s,color .2s}
-.empty-card:hover{border-color:rgba(79,142,255,.4);color:#4f8eff}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid;transition:all .15s}
+.boss-card-name{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fff}
+.empty-card{height:104px;border-radius:9px;border:1px dashed rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:#3a3d4a;font-size:13px;cursor:pointer;transition:.2s}
+.empty-card:hover{border-color:rgba(79,142,255,.4);color:var(--accent)}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid;transition:all .15s}
 .btn-ghost{background:transparent;border-color:rgba(255,255,255,.15);color:#a0a8ba}
 .btn-ghost:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.25)}
 .btn-primary{background:rgba(79,142,255,.15);border-color:rgba(79,142,255,.4);color:#7eb3ff}
 .btn-primary:hover{background:rgba(79,142,255,.25)}
 .btn-danger{background:rgba(220,60,60,.12);border-color:rgba(220,60,60,.35);color:#f87171}
-.btn-danger:hover{background:rgba(220,60,60,.22)}
 .btn-success{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.35);color:#4ade80}
 .btn-success:hover{background:rgba(74,222,128,.22)}
+.loading{text-align:center;padding:40px 20px;color:var(--faint);font-size:13px}
+.errbox{padding:16px 18px;color:#f0a4a4;font-size:12.5px;line-height:1.5}
+.errbox code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:11.5px}
+
+/* editor modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
-.modal{background:#13151f;border:1px solid rgba(255,255,255,.1);border-radius:12px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;padding:24px}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;padding:24px}
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
-.modal-title{font-size:16px;font-weight:700;color:#e0e2ea}
-.modal-close{background:none;border:none;color:#6b7080;font-size:22px;cursor:pointer;padding:0 6px;border-radius:4px;line-height:1}
-.modal-close:hover{background:rgba(255,255,255,.06);color:#e0e2ea}
-.ed-raid{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:16px;margin-bottom:12px}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{background:none;border:none;color:var(--faint);font-size:22px;cursor:pointer;padding:0 6px;border-radius:4px;line-height:1}
+.modal-close:hover{background:rgba(255,255,255,.06);color:var(--txt)}
+.ed-raid{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:12px}
 .ed-raid-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.ed-raid-name{font-size:14px;font-weight:700;color:#e0e2ea;flex:1}
+.ed-raid-name{font-size:14px;font-weight:700;flex:1}
 .ed-boss-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)}
 .ed-boss-row:last-of-type{border-bottom:none}
 .ed-boss-name{font-size:13px;color:#c0c8d8;flex:1;min-width:0}
-.ed-boss-path{font-size:11px;color:#6b7080;flex:2;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ed-boss-path{font-size:11px;color:var(--faint);flex:2;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .ed-add{background:rgba(79,142,255,.05);border:1px dashed rgba(79,142,255,.2);border-radius:6px;padding:12px;margin-top:10px}
-.ed-add-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#4f8eff;margin-bottom:8px}
+.ed-add-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
 .ed-row{display:flex;gap:8px;margin-bottom:4px}
-.ed-row input{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:5px;color:#e0e2ea;font-size:12px;padding:6px 10px;outline:none;min-width:0}
+.ed-row input{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:5px;color:var(--txt);font-size:12px;padding:6px 10px;outline:none;min-width:0}
 .ed-row input:focus{border-color:rgba(79,142,255,.5)}
-.ed-row input::placeholder{color:#3a3d4a}
 .ed-hint{font-size:10px;color:#3a3d4a;margin-top:2px}
-.ed-new-raid{background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.1);border-radius:8px;padding:14px;margin-bottom:4px}
-.ed-new-raid-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6b7080;margin-bottom:8px}
-.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07)}
-.loading{text-align:center;padding:80px 20px;color:#3a3d4a;font-size:14px}
+.ed-new-raid{background:rgba(255,255,255,.02);border:1px dashed var(--line);border-radius:8px;padding:14px}
+.ed-new-raid-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
 </style>
 </head>
 <body>
 
 <header class="site-header">
-  <div class="site-logo">WoW<span>Raid</span></div>
-  <div style="display:flex;gap:8px">
-    <button class="btn btn-ghost" onclick="openEditor()">⚙ Upravit manifest</button>
-  </div>
+  <div class="site-logo">Rapid<span>Evolution</span></div>
+  <button class="btn btn-ghost" onclick="openEditor()">⚙ Upravit raidy</button>
 </header>
 
-<main id="mainContent">
-  <div class="loading">Načítám raidy…</div>
-</main>
+<div class="wrap">
 
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg" id="heroBg"></div>
+    <div class="hero-inner">
+      <div class="crest" id="crest">
+        <svg viewBox="0 0 24 24" fill="#e8536b"><path d="M12 2c1.5 2.5 4 3 6 3-1 3-1 6-6 15C7 11 7 8 6 5c2 0 4.5-.5 6-3z"/></svg>
+      </div>
+      <div class="hero-meta">
+        <div class="guild-name" id="gName">Rapid Evolution EU</div>
+        <div class="guild-realm" id="gRealm">Drak'thul · EU</div>
+        <div class="guild-stats" id="gStats">
+          <div class="gstat"><span class="v">—</span><span class="l">Achiev. body</span></div>
+          <div class="gstat"><span class="v">—</span><span class="l">Členů</span></div>
+          <div class="gstat"><span class="v">—</span><span class="l">Založeno</span></div>
+        </div>
+      </div>
+      <div class="hero-nav">
+        <a class="navbtn" href="roster.html"><span class="ni">📋</span><span><span class="nt">Roster</span><br><span class="nd">Účast & progress</span></span></a>
+        <a class="navbtn" href="guide.html"><span class="ni">📖</span><span><span class="nt">Guide</span><br><span class="nd">Boss strategie</span></span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN GRID -->
+  <div class="grid2">
+    <!-- LEFT: roster table -->
+    <div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Guild Roster</span><span id="rosterCount" style="font-size:11px;color:var(--dim)"></span></div>
+        <div class="filters">
+          <div class="ffield"><label>Řazení</label>
+            <select id="fSort" onchange="renderRoster()">
+              <option value="rank">Guild Rank</option>
+              <option value="level">Level</option>
+              <option value="name">Jméno</option>
+              <option value="class">Třída</option>
+            </select></div>
+          <div class="ffield"><label>Třída</label><select id="fClass" onchange="renderRoster()"><option value="">Všechny třídy</option></select></div>
+          <div class="ffield"><label>Role</label>
+            <select id="fRole" onchange="renderRoster()">
+              <option value="">Všechny role</option>
+              <option value="tank">Tank</option>
+              <option value="healer">Healer</option>
+              <option value="dps">DPS</option>
+            </select></div>
+        </div>
+        <div id="rosterBody"><div class="loading">Načítám roster z Armory…</div></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: rankings + charts + achievements -->
+    <div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Raid Progress</span><span style="font-size:11px;color:var(--faint)">Raider.IO</span></div>
+        <div id="rankingsBody"><div class="loading">Načítám progress…</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Roster Overview</span></div>
+        <div class="panel-body">
+          <div class="chart-head">
+            <span class="chart-name">Class Breakdown</span>
+            <label class="maxtoggle"><input type="checkbox" id="maxClass" onchange="renderCharts()"> Max level only</label>
+          </div>
+          <div class="classbars" id="classBars"></div>
+          <div class="classlegend" id="classLegend"></div>
+          <div class="chart-head" style="margin-top:22px">
+            <span class="chart-name">Role Breakdown</span>
+            <label class="maxtoggle"><input type="checkbox" id="maxRole" onchange="renderCharts()"> Max level only</label>
+          </div>
+          <div class="rolebars" id="roleBars"></div>
+          <div style="font-size:10.5px;color:var(--faint);margin-top:10px;line-height:1.4">Role se odvozuje ze specu při posledním odhlášení; doplňuje se postupně při návštěvách.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Recent Achievements</span></div>
+        <div id="achBody"><div class="loading">Načítám…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RAIDS / BOSS GRID -->
+  <div id="raidsRoot"></div>
+
+</div>
+
+<!-- editor modal -->
 <div class="modal-overlay" id="editorModal">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title">Upravit manifest</span>
+      <span class="modal-title">Upravit manifest (raidy & bossové)</span>
       <button class="modal-close" onclick="closeEditor()">×</button>
     </div>
     <div id="editorBody"></div>
@@ -87,111 +278,261 @@ main{padding:32px 40px 60px}
 </div>
 
 <script>
+const API_BASE = 'https://raidguide-api.filip-tesarik1.workers.dev';
 const GH_RAW = 'https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/';
-let _manifest = { raids: [] };
+const HERO_BG = GH_RAW + 'Images/Roster/Roster_Background.jpg';
 
+const CLASS_COLORS = {
+  'Warrior':'#C69B6D','Paladin':'#F48CBA','Hunter':'#AAD372','Rogue':'#FFF468','Priest':'#FFFFFF',
+  'Death Knight':'#C41E3A','Shaman':'#0070DD','Mage':'#3FC7EB','Warlock':'#8788EE','Monk':'#00FF98',
+  'Druid':'#FF7C0A','Demon Hunter':'#A330C9','Evoker':'#33937F'
+};
+const CLASS_ORDER = ['Warrior','Paladin','Hunter','Rogue','Priest','Death Knight','Shaman','Mage','Warlock','Monk','Druid','Demon Hunter','Evoker'];
+const RAID_NAMES = {
+  'tier-mn-1':'Manaforge Omega','sporefall':'Sporefall','the-venomous-abyss':'The Venomous Abyss',
+  'nerubar-palace':"Nerub-ar Palace",'liberation-of-undermine':'Liberation of Undermine'
+};
+
+let _guild = null, _manifest = { raids: [] };
+
+function escH(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toSlug(s){ return s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+function maxLevel(){ return _guild ? Math.max(0,..._guild.members.map(m=>m.level||0)) : 80; }
+
+/* ---------- init ---------- */
 async function init(){
+  loadGuild();
+  loadRankings();
+  loadManifest();
+}
+
+async function loadGuild(){
+  document.getElementById('heroBg').style.backgroundImage = `url('${HERO_BG}')`;
+  try{
+    const r = await fetch(API_BASE + '/api/blizz/guild?_=' + Date.now());
+    const d = await r.json();
+    if(!r.ok || d.error) throw new Error(d.error || ('HTTP '+r.status));
+    _guild = d;
+    renderHero(); buildClassFilter(); renderRoster(); renderCharts(); renderAchievements();
+  }catch(e){
+    const msg = `<div class="errbox">Nepodařilo se načíst data z Armory: <code>${escH(e.message)}</code><br><br>
+      Zkontroluj, že jsou ve workeru nastavené secrets <code>BLIZZARD_CLIENT_ID</code> a <code>BLIZZARD_CLIENT_SECRET</code> a že je worker nasazený.</div>`;
+    document.getElementById('rosterBody').innerHTML = msg;
+    document.getElementById('achBody').innerHTML = '<div class="loading">—</div>';
+  }
+}
+
+async function loadRankings(){
+  try{
+    const r = await fetch(API_BASE + '/api/rankings?_=' + Date.now());
+    const d = await r.json();
+    if(!r.ok || d.error) throw new Error(d.error || ('HTTP '+r.status));
+    renderRankings(d);
+  }catch(e){
+    document.getElementById('rankingsBody').innerHTML = `<div class="errbox">Progress se nepodařilo načíst: <code>${escH(e.message)}</code></div>`;
+  }
+}
+
+/* ---------- hero ---------- */
+function renderHero(){
+  const g = _guild;
+  document.getElementById('gName').textContent = g.name || 'Guild';
+  document.getElementById('gRealm').textContent = (g.realm || '') + ' · ' + String(g.region||'').toUpperCase();
+  const ally = g.faction === 'ALLIANCE';
+  const crest = document.getElementById('crest');
+  crest.className = 'crest' + (ally ? ' ally' : '');
+  crest.querySelector('svg path').setAttribute('fill', ally ? '#5b9bf0' : '#e8536b');
+  document.getElementById('gStats').innerHTML = `
+    <div class="gstat"><span class="v"><span class="ic">●</span> ${(g.achievementPoints||0).toLocaleString()}</span><span class="l">Achiev. body</span></div>
+    <div class="gstat"><span class="v">${(g.memberCount||g.members.length).toLocaleString()}</span><span class="l">Členů</span></div>
+    <div class="gstat"><span class="v">${g.founded||'—'}</span><span class="l">Založeno</span></div>`;
+}
+
+/* ---------- roster table ---------- */
+function buildClassFilter(){
+  const sel = document.getElementById('fClass');
+  const present = CLASS_ORDER.filter(c => _guild.members.some(m=>m.className===c));
+  sel.innerHTML = '<option value="">Všechny třídy</option>' + present.map(c=>`<option value="${escH(c)}">${escH(c)}</option>`).join('');
+}
+
+let _rosterLimit = 100;
+function renderRoster(){
+  if(!_guild) return;
+  const sort = document.getElementById('fSort').value;
+  const fc = document.getElementById('fClass').value;
+  const fr = document.getElementById('fRole').value;
+  let rows = _guild.members.slice();
+  if(fc) rows = rows.filter(m=>m.className===fc);
+  if(fr) rows = rows.filter(m=>m.role===fr);
+  rows.sort((a,b)=>{
+    if(sort==='rank') return (a.rank-b.rank) || (b.level-a.level);
+    if(sort==='level') return (b.level-a.level) || (a.rank-b.rank);
+    if(sort==='name') return String(a.name).localeCompare(String(b.name));
+    if(sort==='class') return String(a.className).localeCompare(String(b.className)) || (b.level-a.level);
+    return 0;
+  });
+  const total = rows.length;
+  const shown = rows.slice(0, _rosterLimit);
+  document.getElementById('rosterCount').textContent = total + ' postav';
+  const body = `
+    <table class="roster">
+      <thead><tr>
+        <th>Jméno</th><th>Třída</th><th class="c">Role</th><th class="c">Level</th><th>Guild Rank</th>
+      </tr></thead>
+      <tbody>${shown.map(m=>{
+        const col = CLASS_COLORS[m.className] || '#cdd3e0';
+        const role = m.role||'?';
+        const rb = role==='tank'?'role-tank role-badge':role==='healer'?'role-healer role-badge':role==='dps'?'role-dps role-badge':'role-unk role-badge';
+        const rl = role==='tank'?'T':role==='healer'?'H':role==='dps'?'D':'?';
+        const rankTxt = m.rank===0 ? '<span class="rank-gm">Guild Master</span>' : `<span class="rank-cell">Rank ${m.rank}</span>`;
+        return `<tr>
+          <td><span class="pname" style="color:${col}">${escH(m.name)}</span> <span style="color:var(--faint);font-size:11px">${escH(m.raceName)}</span></td>
+          <td><span class="cls-pill" style="color:${col}">${escH(m.className||'—')}</span></td>
+          <td class="c"><span class="${rb}" title="${role}">${rl}</span></td>
+          <td class="c"><span class="lvl">${m.level||'—'}</span></td>
+          <td>${rankTxt}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+    ${total>_rosterLimit ? `<button class="showmore" onclick="_rosterLimit+=200;renderRoster()">Zobrazit dalších ${Math.min(200,total-_rosterLimit)} z ${total}</button>` : ''}`;
+  document.getElementById('rosterBody').innerHTML = body || '<div class="loading">Žádné postavy</div>';
+}
+
+/* ---------- charts ---------- */
+function renderCharts(){
+  if(!_guild) return;
+  const ml = maxLevel();
+  // class breakdown
+  const maxClass = document.getElementById('maxClass').checked;
+  const cmem = _guild.members.filter(m=> maxClass ? m.level===ml : true);
+  const counts = {}; CLASS_ORDER.forEach(c=>counts[c]=0);
+  cmem.forEach(m=>{ if(counts[m.className]!=null) counts[m.className]++; });
+  const present = CLASS_ORDER.filter(c=>counts[c]>0);
+  const maxC = Math.max(1,...present.map(c=>counts[c]));
+  document.getElementById('classBars').innerHTML = present.map(c=>{
+    const h = Math.round(counts[c]/maxC*100);
+    return `<div class="cbar" data-tip="${escH(c)}: ${counts[c]}" style="height:${h}%;background:${CLASS_COLORS[c]}"></div>`;
+  }).join('') || '<div style="color:var(--faint);font-size:12px;margin:auto">Žádná data</div>';
+  document.getElementById('classLegend').innerHTML = present.map(c=>`<span class="cldot" title="${escH(c)}: ${counts[c]}" style="background:${CLASS_COLORS[c]}"></span>`).join('');
+
+  // role breakdown
+  const maxRole = document.getElementById('maxRole').checked;
+  const rmem = _guild.members.filter(m=> maxRole ? m.level===ml : true);
+  const rc = {tank:0,healer:0,dps:0};
+  rmem.forEach(m=>{ if(rc[m.role]!=null) rc[m.role]++; });
+  const maxR = Math.max(1, rc.tank, rc.healer, rc.dps);
+  const roleDef = [['tank','T','#2b73d6'],['healer','H','#3aa757'],['dps','D','#c0392b']];
+  document.getElementById('roleBars').innerHTML = roleDef.map(([k,lab,col])=>{
+    const w = Math.round(rc[k]/maxR*100);
+    return `<div class="rolerow">
+      <span class="ricon" style="background:${col}">${lab}</span>
+      <div class="rbar-wrap"><div class="rbar" style="width:${Math.max(8,w)}%;background:${col}">${rc[k]}</div></div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- achievements ---------- */
+function renderAchievements(){
+  const a = (_guild && _guild.achievements) || [];
+  if(!a.length){ document.getElementById('achBody').innerHTML = '<div class="loading">Žádné nedávné achievementy</div>'; return; }
+  document.getElementById('achBody').innerHTML = a.map(ev=>{
+    const d = ev.timestamp ? new Date(ev.timestamp) : null;
+    const ds = d ? `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}` : '';
+    return `<div class="ach"><div class="ach-ic">🏆</div><div class="ach-meta">
+      <div class="ach-name">${escH(ev.name||'Achievement')}</div><div class="ach-date">${ds}</div></div></div>`;
+  }).join('');
+}
+
+/* ---------- rankings ---------- */
+function renderRankings(d){
+  const prog = d.raid_progression || {};
+  const ranks = d.raid_rankings || {};
+  const keys = Object.keys(prog).filter(k=>(prog[k].total_bosses||0)>0);
+  if(!keys.length){ document.getElementById('rankingsBody').innerHTML='<div class="loading">Žádná data</div>'; return; }
+  document.getElementById('rankingsBody').innerHTML = keys.map(k=>{
+    const p = prog[k]; const rk = ranks[k]||{};
+    const name = RAID_NAMES[k] || k.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    // highest difficulty with kills
+    let diff='mythic', killed=p.mythic_bosses_killed||0, col='#ff8000';
+    if(killed===0){ if((p.heroic_bosses_killed||0)>0){diff='heroic';killed=p.heroic_bosses_killed;col='#a335ee';}
+      else {diff='normal';killed=p.normal_bosses_killed||0;col='#1eff00';} }
+    const pct = Math.round(killed/(p.total_bosses||1)*100);
+    const r = rk[diff] || {};
+    return `<div class="rank-raid">
+      <div class="rr-name">${escH(name)}</div>
+      <div class="rr-prog">
+        <div class="rr-bar"><div class="rr-fill" style="width:${pct}%;background:${col}"></div></div>
+        <span class="rr-sum">${escH(p.summary||'')}</span>
+      </div>
+      <div class="rr-ranks">
+        <div class="rr-rk"><div class="n">${r.world?'#'+r.world.toLocaleString():'—'}</div><div class="l">World</div></div>
+        <div class="rr-rk"><div class="n region">${r.region?'#'+r.region.toLocaleString():'—'}</div><div class="l">Region</div></div>
+        <div class="rr-rk"><div class="n realm">${r.realm?'#'+r.realm.toLocaleString():'—'}</div><div class="l">Realm</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- raids / boss grid ---------- */
+async function loadManifest(){
   try{
     const r = await fetch(GH_RAW + 'Images/manifest.json?_=' + Date.now());
     if(r.ok) _manifest = await r.json();
   }catch(e){}
-  renderDashboard();
+  renderRaids();
 }
-
-function renderDashboard(){
-  const main = document.getElementById('mainContent');
+function renderRaids(){
+  const root = document.getElementById('raidsRoot');
   const raids = _manifest.raids || [];
-  if(!raids.length){
-    main.innerHTML = '<div class="loading">Žádné raidy v manifestu.<br><br><button class="btn btn-primary" onclick="openEditor()">+ Přidat raid</button></div>';
-    return;
-  }
-  main.innerHTML = raids.map(raid => `
+  if(!raids.length){ root.innerHTML = '<div class="raid-section"><div class="raid-title">Raidy & Guides</div><div class="loading">Žádné raidy. <button class="btn btn-primary" onclick="openEditor()">+ Přidat</button></div></div>'; return; }
+  root.innerHTML = raids.map(raid=>`
     <section class="raid-section">
-      <div class="raid-title">${escH(raid.name)}</div>
+      <div class="raid-title">${escH(raid.name)} — Guides</div>
       <div class="boss-grid">
         ${(raid.bosses||[]).map(boss=>`
           <a class="boss-card" href="guide.html?boss=${encodeURIComponent(boss.slug)}">
-            <img src="${GH_RAW}${escH(boss.thumbnail)}" alt="${escH(boss.name)}" onerror="this.style.opacity='0'">
-            <div class="boss-card-label">
-              <div class="boss-card-name">${escH(boss.name)}</div>
-            </div>
-          </a>
-        `).join('')}
+            <img src="${GH_RAW}${escH(boss.thumbnail||boss.image)}" alt="${escH(boss.name)}" onerror="this.style.opacity='0'">
+            <div class="boss-card-label"><div class="boss-card-name">${escH(boss.name)}</div></div>
+          </a>`).join('')}
         <div class="empty-card" onclick="openEditor()">+ Přidat bosse</div>
       </div>
-    </section>
-  `).join('');
+    </section>`).join('');
 }
 
-function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function toSlug(s){ return s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
-
+/* ---------- manifest editor ---------- */
 function openEditor(){ renderEditor(); document.getElementById('editorModal').classList.add('open'); }
 function closeEditor(){ document.getElementById('editorModal').classList.remove('open'); }
-
 function renderEditor(){
   const raids = _manifest.raids || [];
   document.getElementById('editorBody').innerHTML = raids.map((raid,ri)=>`
     <div class="ed-raid">
-      <div class="ed-raid-head">
-        <span class="ed-raid-name">${escH(raid.name)}</span>
-        <button class="btn btn-danger" onclick="removeRaid(${ri})" style="padding:3px 10px;font-size:11px">Smazat raid</button>
-      </div>
+      <div class="ed-raid-head"><span class="ed-raid-name">${escH(raid.name)}</span>
+        <button class="btn btn-danger" onclick="removeRaid(${ri})" style="padding:3px 10px;font-size:11px">Smazat raid</button></div>
       ${(raid.bosses||[]).map((boss,bi)=>`
-        <div class="ed-boss-row">
-          <span class="ed-boss-name">${escH(boss.name)}</span>
+        <div class="ed-boss-row"><span class="ed-boss-name">${escH(boss.name)}</span>
           <span class="ed-boss-path" title="${escH(boss.image)}">${escH(boss.image)}</span>
-          <button class="btn btn-danger" onclick="removeBoss(${ri},${bi})" style="padding:2px 8px;font-size:11px">×</button>
-        </div>
-      `).join('')}
-      <div class="ed-add">
-        <div class="ed-add-title">Přidat bosse do ${escH(raid.name)}</div>
-        <div class="ed-row">
-          <input type="text" id="bossName_${ri}" placeholder="Název bosse">
-          <input type="text" id="bossImg_${ri}" placeholder="Images/${escH(raid.slug)}/NazevBosse.png">
-        </div>
+          <button class="btn btn-danger" onclick="removeBoss(${ri},${bi})" style="padding:2px 8px;font-size:11px">×</button></div>`).join('')}
+      <div class="ed-add"><div class="ed-add-title">Přidat bosse do ${escH(raid.name)}</div>
+        <div class="ed-row"><input type="text" id="bossName_${ri}" placeholder="Název bosse">
+          <input type="text" id="bossImg_${ri}" placeholder="Images/${escH(raid.slug)}/NazevBosse.png"></div>
         <div class="ed-hint">Slug se vygeneruje automaticky z názvu</div>
-        <button class="btn btn-primary" style="margin-top:8px;font-size:11px" onclick="addBoss(${ri})">+ Přidat bosse</button>
-      </div>
-    </div>
-  `).join('') + `
-    <div class="ed-new-raid">
-      <div class="ed-new-raid-title">Přidat nový raid</div>
-      <div class="ed-row">
-        <input type="text" id="newRaidName" placeholder="Název raidu">
-        <button class="btn btn-primary" style="font-size:11px" onclick="addRaid()">+ Vytvořit</button>
-      </div>
-    </div>`;
+        <button class="btn btn-primary" style="margin-top:8px;font-size:11px" onclick="addBoss(${ri})">+ Přidat bosse</button></div>
+    </div>`).join('') + `
+    <div class="ed-new-raid"><div class="ed-new-raid-title">Přidat nový raid</div>
+      <div class="ed-row"><input type="text" id="newRaidName" placeholder="Název raidu">
+        <button class="btn btn-primary" style="font-size:11px" onclick="addRaid()">+ Vytvořit</button></div></div>`;
 }
-
 function addBoss(ri){
   const name=(document.getElementById('bossName_'+ri).value||'').trim();
   const img=(document.getElementById('bossImg_'+ri).value||'').trim();
   if(!name||!img){alert('Vyplň název i cestu k obrázku');return;}
   (_manifest.raids[ri].bosses=_manifest.raids[ri].bosses||[]).push({slug:toSlug(name),name,thumbnail:img,image:img});
-  renderEditor();renderDashboard();
+  renderEditor();renderRaids();
 }
-function removeBoss(ri,bi){
-  if(!confirm('Smazat bosse?'))return;
-  _manifest.raids[ri].bosses.splice(bi,1);
-  renderEditor();renderDashboard();
-}
-function addRaid(){
-  const name=(document.getElementById('newRaidName').value||'').trim();
-  if(!name){alert('Vyplň název raidu');return;}
-  _manifest.raids.push({slug:toSlug(name),name,bosses:[]});
-  renderEditor();renderDashboard();
-}
-function removeRaid(ri){
-  if(!confirm('Smazat celý raid?'))return;
-  _manifest.raids.splice(ri,1);
-  renderEditor();renderDashboard();
-}
-function downloadManifest(){
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([JSON.stringify(_manifest,null,2)],{type:'application/json'}));
-  a.download='manifest.json';a.click();
-}
+function removeBoss(ri,bi){ if(!confirm('Smazat bosse?'))return; _manifest.raids[ri].bosses.splice(bi,1); renderEditor();renderRaids(); }
+function addRaid(){ const name=(document.getElementById('newRaidName').value||'').trim(); if(!name){alert('Vyplň název raidu');return;} _manifest.raids.push({slug:toSlug(name),name,bosses:[]}); renderEditor();renderRaids(); }
+function removeRaid(ri){ if(!confirm('Smazat celý raid?'))return; _manifest.raids.splice(ri,1); renderEditor();renderRaids(); }
+function downloadManifest(){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(_manifest,null,2)],{type:'application/json'})); a.download='manifest.json';a.click(); }
 
 init();
 </script>

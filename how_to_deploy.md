@@ -42,6 +42,30 @@ Po deployi dostaneš URL:
 
 ---
 
+## 2b. Nastav Blizzard API secrets (pro úvodní stránku / Armory data)
+
+Založ si Blizzard API klienta na https://develop.battle.net/access/clients
+(Create Client → dostaneš **Client ID** a **Client Secret**).
+
+```bash
+cd worker
+wrangler secret put BLIZZARD_CLIENT_ID
+# vlož Client ID
+
+wrangler secret put BLIZZARD_CLIENT_SECRET
+# vlož Client Secret
+
+wrangler deploy
+```
+
+Worker pak sám dělá OAuth a tahá guild roster / achievementy z `eu.api.blizzard.com`.
+Rankings (progress + World/Region/Realm) jdou přes Raider.IO (bez klíče).
+
+Guild se dá změnit přes query param: `/api/blizz/guild?realm=drakthul&name=rapid-evolution-eu&region=eu`
+(default je Rapid Evolution EU). Stejně tak `/api/rankings?realm=...&name=Rapid Evolution EU&region=eu`.
+
+---
+
 ## 3. Aktualizuj API_BASE v guide.html
 
 Najdi v `guide.html`:
