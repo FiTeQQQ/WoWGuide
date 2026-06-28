@@ -184,7 +184,7 @@
     <div class="wcl-row"><label class="wcl-chk"><input type="checkbox" id="wclGuildChk"> Načíst i <b>guild log</b> (posledních 6 týdnů)</label></div>
     <div class="wcl-grid" id="wclGuildFields">
       <div class="wcl-field"><label>Guild (jen pro guild log)</label><input id="wclGuild" placeholder="Název guildy"></div>
-      <div class="wcl-field"><label>Realm (EU) — nutné i pro progress</label><input id="wclRealm" list="euRealms" placeholder="vyber / napiš realm" autocomplete="off"></div>
+      <div class="wcl-field"><label>Realm (EU) — nutné i pro progress</label><input id="wclRealm" list="euRealms" value="drakthul" placeholder="vyber / napiš realm" autocomplete="off"></div>
       <div class="wcl-field"><label>Region</label><select id="wclRegion"><option>EU</option><option>US</option><option>KR</option><option>TW</option></select></div>
     </div>
     <div class="wcl-row" style="position:relative;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
@@ -199,6 +199,7 @@
       <textarea id="wclReports" rows="3" placeholder="https://www.warcraftlogs.com/reports/aBcD1234...&#10;aBcD1234..."></textarea></div>
     <div class="wcl-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button class="btn btn-accent" onclick="wclRun()" id="wclRunBtn">↻ Načíst účast (6 týdnů)</button>
+      <button class="btn btn-ghost" onclick="wclLoadProgress()" id="wclProgBtn" title="Načte jen progress (9/9 H/M) pro Trial/Member z jejich postav — nepotřebuje žádný log">↻ Načíst jen progress</button>
       <span class="status" id="wclStatus"></span>
     </div>
     <div id="wclUnassigned"></div>
@@ -655,7 +656,7 @@ function wclToggle(){
     document.getElementById('wclId').value=localStorage.getItem('wcl_id')||'';
     document.getElementById('wclSec').value=localStorage.getItem('wcl_sec')||'';
     document.getElementById('wclGuild').value=localStorage.getItem('wcl_guild')||'';
-    document.getElementById('wclRealm').value=localStorage.getItem('wcl_realm')||'';
+    document.getElementById('wclRealm').value=localStorage.getItem('wcl_realm')||'drakthul';
     document.getElementById('wclRegion').value=localStorage.getItem('wcl_region')||'EU';
     renderZoneChips();
   }
@@ -769,6 +770,43 @@ async function wclCharProgress(token,name,realm,region,zoneID){
 }
 // Vybrané raidy pro progress (z localStorage) — pole {id,name,total}
 function progZones(){ try{ return JSON.parse(localStorage.getItem('wcl_zones')||'[]'); }catch(e){ return []; } }
+// Samostatné načtení progressu (9/9 H/M) — bez logů, jen z žebříčků postav. Jen Trial/Member.
+async function wclLoadProgress(){
+  const btn=document.getElementById('wclProgBtn'); if(btn) btn.disabled=true;
+  const st=document.getElementById('wclStatus');
+  try{
+    const zones=progZones();
+    if(!zones.length){ wclLog('Vyber aspoň jeden raid (Raidy ▾ → Načíst raidy).','err'); return; }
+    const realm=(document.getElementById('wclRealm').value||localStorage.getItem('wcl_realm')||'drakthul').trim();
+    const region=(document.getElementById('wclRegion').value||localStorage.getItem('wcl_region')||'EU').trim();
+    if(!realm){ wclLog('Vyplň Realm (slug).','err'); return; }
+    localStorage.setItem('wcl_realm',realm); localStorage.setItem('wcl_region',region);
+    wclLog('Získávám token…'); const token=await wclToken(); wclLog('Token OK.','ok');
+    const targets=people.filter(p=>p.rank==='Trial'||p.rank==='Member');
+    if(!targets.length){ wclLog('Žádní Trial/Member — progress se počítá jen pro ně (Core se neřeší).','err'); return; }
+    wclLog('Načítám progress pro '+targets.length+' hráčů × '+zones.length+' raid(y)…');
+    let j=0;
+    for(const p of targets){
+      j++; st.textContent=`Progress ${j}/${targets.length}…`;
+      p.prog={};
+      for(const z of zones){
+        const hSet=new Set(), mSet=new Set();
+        for(const ch of (p.chars||[])){
+          if(!ch.name) continue;
+          try{ const pr=await wclCharProgress(token,ch.name,realm,region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); }
+          catch(e){ wclLog(`✗ progress ${ch.name} (${z.name}): ${e.message}`,'err'); }
+          await new Promise(r=>setTimeout(r,120));
+        }
+        p.prog[z.id]={name:z.name,total:z.total,hKills:[...hSet],mKills:[...mSet]};
+      }
+      wclLog(`✓ progress ${p.name}`);
+    }
+    save(); render();
+    st.textContent='Progress hotov ✓';
+    wclLog('Progress načten pro '+targets.length+' hráčů.','ok');
+  }catch(e){ st.textContent='Chyba'; wclLog('CHYBA progress: '+e.message,'err'); }
+  finally{ if(btn) btn.disabled=false; }
+}
 async function wclRun(){
   const btn=document.getElementById('wclRunBtn'); btn.disabled=true;
   _wclMeta={}; _wclIcon={};
@@ -807,7 +845,7 @@ async function wclRun(){
     // Progress (Trial/Member) — nakonfigurované raidy, součet přes alty (union zabitých bossů)
     const zones=progZones();
     if(zones.length){
-      const realm=(document.getElementById('wclRealm').value||localStorage.getItem('wcl_realm')||'').trim();
+      const realm=(document.getElementById('wclRealm').value||localStorage.getItem('wcl_realm')||'drakthul').trim();
       const region=(document.getElementById('wclRegion').value||localStorage.getItem('wcl_region')||'EU').trim();
       if(!realm){ wclLog('Pro progress vyplň Realm (slug) + vyber raid.','err'); }
       else{
