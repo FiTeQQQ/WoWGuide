@@ -259,8 +259,8 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
         </div>
       </div>
       <div class="hero-nav">
-        <a class="navbtn" href="roster.html"><span class="ni">📋</span><span><span class="nt">Roster</span><br><span class="nd">Účast & progress</span></span></a>
-        <a class="navbtn" href="#raidsRoot" onclick="event.preventDefault();document.getElementById('raidsRoot').scrollIntoView({behavior:'smooth'})"><span class="ni">📖</span><span><span class="nt">Guide</span><br><span class="nd">Vyber bosse níž</span></span></a>
+        <a class="navbtn" href="roster.html"><span><span class="nt">Roster</span><br><span class="nd">Účast & progress</span></span></a>
+        <a class="navbtn" href="#raidsRoot" onclick="event.preventDefault();document.getElementById('raidsRoot').scrollIntoView({behavior:'smooth'})"><span><span class="nt">Guide</span><br><span class="nd">Vyber bosse níž</span></span></a>
       </div>
     </div>
   </section>
@@ -398,7 +398,7 @@ function applyTheme(m){
   const b = document.getElementById('themeBtn');
   if(b) b.textContent = themeMode === 'glass' ? '🪟 Glass' : '🗔 Classic';
   const bg = document.querySelector('.glass-bg');
-  if(bg && !bg.style.backgroundImage) bg.style.backgroundImage = `url('${GLASS_BG}?v=2')`;
+  if(bg && !bg.style.backgroundImage) bg.style.backgroundImage = `url('${GLASS_BG}?v=3')`;
 }
 function toggleTheme(){
   applyTheme(themeMode === 'glass' ? 'classic' : 'glass');
@@ -590,7 +590,7 @@ function renderAchievements(){
   // View all → Armory guild achievements
   const va = document.getElementById('achViewAll');
   if(va && g.realmSlug) va.href = `https://worldofwarcraft.com/en-gb/guild/${g.region||'eu'}/${g.realmSlug}/${(g.name||'').toLowerCase().replace(/\s+/g,'-')}/achievement`;
-  const a = g.achievements || [];
+  const a = (g.achievements || []).slice(0, 4);
   if(!a.length){ document.getElementById('achBody').innerHTML = '<div class="loading">Žádné nedávné achievementy</div>'; return; }
   document.getElementById('achBody').innerHTML = a.map(ev=>{
     const d = ev.timestamp ? new Date(ev.timestamp) : null;
