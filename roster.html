@@ -118,6 +118,7 @@
   .fchip{padding:4px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);color:var(--text-dim);font-size:12px;font-weight:600;cursor:pointer;user-select:none;transition:all .12s}
   .fchip.on{border-color:var(--accent-border);color:var(--accent);background:rgba(79,142,255,.12)}
   .fchip:hover{border-color:var(--accent-border)}
+  .zone-dd{position:absolute;z-index:60;left:0;right:0;margin-top:4px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.55);max-height:300px;overflow-y:auto}
 </style>
 </head>
 <body>
@@ -153,12 +154,16 @@
     <div class="wcl-row"><label class="wcl-chk"><input type="checkbox" id="wclGuildChk"> Načíst i <b>guild log</b> (posledních 6 týdnů)</label></div>
     <div class="wcl-grid" id="wclGuildFields">
       <div class="wcl-field"><label>Guild (jen pro guild log)</label><input id="wclGuild" placeholder="Název guildy"></div>
-      <div class="wcl-field"><label>Realm (slug) — nutné i pro progress</label><input id="wclRealm" placeholder="napr. twisting-nether"></div>
+      <div class="wcl-field"><label>Realm (EU) — nutné i pro progress</label><input id="wclRealm" list="euRealms" placeholder="vyber / napiš realm" autocomplete="off"></div>
       <div class="wcl-field"><label>Region</label><select id="wclRegion"><option>EU</option><option>US</option><option>KR</option><option>TW</option></select></div>
     </div>
-    <div class="wcl-row">
-      <label style="display:block;margin-bottom:5px;font-size:11px;color:var(--text-dim)">Raidy pro progress — <button class="btn btn-ghost" style="font-size:11px;padding:3px 9px" onclick="wclLoadZones()">Načíst raidy</button> a zaškrtni, které sledovat (každý = jeden sloupec):</label>
-      <div class="filterbar" id="wclZoneChips" style="margin-bottom:0"><span class="am-hint">Klikni „Načíst raidy".</span></div>
+    <div class="wcl-row" style="position:relative;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <label style="display:block;margin-bottom:5px;font-size:11px;color:var(--text-dim)">Raidy pro progress (každý vybraný = jeden sloupec)</label>
+        <button class="btn btn-ghost" id="wclZoneBtn" onclick="toggleZoneDD(event)" style="width:100%;justify-content:space-between">Vyber raidy ▾</button>
+        <div id="wclZoneDD" class="zone-dd" style="display:none"><div class="filterbar" id="wclZoneChips" style="margin:0"><span class="am-hint">Klikni „Načíst raidy".</span></div></div>
+      </div>
+      <button class="btn btn-ghost" onclick="wclLoadZones()">Načíst raidy</button>
     </div>
     <div class="wcl-row"><label style="display:block;margin-bottom:4px;font-size:11px;color:var(--text-dim)">Ruční reporty (URL nebo kódy, jeden na řádek) — i personal logy</label>
       <textarea id="wclReports" rows="3" placeholder="https://www.warcraftlogs.com/reports/aBcD1234...&#10;aBcD1234..."></textarea></div>
@@ -173,6 +178,10 @@
   <div class="card"><div id="tableWrap"></div></div>
   <div class="legend">⚠ Trial bez jediného Heroic raidu je červeně zvýrazněný. WCL auto-načítání účasti přidáme v dalším kroku. Klikni na ▸ u hráče pro slučování altů.</div>
 </div>
+<datalist id="euRealms">
+<option value="drakthul">Drak'thul</option><option value="draenor">Draenor</option><option value="tarren-mill">Tarren Mill</option><option value="kazzak">Kazzak</option><option value="twisting-nether">Twisting Nether</option><option value="ravencrest">Ravencrest</option><option value="silvermoon">Silvermoon</option><option value="argent-dawn">Argent Dawn</option><option value="stormscale">Stormscale</option><option value="sylvanas">Sylvanas</option><option value="outland">Outland</option><option value="ragnaros">Ragnaros</option><option value="defias-brotherhood">Defias Brotherhood</option><option value="the-maelstrom">The Maelstrom</option><option value="magtheridon">Magtheridon</option><option value="blackmoore">Blackmoore</option><option value="doomhammer">Doomhammer</option><option value="dragonblight">Dragonblight</option><option value="emerald-dream">Emerald Dream</option><option value="hellfire">Hellfire</option><option value="kilrogg">Kilrogg</option><option value="nagrand">Nagrand</option><option value="nordrassil">Nordrassil</option><option value="runetotem">Runetotem</option><option value="terenas">Terenas</option><option value="turalyon">Turalyon</option><option value="aerie-peak">Aerie Peak</option><option value="al-akir">Al'Akir</option><option value="alonsus">Alonsus</option><option value="anachronos">Anachronos</option><option value="antonidas">Antonidas</option><option value="arathor">Arathor</option><option value="azjol-nerub">Azjol-Nerub</option><option value="blades-edge">Blade's Edge</option><option value="bloodfeather">Bloodfeather</option><option value="bronzebeard">Bronzebeard</option><option value="burning-blade">Burning Blade</option><option value="burning-legion">Burning Legion</option><option value="chamber-of-aspects">Chamber of Aspects</option><option value="darkmoon-faire">Darkmoon Faire</option><option value="darksorrow">Darksorrow</option><option value="dentarg">Dentarg</option><option value="earthen-ring">Earthen Ring</option><option value="frostmane">Frostmane</option><option value="frostwhisper">Frostwhisper</option><option value="garona">Garona</option><option value="genjuros">Genjuros</option><option value="gilneas">Gilneas</option><option value="grim-batol">Grim Batol</option><option value="hyjal">Hyjal</option><option value="khadgar">Khadgar</option><option value="kul-tiras">Kul Tiras</option><option value="laughing-skull">Laughing Skull</option><option value="lightbringer">Lightbringer</option><option value="lightnings-blade">Lightning's Blade</option><option value="malygos">Malygos</option><option value="moonglade">Moonglade</option><option value="ner-zhul">Ner'zhul</option><option value="proudmoore">Proudmoore</option><option value="quelthalas">Quel'Thalas</option><option value="saurfang">Saurfang</option><option value="shattered-hand">Shattered Hand</option><option value="steamwheedle-cartel">Steamwheedle Cartel</option><option value="sunstrider">Sunstrider</option><option value="thrall">Thrall</option><option value="tichondrius">Tichondrius</option><option value="veknilash">Vek'nilash</option><option value="wildhammer">Wildhammer</option><option value="xavius">Xavius</option><option value="zenedar">Zenedar</option><option value="zuljin">Zul'jin</option><option value="aggramar">Aggramar</option><option value="aszune">Aszune</option><option value="bladefist">Bladefist</option><option value="bloodhoof">Bloodhoof</option><option value="deathwing">Deathwing</option><option value="dunemaul">Dunemaul</option><option value="emeriss">Emeriss</option><option value="eonar">Eonar</option><option value="executus">Executus</option><option value="haomarush">Haomarush</option><option value="kor-gall">Kor'gall</option><option value="mazrigos">Mazrigos</option><option value="shadowsong">Shadowsong</option><option value="skullcrusher">Skullcrusher</option><option value="spinebreaker">Spinebreaker</option><option value="stormrage">Stormrage</option><option value="thunderhorn">Thunderhorn</option><option value="trollbane">Trollbane</option><option value="vashj">Vashj</option><option value="vekn">Vek'nilash</option>
+</datalist>
+
 <!-- Přidat hráče modal -->
 <div class="addmodal-bg" id="addModal">
   <div class="addmodal">
@@ -613,11 +622,15 @@ async function wclLoadZones(){
   }catch(e){ wclLog('Načtení raidů selhalo: '+e.message,'err'); }
 }
 function renderZoneChips(){
-  const el=document.getElementById('wclZoneChips'); if(!el) return;
+  const el=document.getElementById('wclZoneChips');
+  const btn=document.getElementById('wclZoneBtn'); if(btn) btn.textContent='Raidy ('+progZones().length+') ▾';
+  if(!el) return;
   const all=_zonesAll(); const selIds=new Set(progZones().map(z=>String(z.id)));
   if(!all.length){ el.innerHTML='<span class="am-hint">Klikni „Načíst raidy".</span>'; return; }
   el.innerHTML=all.map(z=>`<span class="fchip ${selIds.has(String(z.id))?'on':''}" onclick="toggleZone(${z.id})">${esc(z.name)} (${z.total})</span>`).join('');
 }
+function toggleZoneDD(e){ if(e)e.stopPropagation(); const dd=document.getElementById('wclZoneDD'); if(!dd)return; const show=dd.style.display==='none'; dd.style.display=show?'block':'none'; if(show) setTimeout(()=>document.addEventListener('mousedown',_zoneDDClose),0); }
+function _zoneDDClose(e){ const dd=document.getElementById('wclZoneDD'),btn=document.getElementById('wclZoneBtn'); if(dd&&!dd.contains(e.target)&&e.target!==btn){ dd.style.display='none'; document.removeEventListener('mousedown',_zoneDDClose); } }
 function toggleZone(id){
   const all=_zonesAll(); let sel=progZones();
   const z=all.find(x=>String(x.id)===String(id)); if(!z) return;
