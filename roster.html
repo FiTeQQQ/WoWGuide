@@ -1142,14 +1142,21 @@ function _guildRealms(){
   return [...new Set([main].concat(extra).filter(Boolean))];
 }
 // Zjisti realm postavy: známý server, nebo probni guild realmy (první s killy vyhraje)
-async function _resolveCharRealm(token,name,region,probeZoneId){
-  const realms=_guildRealms();
-  if(realms.length<=1) return realms[0]||'drakthul';
+async function _resolveCharRealm(token,name,region,zoneIds,preferred){
+  let realms=_guildRealms();
+  if(realms.length<=1) return realms[0]||'';
+  if(preferred && realms.includes(preferred)) realms=[preferred].concat(realms.filter(r=>r!==preferred));
+  const zids=Array.isArray(zoneIds)?zoneIds:[zoneIds];
   for(const rl of realms){
-    try{ const pr=await wclCharProgress(token,name,rl,region,probeZoneId); if((pr.hKills.length+pr.mKills.length)>0) return rl; }catch(e){}
-    await new Promise(r=>setTimeout(r,80));
+    let kills=0;
+    for(const zid of zids){
+      try{ const pr=await wclCharProgress(token,name,rl,region,zid); kills+=pr.hKills.length+pr.mKills.length; }catch(e){}
+      if(kills>0) break;
+      await new Promise(r=>setTimeout(r,60));
+    }
+    if(kills>0) return rl; // realm s killy vyhrává
   }
-  return ''; // žádný realm neměl killy → neukládej (zkusí se znovu příště)
+  return ''; // nikde killy → neměň uložený realm
 }
 // Vybrané raidy pro progress (z localStorage) — pole {id,name,total}
 function progZones(){ try{ return JSON.parse(localStorage.getItem('wcl_zones')||'[]'); }catch(e){ return []; } }
@@ -1196,11 +1203,12 @@ async function wclLoadProgress(){
     for(const p of targets){
       j++; st.textContent=`Progress ${j}/${targets.length}…`;
       p.prog={};
+      for(const ch of (p.chars||[])){ if(!ch.name)continue; try{ const _r=await _resolveCharRealm(token,ch.name,region,zones.map(z=>z.id),ch.server); if(_r) ch.server=_r; }catch(_e){} }
       for(const z of zones){
         const hSet=new Set(), mSet=new Set();
         for(const ch of (p.chars||[])){
           if(!ch.name) continue;
-          if(!ch.server){ try{ const _r=await _resolveCharRealm(token,ch.name,region,z.id); if(_r) ch.server=_r; }catch(_e){} } try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
+          try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
           catch(e){ wclLog(`✗ progress ${ch.name} (${z.name}): ${e.message}`,'err'); }
           await new Promise(r=>setTimeout(r,120));
         }
@@ -1263,11 +1271,12 @@ async function wclRun(){
         for(const p of targets){
           j++; st.textContent=`Progress ${j}/${targets.length}…`;
           p.prog={};
+          for(const ch of (p.chars||[])){ if(!ch.name)continue; try{ const _r=await _resolveCharRealm(token,ch.name,region,zones.map(z=>z.id),ch.server); if(_r) ch.server=_r; }catch(_e){} }
           for(const z of zones){
             const hSet=new Set(), mSet=new Set();
             for(const ch of (p.chars||[])){
               if(!ch.name) continue;
-              if(!ch.server){ try{ const _r=await _resolveCharRealm(token,ch.name,region,z.id); if(_r) ch.server=_r; }catch(_e){} } try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
+              try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
               catch(e){ wclLog(`✗ progress ${ch.name} (${z.name}): ${e.message}`,'err'); }
               await new Promise(r=>setTimeout(r,120));
             }
