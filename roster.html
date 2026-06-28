@@ -70,6 +70,9 @@
   .ccol{white-space:nowrap}
   body.edit-on th.coldrag{cursor:grab}
   body.edit-on th.coldrag:hover{background:rgba(255,255,255,.05)}
+  th.coldrag{position:relative}
+  .colresize{position:absolute;top:0;right:0;width:7px;height:100%;cursor:col-resize;z-index:3}
+  .colresize:hover{background:rgba(79,142,255,.45)}
   th.cedit{vertical-align:top;cursor:grab}
   .cedit-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
   .cdrag{color:var(--text-dim);cursor:grab;font-size:12px}
@@ -401,6 +404,33 @@ let _progTips=[];        // data pro stylované tooltipy progressu
 let ranks=['Core','Member','Trial'];
 let customCols=[];          // vlastní sloupce [{id,name,type,options}]
 let colOrder=[];            // pořadí VŠECH sloupců (klíče: name/progress/h/m/note + custom id)
+let colWidths={};           // šířky sloupců (px), klíč = klíč sloupce — lokální preference
+function _colW(key){ const d={name:180,progress:118,h:100,m:100,note:160}; return (colWidths&&colWidths[key])||d[key]||120; }
+function _thW(key){ return `data-colkey="${key}" style="width:${_colW(key)}px"`; }
+function _rzH(key){ return `<span class="colresize" onmousedown="colResizeStart(event,'${key}')" onclick="event.stopPropagation()"></span>`; }
+let _rz=null;
+function colResizeStart(e,key){
+  e.preventDefault(); e.stopPropagation();
+  const th=e.target.closest('th'); if(!th) return;
+  _rz={key,startX:e.clientX,startW:th.getBoundingClientRect().width};
+  document.addEventListener('mousemove',colResizeMove);
+  document.addEventListener('mouseup',colResizeEnd);
+  document.body.style.userSelect='none';
+}
+function colResizeMove(e){
+  if(!_rz) return;
+  const w=Math.max(46,Math.round(_rz.startW+(e.clientX-_rz.startX)));
+  colWidths[_rz.key]=w;
+  document.querySelectorAll('th[data-colkey="'+_rz.key+'"]').forEach(th=>th.style.width=w+'px');
+}
+function colResizeEnd(){
+  if(!_rz) return;
+  document.removeEventListener('mousemove',colResizeMove);
+  document.removeEventListener('mouseup',colResizeEnd);
+  document.body.style.userSelect='';
+  try{localStorage.setItem('colWidths',JSON.stringify(colWidths));}catch(e){}
+  _rz=null;
+}
 let hiddenDefault=[];       // ranky skryté ve výchozím (perzistentní)
 let editMode=false;
 let expanded={};
@@ -432,9 +462,9 @@ function toast(t){const e=document.getElementById('toast');e.textContent=t;e.cla
 function rankChip(r){ if(!r||r==='Core') return ''; const c=r==='Trial'?'#f59e0b':'#2563eb'; return `<span class="rankchip" style="color:${c};border-color:${c}55;background:${c}1a">${esc(r)}</span>`; }
 // ════════ CUSTOM SLOUPCE + EDIT MÓD ════════
 function colHead(col){
-  if(!editMode) return `<th class="ccol">${esc(col.name)}</th>`;
+  if(!editMode) return `<th class="ccol coldrag" ${_thW(col.id)}>${esc(col.name)}${_rzH(col.id)}</th>`;
   const to=(t,l)=>`<option value="${t}" ${col.type===t?'selected':''}>${l}</option>`;
-  return `<th class="ccol cedit" draggable="true" ondragstart="colDragStart(event,'${col.id}')" ondragover="event.preventDefault()" ondrop="colDrop(event,'${col.id}')">
+  return `<th class="ccol cedit coldrag" ${_thW(col.id)} draggable="true" ondragstart="colDragStart(event,'${col.id}')" ondragover="event.preventDefault()" ondrop="colDrop(event,'${col.id}')">${_rzH(col.id)}
     <div class="cedit-top"><span class="cdrag" title="Přetáhni pro pořadí">⠿</span><button class="cdel" title="Smazat sloupec" onclick="delCol('${col.id}')">✕</button></div>
     <input class="cname" value="${esc(col.name)}" onchange="renameCol('${col.id}',this.value)">
     <select class="ctype" onchange="setColType('${col.id}',this.value)">${to('text','Text')}${to('number','Číslo')}${to('select','Dropdown')}${to('checkbox','Checkbox ✓/☐/?')}${to('status','Stav ✓/✕/bench…')}</select>
@@ -483,11 +513,11 @@ function _dh(){ return editMode?'<span class="cdrag" title="Přetáhni pro pořa
 function headFor(key,ctx){
   const arrow=ctx.arrow, zonesP=ctx.zonesP;
   const so=k=>editMode?'':`onclick="setSort('${k}')"`;
-  if(key==='name') return `<th class="coldrag"${dragA('name')} ${so('name')}>${_dh()}Hráč ${arrow('name')}</th>`;
-  if(key==='progress'){ if(!zonesP.length) return `<th class="coldrag" style="width:118px"${dragA('progress')}>${_dh()}Progress H/M</th>`; return zonesP.map((z,i)=>`<th class="coldrag" style="width:118px"${dragA('progress')} title="Progress v ${esc(z.name)} (součet přes alty)">${i===0?_dh():''}${esc(_shortRaid(z.name))} ${(+z.total===1)?'M':'H/M'}</th>`).join(''); }
-  if(key==='h') return `<th class="coldrag" style="width:100px"${dragA('h')} ${so('h')} title="Kolik raidů odehrál s námi (Heroic)">${_dh()}S námi H ${arrow('h')}</th>`;
-  if(key==='m') return `<th class="coldrag" style="width:100px"${dragA('m')} ${so('m')} title="Kolik raidů odehrál s námi (Mythic)">${_dh()}S námi M ${arrow('m')}</th>`;
-  if(key==='note') return `<th class="coldrag"${dragA('note')}>${_dh()}Poznámka</th>`;
+  if(key==='name') return `<th class="coldrag" ${_thW('name')}${dragA('name')} ${so('name')}>${_dh()}Hráč ${arrow('name')}${_rzH('name')}</th>`;
+  if(key==='progress'){ if(!zonesP.length) return `<th class="coldrag" ${_thW('progress')}${dragA('progress')}>${_dh()}Progress H/M${_rzH('progress')}</th>`; return zonesP.map((z,i)=>`<th class="coldrag" ${_thW('progress')}${dragA('progress')} title="Progress v ${esc(z.name)} (součet přes alty)">${i===0?_dh():''}${esc(_shortRaid(z.name))} ${(+z.total===1)?'M':'H/M'}${_rzH('progress')}</th>`).join(''); }
+  if(key==='h') return `<th class="coldrag" ${_thW('h')}${dragA('h')} ${so('h')} title="Kolik raidů odehrál s námi (Heroic)">${_dh()}S námi H ${arrow('h')}${_rzH('h')}</th>`;
+  if(key==='m') return `<th class="coldrag" ${_thW('m')}${dragA('m')} ${so('m')} title="Kolik raidů odehrál s námi (Mythic)">${_dh()}S námi M ${arrow('m')}${_rzH('m')}</th>`;
+  if(key==='note') return `<th class="coldrag" ${_thW('note')}${dragA('note')}>${_dh()}Poznámka${_rzH('note')}</th>`;
   const col=customCols.find(c=>c.id===key); if(col) return colHead(col);
   return '';
 }
@@ -1357,7 +1387,7 @@ function wclAssign(i){
   _wclUn.splice(i,1); save(); render(); renderUnassigned();
 }
 
-(function(){ let pref='classic'; try{ pref=localStorage.getItem('rosterTheme')||'classic'; }catch(e){} applyTheme(pref); try{ layoutMode=localStorage.getItem('rosterLayout')||'side'; }catch(e){} try{ const cr=parseInt(localStorage.getItem('compRows'),10); if(cr>0)compMaxRows=cr; }catch(e){} applyLayout(); })();
+(function(){ let pref='classic'; try{ pref=localStorage.getItem('rosterTheme')||'classic'; }catch(e){} applyTheme(pref); try{ layoutMode=localStorage.getItem('rosterLayout')||'side'; }catch(e){} try{ const cr=parseInt(localStorage.getItem('compRows'),10); if(cr>0)compMaxRows=cr; }catch(e){} try{ const cw=JSON.parse(localStorage.getItem('colWidths')||'{}'); if(cw&&typeof cw==='object')colWidths=cw; }catch(e){} applyLayout(); })();
 load();
 </script>
 </body>
