@@ -26,7 +26,7 @@ const GUILD_DEFAULT = { realm: 'drakthul', nameSlug: 'rapid-evolution-eu', regio
 const GUILD_CACHE_TTL = 60 * 60;        // 1 h for the base guild payload
 const RANKINGS_CACHE_TTL = 60 * 30;     // 30 min for Raider.IO
 const SPEC_TTL = 24 * 60 * 60 * 1000;   // 24 h before a char spec is re-probed
-const SPEC_FILL_BATCH = 40;             // chars probed per /api/blizz/guild call (subrequest budget)
+const SPEC_FILL_BATCH = 25;             // chars probed per /api/blizz/guild call (subrequest budget)
 
 const CLASS_NAMES = {
   1: 'Warrior', 2: 'Paladin', 3: 'Hunter', 4: 'Rogue', 5: 'Priest',
@@ -82,7 +82,7 @@ async function getBlizzToken(env) {
   const cached = await env.ROSTERS.get('blizz-token', { type: 'json' });
   if (cached && cached.token && cached.exp > Date.now() + 60000) return cached.token;
 
-  const id = env.BLIZZARD_CLIENT_ID, sec = env.BLIZZARD_CLIENT_SECRET;
+  const id = (env.BLIZZARD_CLIENT_ID || '').trim(), sec = (env.BLIZZARD_CLIENT_SECRET || '').trim();
   if (!id || !sec) throw new Error('Missing BLIZZARD_CLIENT_ID / BLIZZARD_CLIENT_SECRET secrets');
 
   const res = await fetch('https://oauth.battle.net/token', {
@@ -93,7 +93,10 @@ async function getBlizzToken(env) {
     },
     body: 'grant_type=client_credentials',
   });
-  if (!res.ok) throw new Error('Blizzard token failed: ' + res.status);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error('Blizzard token failed: ' + res.status + (body ? (' — ' + body.slice(0, 200)) : ''));
+  }
   const d = await res.json();
   const token = d.access_token;
   const exp = Date.now() + (d.expires_in || 86400) * 1000;
@@ -145,6 +148,8 @@ async function buildGuild(env, guild) {
     }));
   }
 
+  await enrichAchievements(env, achievements, region);
+
   const created = summary && summary.created_timestamp ? new Date(summary.created_timestamp) : null;
 
   return {
@@ -160,6 +165,31 @@ async function buildGuild(env, guild) {
     achievements,
     fetchedAt: Date.now(),
   };
+}
+
+// Enrich recent achievements with icon + points (cached in KV, static namespace).
+async function enrichAchievements(env, list, region) {
+  if (!list || !list.length) return;
+  const cache = (await env.ROSTERS.get('blizz-ach', { type: 'json' })) || {};
+  let dirty = false;
+  let token = null;
+  for (const ev of list.slice(0, 6)) {
+    const id = ev.id; if (!id) continue;
+    if (cache[id]) { ev.icon = cache[id].icon; ev.points = cache[id].points; continue; }
+    try {
+      if (!token) token = await getBlizzToken(env);
+      const a = await blizzGet(token, region, `/data/wow/achievement/${id}`, { namespace: `static-${region}` });
+      let icon = '';
+      try {
+        const m = await blizzGet(token, region, `/data/wow/media/achievement/${id}`, { namespace: `static-${region}` });
+        const asset = (m.assets || []).find(x => x.key === 'icon');
+        icon = asset ? asset.value : '';
+      } catch (_) {}
+      const rec = { icon, points: a.points || 0 };
+      cache[id] = rec; ev.icon = rec.icon; ev.points = rec.points; dirty = true;
+    } catch (e) {}
+  }
+  if (dirty) await env.ROSTERS.put('blizz-ach', JSON.stringify(cache));
 }
 
 // Probe up to SPEC_FILL_BATCH uncached chars; merge spec/role into payload.members.
