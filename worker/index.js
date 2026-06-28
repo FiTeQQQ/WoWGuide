@@ -298,6 +298,42 @@ export default {
       }
     }
 
+    /* ----- Blizzard item ID lookup (name -> id) for loot tooltips ----- */
+    if (request.method === 'GET' && pathname === '/api/blizz/itemid') {
+      const name = (url.searchParams.get('name') || '').trim();
+      const region = url.searchParams.get('region') || GUILD_DEFAULT.region;
+      if (!name) return json({ id: 0 });
+      const cacheKey = `itemid:${region}:${name.toLowerCase()}`;
+      try {
+        const cached = await env.ROSTERS.get(cacheKey, { type: 'json' });
+        if (cached) return json(cached);
+        const token = await getBlizzToken(env);
+        const u = new URL(`https://${region}.api.blizzard.com/data/wow/search/item`);
+        u.searchParams.set('namespace', `static-${region}`);
+        u.searchParams.set('name.en_US', name);
+        u.searchParams.set('orderby', 'id');
+        u.searchParams.set('_pageSize', '10');
+        const res = await fetch(u.toString(), { headers: { 'Authorization': 'Bearer ' + token } });
+        let id = 0;
+        if (res.ok) {
+          const d = await res.json();
+          const results = d.results || [];
+          const lc = name.toLowerCase();
+          for (const r of results) {
+            const nm = r.data && r.data.name;
+            const vals = (nm && typeof nm === 'object') ? Object.values(nm) : [nm];
+            if (vals.some(v => String(v || '').toLowerCase() === lc)) { id = (r.data && r.data.id) || 0; break; }
+          }
+          if (!id && results[0] && results[0].data) id = results[0].data.id || 0;
+        }
+        const rec = { id };
+        await env.ROSTERS.put(cacheKey, JSON.stringify(rec), { expirationTtl: 60 * 60 * 24 * 30 });
+        return json(rec);
+      } catch (e) {
+        return json({ id: 0, error: String(e && e.message || e) });
+      }
+    }
+
     // POST /api/roster — create new roster
     if (request.method === 'POST' && pathname === '/api/roster') {
       let body;

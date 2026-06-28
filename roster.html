@@ -273,7 +273,10 @@
   table.loot tr.lsub td{background:rgba(0,0,0,.18);font-size:12px;color:var(--text-mid)}
   .lpug{color:#fb923c;font-size:10px;font-weight:800;border:1px solid #fb923c55;border-radius:4px;padding:0 4px;margin-left:6px}
   .lroll{font-size:10px;font-weight:800;border:1px solid;border-radius:4px;padding:0 5px;margin-left:2px;vertical-align:middle}
-  .lslot{display:inline-block;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:10px;padding:0 7px;font-size:10px;color:var(--text-mid);margin:1px 2px}
+  .lslot{display:inline-block;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:10px;padding:0 7px;font-size:10px;color:var(--text-mid);margin:1px 2px;white-space:nowrap}
+  table.loot.lsubtab{width:auto;margin:0}
+  table.loot.lsubtab td{padding:6px 22px 6px 0;white-space:nowrap}
+  table.loot.lsubtab td:first-child{padding-left:30px}
   .lwk{display:inline-block;background:rgba(79,142,255,.16);color:#9cc4ff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:800}
   .q4{color:#a335ee}.q5{color:#ff8000}.q3{color:#0070dd}.q2{color:#1eff00}.q1{color:#fff}
   .filterbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
@@ -1653,7 +1656,19 @@ function doLootImport(){
     });
     lootData.sort((a,b)=>b.ts-a.ts);
     saveLoot(); toast('Naimportováno '+n+' kusů'); ta.value=''; toggleLootImport(); render();
+    resolveLootItemIDs();
   }catch(err){ toast('Chyba JSON: '+err.message); }
+}
+async function resolveLootItemIDs(){
+  const need=[...new Set(lootData.filter(e=>!e.itemID||e.itemID===0).map(e=>e.name).filter(Boolean))];
+  if(!need.length){ toast('Nic k dohledání (vše má itemID).'); return; }
+  toast('Dohledávám itemy z Blizzardu… ('+need.length+')');
+  const map={};
+  await Promise.all(need.map(async nm=>{ try{ const r=await fetch(API_BASE+'/api/blizz/itemid?name='+encodeURIComponent(nm)); if(r.ok){ const j=await r.json(); if(j&&j.id) map[nm]=j.id; } }catch(e){} }));
+  let changed=0;
+  lootData.forEach(e=>{ if((!e.itemID||e.itemID===0) && map[e.name]){ e.itemID=map[e.name]; changed++; } });
+  if(changed){ saveLoot(); render(); toast('Dohledáno '+changed+' itemů → tooltipy aktivní'); }
+  else toast('Žádné itemy se nepodařilo dohledat (custom obsah?).');
 }
 function clearLoot(){ if(!confirm('Smazat celou loot historii z cloudu?'))return; lootData=[]; saveLoot(); render(); }
 
@@ -1681,7 +1696,7 @@ function _lootBars(){
   <div class="loot-import" id="lootImportBox">
     <div style="font-size:12px;color:var(--text-dim);margin-bottom:6px">Vlož JSON z FifakLoot (/FL → Export):</div>
     <textarea id="lootImportText" placeholder='{"source":"FifakLoot",...}'></textarea>
-    <div style="margin-top:8px;display:flex;gap:8px"><button class="btn btn-accent" onclick="doLootImport()">Importovat</button><button class="btn btn-ghost" onclick="clearLoot()">Smazat vše</button></div>
+    <div style="margin-top:8px;display:flex;gap:8px"><button class="btn btn-accent" onclick="doLootImport()">Importovat</button><button class="btn btn-ghost" onclick="resolveLootItemIDs()">🔍 Dohledat itemy</button><button class="btn btn-ghost" onclick="clearLoot()">Smazat vše</button></div>
   </div>`;
 }
 
@@ -1727,8 +1742,8 @@ function _lootByPlayer(all){
       <td style="color:var(--text-dim)">${_lootDate(last.ts).split(' ')[0]}</td>
       <td>${slots}</td></tr>`;
     if(exp){
-      h+=`<tr class="lsub"><td colspan="5" style="padding:0"><table class="loot" style="margin:0"><tbody>`;
-      items.forEach(e=>{ h+=`<tr><td style="padding-left:30px;width:90px"><span class="lslot">${esc(e.slot)}</span></td><td>${_itemHTML(e)}${_rollChip(e.roll)}</td><td style="color:var(--text-dim)">${esc(e.boss)}</td><td style="width:120px;color:var(--text-dim);text-align:right">${_lootDate(e.ts)}</td></tr>`; });
+      h+=`<tr class="lsub"><td colspan="5" style="padding:0"><table class="loot lsubtab"><tbody>`;
+      items.forEach(e=>{ h+=`<tr><td><span class="lslot">${esc(e.slot)}</span></td><td>${_itemHTML(e)}${_rollChip(e.roll)}</td><td style="color:var(--text-dim)">${esc(e.boss)}</td><td style="color:var(--text-dim)">${_lootDate(e.ts)}</td></tr>`; });
       h+=`</tbody></table></td></tr>`;
     }
   });
