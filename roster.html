@@ -264,14 +264,14 @@ function render(){
   const arrow=k=>sortKey===k?`<span class="arr">${sortDir>0?'▲':'▼'}</span>`:'';
   const rankOpts=name=>ranks.map(r=>`<option ${r===name?'selected':''}>${esc(r)}</option>`).join('');
   let html=`<table><thead><tr>
-    <th style="width:46px"></th>
+    <th style="width:18px"></th>
     <th onclick="setSort('name')">Hráč ${arrow('name')}</th>
     <th style="width:110px" onclick="setSort('rank')">Rank ${arrow('rank')}</th>
     <th style="width:120px" title="Aktuální progress postavy v tieru (kolik bossů zabito)">Progress H/M</th>
     <th style="width:100px" onclick="setSort('h')" title="Kolik raidů odehrál s námi (Heroic)">S námi H ${arrow('h')}</th>
     <th style="width:100px" onclick="setSort('m')" title="Kolik raidů odehrál s námi (Mythic)">S námi M ${arrow('m')}</th>
     <th>Poznámka</th>
-    <th style="width:150px"></th></tr></thead><tbody>`;
+    <th style="width:180px"></th></tr></thead><tbody>`;
   arr.forEach(p=>{
     const t=totals(p);const flag=p.rank==='Trial'&&t.h===0;const exp=!!expanded[p.id];
     const clr=CC[(p.cls||'').toLowerCase()]||'var(--text)';
@@ -280,7 +280,7 @@ function render(){
     const ico=p.specIcon?`<img class="spec-ic" src="${esc(p.specIcon)}" onerror="this.style.display='none'">`:'';
     const naCore=p.rank==='Core';
     html+=`<tr class="${flag?'flag':''}">
-      <td><input type="checkbox" class="rowchk" ${selected.has(p.id)?'checked':''} onclick="event.stopPropagation();toggleSel('${p.id}')"><span class="expand" onclick="toggle('${p.id}')">${exp?'▾':'▸'}</span></td>
+      <td><span class="expand" onclick="toggle('${p.id}')">${exp?'▾':'▸'}</span></td>
       <td>${ico}<span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${altN>0?`<span class="altcnt">+${altN} alt</span>`:''}${flag?'<span class="warn">⚠ 0× Heroic</span>':''}</td>
       <td><select class="rank" onchange="setRank('${p.id}',this.value)">${rankOpts(p.rank)}</select></td>
       <td>${naCore?'<span class="cnt na">—</span>':`<div class="prog"><b>H</b>${esc(p.progH||'—')}</div><div class="prog"><b>M</b>${esc(p.progM||'—')}</div>`}</td>
@@ -290,19 +290,21 @@ function render(){
       <td><div class="act">
         <button class="iconbtn promo" title="Přesunout do hlavního rosteru" onclick="promote('${p.id}')">↗ Promote</button>
         <button class="iconbtn del" title="Smazat hráče" onclick="del('${p.id}')">✕</button>
+        <input type="checkbox" class="rowchk" ${selected.has(p.id)?'checked':''} onclick="toggleSel('${p.id}')" title="Vybrat pro hromadné smazání">
       </div></td></tr>`;
     if(exp){
+      const charRows=(p.chars||[]).map((c,ci)=>{
+        const isMain=ci===0;
+        if(naCore&&isMain) return ''; // u Core hlavní postavu neukazujeme (účast se neřeší)
+        const icon=c.specIcon?`<img class="spec-ic" src="${esc(c.specIcon)}" onerror="this.style.display='none'">`:'';
+        const hm=naCore?'':`<span class="lbl">H</span><input class="mini-num" type="number" min="0" value="${+c.h||0}" onchange="setChar('${p.id}',${ci},'h',this.value)"><span class="lbl">M</span><input class="mini-num" type="number" min="0" value="${+c.m||0}" onchange="setChar('${p.id}',${ci},'m',this.value)">`;
+        const delBtn=isMain?'':`<button class="iconbtn del" title="Odebrat alta" onclick="delChar('${p.id}',${ci})">✕</button>`;
+        return `<div class="char-row">${icon}<input type="text" style="color:${CC[(c.cls||'').toLowerCase()]||'var(--text)'};font-weight:600" value="${esc(c.name||'')}" placeholder="jméno postavy" onchange="setChar('${p.id}',${ci},'name',this.value)">${isMain?'<span class="mainbadge">main</span>':''}${hm}${delBtn}</div>`;
+      }).join('');
       html+=`<tr><td></td><td colspan="7"><div class="chars">
-        <div class="sub" style="margin-bottom:7px">Postavy / alty — počty se sčítají pod hráče (H = Heroic, M = Mythic).</div>
-        ${(p.chars||[]).map((c,ci)=>`<div class="char-row">
-          ${c.specIcon?`<img class="spec-ic" src="${esc(c.specIcon)}" onerror="this.style.display='none'">`:''}
-          <input type="text" style="color:${CC[(c.cls||'').toLowerCase()]||'var(--text)'};font-weight:600" value="${esc(c.name||'')}" placeholder="jméno postavy" onchange="setChar('${p.id}',${ci},'name',this.value)">
-          ${ci===0?'<span class="mainbadge">main</span>':''}
-          <span class="lbl">H</span><input class="mini-num" type="number" min="0" value="${+c.h||0}" onchange="setChar('${p.id}',${ci},'h',this.value)">
-          <span class="lbl">M</span><input class="mini-num" type="number" min="0" value="${+c.m||0}" onchange="setChar('${p.id}',${ci},'m',this.value)">
-          <button class="iconbtn del" title="Odebrat postavu" onclick="delChar('${p.id}',${ci})">✕</button>
-        </div>`).join('')}
-        <button class="iconbtn" onclick="addChar('${p.id}')">+ Přidat postavu / alt</button>
+        <div class="sub" style="margin-bottom:7px">${naCore?'Alty hráče (u Core se účast neřeší)':'Hlavní postava + alty — počty H/M se sčítají pod hráče'}.</div>
+        ${charRows||'<div class="sub" style="opacity:.7;margin-bottom:7px">Žádní alti.</div>'}
+        <button class="iconbtn" onclick="addChar('${p.id}')">+ Přidat alta</button>
       </div></td></tr>`;
     }
   });
