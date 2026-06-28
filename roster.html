@@ -50,6 +50,25 @@
   .comp-alt{color:var(--text-dim);font-size:9px;font-weight:600;flex:0 0 auto}
   .comp-empty{color:var(--text-dim);font-size:12px}
   @media(max-width:1000px){.roster-layout{grid-template-columns:1fr}}
+  /* ── EDIT MÓD ── */
+  .edit-bar{background:var(--surface);border:1px solid var(--accent-border);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+  .eb-grid{display:grid;grid-template-columns:1.3fr 1fr .7fr;gap:18px;align-items:start}
+  .eb-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:8px}
+  .eb-hint{font-size:11px;color:var(--text-dim);margin-bottom:8px;line-height:1.5}
+  .eb-rank{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .eb-rankname{flex:0 1 130px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:4px 8px;outline:none}
+  .eb-hidechk{font-size:11px;color:var(--text-mid);display:inline-flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap}
+  .ccol{white-space:nowrap}
+  th.cedit{vertical-align:top;cursor:grab}
+  .cedit-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .cdrag{color:var(--text-dim);cursor:grab;font-size:12px}
+  .cdel{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:12px;padding:0 2px}
+  .cdel:hover{color:#f87171}
+  .cname,.ctype,.copts{width:112px;background:var(--surface2);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:3px 6px;outline:none;text-transform:none;letter-spacing:0;display:block}
+  .cname{font-size:11px;margin-bottom:3px;font-weight:600}
+  .ctype{font-size:11px}
+  .copts{font-size:10px;margin-top:3px}
+  @media(max-width:900px){.eb-grid{grid-template-columns:1fr}}
   /* ═══════════ GLASS MODE (1:1 s guide; classic = beze změny) ═══════════ */
   .glass-bg{position:fixed;inset:0;z-index:-3;display:none;background-position:center;background-size:cover;background-repeat:no-repeat;filter:brightness(.6) saturate(.9)}
   .glass-bg::after{content:'';position:absolute;inset:0;background:
@@ -59,6 +78,7 @@
   body.glass-on{background:transparent !important}
   body.glass-on .card,
   body.glass-on .wcl-panel,
+  body.glass-on .edit-bar,
   body.glass-on .comp-card{
     background:rgba(12,16,28,.40) !important;
     backdrop-filter:blur(20px) saturate(165%);-webkit-backdrop-filter:blur(20px) saturate(165%);
@@ -230,7 +250,7 @@
     <button class="btn btn-ghost" onclick="importRoster()" title="Načíst znovu z hlavního rosteru (sdíleno s guide)">↻ Načíst znovu</button>
     <button class="btn btn-ghost" onclick="wclToggle()">↻ WCL</button>
     <button class="btn btn-ghost" onclick="clearAll()" title="Smazat všechny Trial kandidáty (Core/Member zůstanou)" style="color:#f87171;border-color:rgba(239,68,68,.3)">🗑 Smazat Trial</button>
-    <button class="btn btn-ghost" id="themeBtn" onclick="toggleTheme()" title="Přepnout vzhled Classic / Glass" style="opacity:.85">🗔 Classic</button>
+    <button class="btn btn-ghost" id="editBtn" onclick="toggleEdit()" title="Upravit ranky, sloupce a vzhled">✏ Edit</button>
     <input class="search" id="search" placeholder="Hledat hráče / poznámku…" oninput="render()">
     <span class="status" id="status"></span>
   </div>
@@ -275,6 +295,8 @@
     <div id="wclUnassigned"></div>
     <div id="wclLog" class="wcl-log"></div>
   </div>
+
+  <div id="editBar" class="edit-bar" style="display:none"></div>
 
   <div class="roster-layout">
     <div class="card"><div id="tableWrap"></div></div>
@@ -350,11 +372,15 @@ let people=[];
 let _flat=[];            // plochý hlavní roster (zdroj pravdy = /api/roster/main)
 let _progTips=[];        // data pro stylované tooltipy progressu
 let ranks=['Core','Member','Trial'];
+let customCols=[];          // vlastní sloupce [{id,name,type,options}]
+let hiddenDefault=[];       // ranky skryté ve výchozím (perzistentní)
+let editMode=false;
 let expanded={};
 let sortKey='rank', sortDir=1;
 let hiddenRanks=new Set();
 let selected=new Set();
 let saveTimer=null;
+function uidCol(){return 'c'+Date.now().toString(36)+Math.floor(Math.random()*1e3).toString(36);}
 
 function uid(){return 't'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -364,6 +390,49 @@ function totals(p){let h=0,m=0;(p.chars||[]).forEach(c=>{h+=(+c.h||0);m+=(+c.m||
 function breakdown(p,key){const a=(p.chars||[]).filter(c=>(+c[key]||0)>0).map(c=>`${c.name||'?'} ${+c[key]||0}×`);return a.length>1?a.join(' · '):'';}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200);}
 function rankChip(r){ if(!r||r==='Core') return ''; const c=r==='Trial'?'#f59e0b':'#2563eb'; return `<span class="rankchip" style="color:${c};border-color:${c}55;background:${c}1a">${esc(r)}</span>`; }
+// ════════ CUSTOM SLOUPCE + EDIT MÓD ════════
+function colHead(col){
+  if(!editMode) return `<th class="ccol">${esc(col.name)}</th>`;
+  const to=(t,l)=>`<option value="${t}" ${col.type===t?'selected':''}>${l}</option>`;
+  return `<th class="ccol cedit" draggable="true" ondragstart="colDragStart(event,'${col.id}')" ondragover="event.preventDefault()" ondrop="colDrop(event,'${col.id}')">
+    <div class="cedit-top"><span class="cdrag" title="Přetáhni pro pořadí">⠿</span><button class="cdel" title="Smazat sloupec" onclick="delCol('${col.id}')">✕</button></div>
+    <input class="cname" value="${esc(col.name)}" onchange="renameCol('${col.id}',this.value)">
+    <select class="ctype" onchange="setColType('${col.id}',this.value)">${to('text','Text')}${to('number','Číslo')}${to('select','Dropdown')}${to('checkbox','Checkbox')}</select>
+    ${col.type==='select'?`<input class="copts" value="${esc((col.options||[]).join(', '))}" placeholder="volby, oddělené čárkou" onchange="setColOptions('${col.id}',this.value)">`:''}
+  </th>`;
+}
+function colCell(p,col){
+  const v=(p.custom||{})[col.id];
+  if(col.type==='checkbox') return `<td style="text-align:center"><input type="checkbox" class="rowchk" ${v?'checked':''} onclick="setCustom('${p.id}','${col.id}',this.checked)"></td>`;
+  if(col.type==='number') return `<td><input class="mini-num" type="number" value="${(v!=null&&v!=='')?esc(v):''}" onchange="setCustom('${p.id}','${col.id}',this.value)"></td>`;
+  if(col.type==='select'){ const opts='<option value=""></option>'+(col.options||[]).map(o=>`<option ${String(v)===String(o)?'selected':''}>${esc(o)}</option>`).join(''); return `<td><select class="rank" onchange="setCustom('${p.id}','${col.id}',this.value)">${opts}</select></td>`; }
+  return `<td><input class="note-in" value="${esc(v||'')}" placeholder="…" onchange="setCustom('${p.id}','${col.id}',this.value)"></td>`;
+}
+function setCustom(pid,cid,val){ const p=find(pid); if(!p)return; p.custom=p.custom||{}; p.custom[cid]=val; save(); }
+function addCol(){ customCols.push({id:uidCol(),name:'Nový sloupec',type:'text',options:[]}); save(); render(); }
+function delCol(id){ if(!confirm('Smazat sloupec i jeho data?'))return; customCols=customCols.filter(c=>c.id!==id); people.forEach(p=>{ if(p.custom) delete p.custom[id]; }); save(); render(); }
+function renameCol(id,v){ const c=customCols.find(x=>x.id===id); if(c){ c.name=(v||'').trim()||'Sloupec'; save(); } }
+function setColType(id,t){ const c=customCols.find(x=>x.id===id); if(c){ c.type=t; if(t==='select'&&!Array.isArray(c.options))c.options=[]; save(); render(); } }
+function setColOptions(id,v){ const c=customCols.find(x=>x.id===id); if(c){ c.options=String(v||'').split(',').map(s=>s.trim()).filter(Boolean); save(); render(); } }
+let _dragCol=null;
+function colDragStart(e,id){ _dragCol=id; if(e.dataTransfer)e.dataTransfer.effectAllowed='move'; }
+function colDrop(e,targetId){ e.preventDefault(); if(!_dragCol||_dragCol===targetId)return; const from=customCols.findIndex(c=>c.id===_dragCol); const tgt=customCols.findIndex(c=>c.id===targetId); _dragCol=null; if(from<0||tgt<0)return; const m=customCols.splice(from,1)[0]; customCols.splice(tgt,0,m); save(); render(); }
+function renameRank(oldName,newName){ newName=(newName||'').trim(); if(!newName||newName===oldName){render();return;} if(ranks.includes(newName)){toast('Rank toho jména už existuje.');render();return;} const i=ranks.indexOf(oldName); if(i<0)return; ranks[i]=newName; people.forEach(p=>{ if(p.rank===oldName)p.rank=newName; }); hiddenDefault=hiddenDefault.map(r=>r===oldName?newName:r); if(hiddenRanks.has(oldName)){hiddenRanks.delete(oldName);hiddenRanks.add(newName);} save(); render(); }
+function delRank(name){ if(ranks.length<=1){toast('Musí zůstat aspoň jeden rank.');return;} if(!confirm(`Smazat rank „${name}"? Hráči s ním dostanou jiný rank.`))return; const fb=ranks.find(r=>r!==name)||'Core'; ranks=ranks.filter(r=>r!==name); people.forEach(p=>{ if(p.rank===name)p.rank=fb; }); hiddenDefault=hiddenDefault.filter(r=>r!==name); hiddenRanks.delete(name); save(); render(); }
+function toggleRankDefaultHidden(name){ if(hiddenDefault.includes(name)){ hiddenDefault=hiddenDefault.filter(r=>r!==name); hiddenRanks.delete(name); } else { hiddenDefault.push(name); hiddenRanks.add(name); } save(); render(); }
+function toggleEdit(){ editMode=!editMode; document.body.classList.toggle('edit-on',editMode); const b=document.getElementById('editBtn'); if(b)b.textContent=editMode?'✓ Hotovo':'✏ Edit'; render(); }
+function renderEditBar(){
+  const el=document.getElementById('editBar'); if(!el)return;
+  if(!editMode){ el.style.display='none'; return; }
+  el.style.display='block';
+  const q=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const rankRows=ranks.map(r=>`<div class="eb-rank"><input class="eb-rankname" value="${esc(r)}" onchange="renameRank('${q(r)}',this.value)"><label class="eb-hidechk"><input type="checkbox" ${hiddenDefault.includes(r)?'checked':''} onchange="toggleRankDefaultHidden('${q(r)}')"> skrýt ve výchozím</label><button class="iconbtn del" title="Smazat rank" onclick="delRank('${q(r)}')">✕</button></div>`).join('');
+  el.innerHTML=`<div class="eb-grid">
+    <div class="eb-sec"><div class="eb-title">Ranky — přejmenování / výchozí skrytí</div>${rankRows}<button class="btn btn-ghost" style="margin-top:6px" onclick="addRank()">+ Rank</button></div>
+    <div class="eb-sec"><div class="eb-title">Sloupce</div><div class="eb-hint">Vlastní sloupec přidáš tlačítkem a upravíš přímo v hlavičce tabulky (název, typ, u dropdownu volby oddělené čárkou). Pořadí změníš přetažením hlavičky.</div><button class="btn btn-accent" onclick="addCol()">+ Přidat sloupec</button></div>
+    <div class="eb-sec"><div class="eb-title">Vzhled</div><button class="btn btn-ghost" id="themeBtn" onclick="toggleTheme()">${themeMode==='glass'?'🪟 Glass':'🗔 Classic'}</button></div>
+  </div>`;
+}
 // ── GLASS / CLASSIC TÉMA (1:1 s guide) ──
 let themeMode='classic';
 function applyTheme(m){
@@ -408,10 +477,11 @@ async function load(){
   // seznam ranků (meta klíč — guide ho nepřepisuje)
   try{
     const rm=await fetch(API_BASE+'/api/roster/'+TRK_KEY,{cache:'no-cache'});
-    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;}
+    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;}
   }catch(e){
     try{const lr=JSON.parse(localStorage.getItem('trkRanks')||'null');if(Array.isArray(lr)&&lr.length)ranks=lr;}catch(_){}
   }
+  hiddenRanks=new Set(hiddenDefault);
   // WCL klíče z cloudu (sdílené) — aby progress mohl načíst i ten, kdo otevře sdílený odkaz
   try{
     const rc=await fetch(API_BASE+'/api/roster/wcl-creds',{cache:'no-cache'});
@@ -435,7 +505,7 @@ function buildPeopleFromFlat(flat){
     const m=byId[mid];
     const members=groups[mid].slice().sort((a,b)=>(a.id===mid?-1:b.id===mid?1:0));
     const chars=members.map(pl=>({name:pl.name||'',h:+pl.h||0,m:+pl.m||0,cls:(pl.class||'').toLowerCase(),specIcon:pl.specIcon||'',prog:pl.prog||{},server:pl.server||'',_pid:pl.id,_role:pl.role||'',_spec:pl.spec||''}));
-    return {id:mid,_mainId:mid,name:m.name||'',rank:m.rank||'Core',note:m.note||'',cls:(m.class||'').toLowerCase(),spec:m.spec||'',specIcon:m.specIcon||'',prog:m.prog||{},chars};
+    return {id:mid,_mainId:mid,name:m.name||'',rank:m.rank||'Core',note:m.note||'',cls:(m.class||'').toLowerCase(),spec:m.spec||'',specIcon:m.specIcon||'',prog:m.prog||{},custom:m.custom||{},chars};
   });
 }
 // Vnořený model → plochý hlavní roster (zachová pole guide jako role/spec)
@@ -461,10 +531,11 @@ function buildFlatFromPeople(){
         base.rank=per.rank||'Core';
         base.note=per.note||'';
         base.prog=per.prog||{};
+        base.custom=per.custom||{};
       }else{
         base.altOf=mainId;
         base.prog=c.prog||{};
-        delete base.rank; delete base.note;
+        delete base.rank; delete base.note; delete base.custom;
       }
       out.push(base);
     });
@@ -480,7 +551,7 @@ function save(){
   saveTimer=setTimeout(async()=>{
     try{
       await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()})});
-      await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,updatedAt:new Date().toISOString()})});
+      await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,hiddenDefault,updatedAt:new Date().toISOString()})});
       st.textContent='✓ Uloženo';setTimeout(()=>{if(st.textContent==='✓ Uloženo')st.textContent='';},1500);
     }catch(e){st.textContent='⚠ Cloud offline (uloženo lokálně)';}
   },700);
@@ -520,6 +591,7 @@ function renderComposition(){
 function render(){
   _progTips=[];
   renderComposition();
+  renderEditBar();
   renderFilter();
   renderBulk();
   const wrap=document.getElementById('tableWrap');
@@ -539,6 +611,7 @@ function render(){
     <th style="width:100px" onclick="setSort('h')" title="Kolik raidů odehrál s námi (Heroic)">S námi H ${arrow('h')}</th>
     <th style="width:100px" onclick="setSort('m')" title="Kolik raidů odehrál s námi (Mythic)">S námi M ${arrow('m')}</th>
     <th>Poznámka</th>
+    ${customCols.map(colHead).join('')}
     <th style="width:180px"></th></tr></thead><tbody>`;
   arr.forEach(p=>{
     const t=totals(p);const flag=p.rank==='Trial'&&t.h===0;const exp=!!expanded[p.id];
@@ -554,6 +627,7 @@ function render(){
       <td>${naCore?'<span class="cnt na" title="U Core hráče se účast neřeší">—</span>':`<div class="cnt ${t.h===0?'zero':''}">${t.h}×</div>${bh?`<div class="break">${esc(bh)}</div>`:''}`}</td>
       <td>${naCore?'<span class="cnt na">—</span>':`<div class="cnt ${t.m===0?'zero':''}">${t.m}×</div>${bm?`<div class="break">${esc(bm)}</div>`:''}`}</td>
       <td><input class="note-in" value="${esc(p.note||'')}" placeholder="…" onchange="setNote('${p.id}',this.value)"></td>
+      ${customCols.map(c=>colCell(p,c)).join('')}
       <td><div class="act">
         <button class="iconbtn promo" title="Přesunout do hlavního rosteru" onclick="promote('${p.id}')">↗ Promote</button>
         <button class="iconbtn del" title="Smazat hráče" onclick="del('${p.id}')">✕</button>
@@ -569,10 +643,10 @@ function render(){
         const chh=+c.h||0, chm=+c.m||0;
         const hTd=naCore?'<td><span class="cnt na">—</span></td>':`<td><div class="cnt ${chh===0?'zero':''}">${chh}×</div></td>`;
         const mTd=naCore?'<td><span class="cnt na">—</span></td>':`<td><div class="cnt ${chm===0?'zero':''}">${chm}×</div></td>`;
-        return `<tr class="altrow" oncontextmenu="altCtx(event,'${p.id}',${ci});return false;"><td></td><td><div class="altname">${icon}<span class="name" style="color:${cclr}">${esc(c.name||'?')}</span></div></td>${progTds}${hTd}${mTd}<td></td><td><div class="act"><button class="iconbtn" title="Zrušit jako alta → samostatný main (smazat úplně: pravý klik)" onclick="unAlt('${p.id}',${ci})">✕</button></div></td></tr>`;
+        return `<tr class="altrow" oncontextmenu="altCtx(event,'${p.id}',${ci});return false;"><td></td><td><div class="altname">${icon}<span class="name" style="color:${cclr}">${esc(c.name||'?')}</span></div></td>${progTds}${hTd}${mTd}<td></td>${customCols.map(()=>'<td></td>').join('')}<td><div class="act"><button class="iconbtn" title="Zrušit jako alta → samostatný main (smazat úplně: pravý klik)" onclick="unAlt('${p.id}',${ci})">✕</button></div></td></tr>`;
       }).join('');
       html+=altRows;
-      html+=`<tr class="altrow altadd"><td></td><td colspan="${5+(zonesP.length||1)}"><button class="iconbtn" onclick="addChar('${p.id}')">+ Přidat alta</button></td></tr>`;
+      html+=`<tr class="altrow altadd"><td></td><td colspan="${5+(zonesP.length||1)+customCols.length}"><button class="iconbtn" onclick="addChar('${p.id}')">+ Přidat alta</button></td></tr>`;
     }
   });
   html+='</tbody></table>';
