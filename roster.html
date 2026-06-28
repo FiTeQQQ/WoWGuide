@@ -240,6 +240,15 @@
   .wcl-un-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;font-size:12px}
   .wcl-un-row .nm{font-weight:700;min-width:140px}
   .wcl-un-row select{background:var(--surface2);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:11px;padding:3px 5px;width:auto}
+  .sheet-tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;border-bottom:1px solid var(--border2);padding-bottom:0}
+  .sheet-tab{background:var(--surface2);border:1px solid var(--border2);border-bottom:none;color:var(--text-dim);border-radius:9px 9px 0 0;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;position:relative;bottom:-1px}
+  .sheet-tab:hover{color:var(--text)}
+  .sheet-tab.active{background:var(--surface);color:var(--text);border-color:var(--border2)}
+  .sheet-tab.st-add{border-style:dashed;color:var(--accent);font-weight:600}
+  .sheet-tab .st-del{margin-left:8px;color:#f87171;font-weight:800;padding:0 2px;border-radius:3px}
+  .sheet-tab .st-del:hover{background:rgba(248,113,113,.15)}
+  .sheet-meta{font-size:12px;color:var(--text-dim);margin-bottom:12px}
+  .sheet-hint{color:var(--accent)}
   .filterbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
   .filterbar .lbl{font-size:11px;color:var(--text-dim);margin-right:2px}
   .fchip{padding:4px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);color:var(--text-dim);font-size:12px;font-weight:600;cursor:pointer;user-select:none;transition:all .12s}
@@ -321,6 +330,8 @@
 
   <div id="editBar" class="edit-bar" style="display:none"></div>
 
+  <div id="sheetTabs" class="sheet-tabs"></div>
+
   <div class="roster-layout">
     <div class="card"><div id="tableWrap"></div></div>
     <div class="comp-side">
@@ -328,6 +339,7 @@
       <div id="rosterComp"></div>
     </div>
   </div>
+  <div id="sheetWrap" class="card" style="display:none;padding:14px"></div>
   <div class="legend">Tento roster je <b>sdílený s guide</b> (Assignments) — rank i alty se propisují oběma směry. ⚠ Trial bez jediného Heroic raidu je zvýrazněný. Klikni na ▸ u hráče pro slučování altů, pravým tlačítkem pro promote / přiřazení alta.</div>
 </div>
 <datalist id="euRealms">
@@ -641,6 +653,7 @@ async function load(){
   }catch(e){}
   await _wclCfgLoad();
   buildPeopleFromFlat(flat);
+  await loadSheets();
   applyTheme(themeMode); applyLayout();
   st.textContent='';
   render();
@@ -757,6 +770,9 @@ function renderComposition(){
   el.innerHTML=tbl('Tanks',cats.tank,'#60a5fa')+tbl('Healers',cats.healer,'#4ade80')+tbl('Melee DPS',cats.melee,'#f87171')+tbl('Ranged DPS',cats.ranged,'#f87171');
 }
 function render(){
+  if(typeof renderSheetTabs==='function') renderSheetTabs();
+  if(typeof currentSheet!=='undefined' && currentSheet!=='main'){ applySheetVisibility(); renderSheet(); return; }
+  if(typeof applySheetVisibility==='function') applySheetVisibility();
   _progTips=[];
   renderComposition();
   renderEditBar();
@@ -1414,6 +1430,129 @@ function wclAssign(i){
   else if(v){ const p=find(v); if(p){ (p.chars=p.chars||[]).push({name:u.name,h:u.h,m:u.m,cls:(_wclMeta[u.name.toLowerCase()]||''),specIcon:''}); } }
   else return;
   _wclUn.splice(i,1); save(); render(); renderUnassigned();
+}
+
+/* ════════ LISTY (SHEETS) — main roster + vlastní listy ════════ */
+const SHEETS_KEY='roster-sheets';
+let sheets=[];
+let currentSheet='main';
+try{ currentSheet=localStorage.getItem('rosterSheet')||'main'; }catch(e){}
+let _sheetsTimer=null;
+
+async function loadSheets(){
+  try{
+    const r=await fetch(API_BASE+'/api/roster/'+SHEETS_KEY,{cache:'no-cache'});
+    if(r.ok){ const j=await r.json(); if(Array.isArray(j.sheets)) sheets=j.sheets; }
+  }catch(e){
+    try{ const c=JSON.parse(localStorage.getItem('rosterSheetsCache')||'null'); if(Array.isArray(c)) sheets=c; }catch(_){}
+  }
+  if(currentSheet!=='main' && !sheets.find(s=>s.id===currentSheet)) currentSheet='main';
+}
+function saveSheets(){
+  try{ localStorage.setItem('rosterSheetsCache',JSON.stringify(sheets)); }catch(e){}
+  clearTimeout(_sheetsTimer);
+  _sheetsTimer=setTimeout(async()=>{
+    try{ await fetch(API_BASE+'/api/roster/'+SHEETS_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({sheets,updatedAt:new Date().toISOString()})}); }catch(e){}
+  },1200);
+}
+function _sheet(id){ return sheets.find(s=>s.id===id); }
+function _curSheet(){ return _sheet(currentSheet); }
+function _sEnsure(s){ if(!Array.isArray(s.columns))s.columns=[]; if(!s.data||typeof s.data!=='object')s.data={}; if(!Array.isArray(s.rows))s.rows=[]; }
+
+function renderSheetTabs(){
+  const el=document.getElementById('sheetTabs'); if(!el) return;
+  let h=`<button class="sheet-tab ${currentSheet==='main'?'active':''}" onclick="switchSheet('main')">Main Roster</button>`;
+  sheets.forEach(s=>{
+    const del=editMode?` <span class="st-del" onclick="event.stopPropagation();deleteSheet('${s.id}')" title="Smazat list">✕</span>`:'';
+    h+=`<button class="sheet-tab ${currentSheet===s.id?'active':''}" onclick="switchSheet('${s.id}')" ondblclick="renameSheet('${s.id}')" title="Dvojklik = přejmenovat">${esc(s.name)}${del}</button>`;
+  });
+  h+=`<button class="sheet-tab st-add" onclick="addSheet()" title="Vytvořit nový list">+ Nový list</button>`;
+  el.innerHTML=h;
+}
+function switchSheet(id){ currentSheet=id; try{localStorage.setItem('rosterSheet',id);}catch(e){} render(); }
+function addSheet(){
+  const name=(prompt('Název nového listu:','Nový list')||'').trim(); if(!name) return;
+  const kind=confirm('Jaký list?\n\nOK = NAPOJENÝ NA HRÁČE (řádky = roster, např. anketa)\nZrušit = SAMOSTATNÝ (vlastní řádky, např. loot history)')?'players':'free';
+  const id='sh'+Date.now().toString(36)+Math.floor(Math.random()*1e3).toString(36);
+  const sheet={id,name,kind,columns:[{id:uidCol(),name:kind==='free'?'Položka':'Poznámka',type:'text',options:[]}],data:{},rows:[]};
+  if(kind==='free') sheet.rows=[{id:uid(),label:'',cells:{}}];
+  sheets.push(sheet); currentSheet=id; try{localStorage.setItem('rosterSheet',id);}catch(e){}
+  saveSheets(); render();
+}
+function renameSheet(id){ const s=_sheet(id); if(!s)return; const v=prompt('Přejmenovat list:',s.name); if(v===null)return; s.name=(v||'').trim()||s.name; saveSheets(); render(); }
+function deleteSheet(id){ const s=_sheet(id); if(!s)return; if(!confirm('Smazat list „'+s.name+'" i jeho data?'))return; sheets=sheets.filter(x=>x.id!==id); if(currentSheet===id)currentSheet='main'; saveSheets(); render(); }
+
+function applySheetVisibility(){
+  const onSheet=currentSheet!=='main';
+  const lay=document.querySelector('.roster-layout'); if(lay) lay.style.display=onSheet?'none':'';
+  const sw=document.getElementById('sheetWrap'); if(sw) sw.style.display=onSheet?'':'none';
+  ['filterbar','bulkbar'].forEach(idn=>{ const e=document.getElementById(idn); if(e) e.style.display=onSheet?'none':''; });
+  const srch=document.getElementById('search'); if(srch) srch.style.display=onSheet?'none':'';
+  if(onSheet){ const eb=document.getElementById('editBar'); if(eb) eb.style.display='none'; }
+}
+
+/* ── generická tabulka listu ── */
+function _sheetBag(s,rowKey){
+  if(s.kind==='players'){ s.data=s.data||{}; return (s.data[rowKey]=s.data[rowKey]||{}); }
+  const r=(s.rows||[]).find(x=>x.id===rowKey); return r?(r.cells=r.cells||{}):{};
+}
+function sheetHead(s,col){
+  if(!editMode) return `<th>${esc(col.name)}</th>`;
+  const to=(t,l)=>`<option value="${t}" ${col.type===t?'selected':''}>${l}</option>`;
+  return `<th class="cedit">
+    <div class="cedit-top"><button class="cdel" onclick="delSheetCol('${col.id}')" title="Smazat sloupec">✕</button></div>
+    <input class="cname" value="${esc(col.name)}" onchange="renameSheetCol('${col.id}',this.value)">
+    <select class="ctype" onchange="setSheetColType('${col.id}',this.value)">${to('text','Text')}${to('number','Číslo')}${to('select','Dropdown')}${to('checkbox','Checkbox ✓/☐/?')}${to('status','Stav')}</select>
+    ${col.type==='select'?`<input class="copts" value="${esc((col.options||[]).join(', '))}" placeholder="volby, čárkou" onchange="setSheetColOptions('${col.id}',this.value)">`:''}
+  </th>`;
+}
+function sheetCell(s,rowKey,col){
+  const bag=_sheetBag(s,rowKey); const v=bag[col.id];
+  if(col.type==='checkbox'){ const yes=(v===true||v==='true');const no=(v==='no');const qm=(v==='?');const icon=yes?'✓':(no?'✕':(qm?'?':''));const color=yes?'#4ade80':(no?'#f87171':(qm?'#facc15':''));const ttl=yes?'Ano':(no?'Ne':(qm?'Možná':'—'));return `<td style="text-align:center"><button class="chkbox" style="${color?'color:'+color:''}" title="${ttl}" onclick="cycleSheetCheck('${rowKey}','${col.id}')">${icon}</button></td>`; }
+  if(col.type==='number') return `<td><input class="mini-num" type="number" value="${(v!=null&&v!=='')?esc(v):''}" onchange="setSheetCell('${rowKey}','${col.id}',this.value)"></td>`;
+  if(col.type==='select'){ const opts='<option value=""></option>'+(col.options||[]).map(o=>`<option ${String(v)===String(o)?'selected':''}>${esc(o)}</option>`).join('');return `<td><select class="rank" onchange="setSheetCell('${rowKey}','${col.id}',this.value)">${opts}</select></td>`; }
+  if(col.type==='status'){ const o=STATUS_OPTS.find(x=>x.v===(v||''))||STATUS_OPTS[0];return `<td style="text-align:center"><button class="statuscell" style="color:${o.color}" title="${esc(o.label)}" onclick="openSheetStatus(event,'${rowKey}','${col.id}')">${o.icon}</button></td>`; }
+  return `<td><input class="note-in" value="${esc(v||'')}" placeholder="…" onchange="setSheetCell('${rowKey}','${col.id}',this.value)"></td>`;
+}
+function setSheetCell(rowKey,colId,val){ const s=_curSheet(); if(!s)return; _sheetBag(s,rowKey)[colId]=val; saveSheets(); }
+function cycleSheetCheck(rowKey,colId){ const s=_curSheet(); if(!s)return; const bag=_sheetBag(s,rowKey); const cur=bag[colId]; let nxt; if(cur===true||cur==='true')nxt='no'; else if(cur==='no')nxt='?'; else if(cur==='?')nxt=''; else nxt=true; bag[colId]=nxt; saveSheets(); render(); }
+function openSheetStatus(e,rowKey,colId){ e.stopPropagation(); closeStatusMenu(); const menu=document.createElement('div'); menu.className='ctx-menu'; menu.id='statusMenu'; menu.style.minWidth='160px'; menu.innerHTML=STATUS_OPTS.map(o=>`<button class="ctx-item" onclick="pickSheetStatus('${rowKey}','${colId}','${o.v}')"><span style="color:${o.color};width:18px;display:inline-block;text-align:center;font-weight:800">${o.icon}</span><span>${esc(o.label)}</span></button>`).join(''); document.body.appendChild(menu); menu.style.left=Math.min(e.clientX,window.innerWidth-(menu.offsetWidth+10))+'px'; menu.style.top=Math.min(e.clientY,Math.max(8,window.innerHeight-menu.offsetHeight-10))+'px'; setTimeout(()=>document.addEventListener('mousedown',_statusClose),0); }
+function pickSheetStatus(rowKey,colId,v){ closeStatusMenu(); setSheetCell(rowKey,colId,v); render(); }
+
+function addSheetCol(){ const s=_curSheet(); if(!s)return; _sEnsure(s); s.columns.push({id:uidCol(),name:'Nový sloupec',type:'text',options:[]}); saveSheets(); render(); }
+function delSheetCol(colId){ const s=_curSheet(); if(!s)return; if(!confirm('Smazat sloupec i jeho data?'))return; s.columns=s.columns.filter(c=>c.id!==colId); Object.values(s.data||{}).forEach(b=>{ if(b) delete b[colId]; }); (s.rows||[]).forEach(r=>{ if(r.cells) delete r.cells[colId]; }); saveSheets(); render(); }
+function renameSheetCol(colId,v){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.name=(v||'').trim()||'Sloupec'; saveSheets(); } }
+function setSheetColType(colId,t){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.type=t; if(t==='select'&&!Array.isArray(c.options))c.options=[]; saveSheets(); render(); } }
+function setSheetColOptions(colId,v){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.options=String(v||'').split(',').map(x=>x.trim()).filter(Boolean); saveSheets(); render(); } }
+function addSheetRow(){ const s=_curSheet(); if(!s||s.kind!=='free')return; s.rows.push({id:uid(),label:'',cells:{}}); saveSheets(); render(); }
+function delSheetRow(rowId){ const s=_curSheet(); if(!s)return; s.rows=(s.rows||[]).filter(r=>r.id!==rowId); saveSheets(); render(); }
+function setSheetRowLabel(rowId,v){ const s=_curSheet(); if(!s)return; const r=(s.rows||[]).find(x=>x.id===rowId); if(r){ r.label=v; saveSheets(); } }
+
+function renderSheet(){
+  const s=_curSheet(); const wrap=document.getElementById('sheetWrap'); if(!wrap)return;
+  if(!s){ wrap.innerHTML='<div class="empty">List nenalezen.</div>'; return; }
+  _sEnsure(s);
+  const cols=s.columns;
+  const addColHead=editMode?`<th style="width:46px"><button class="iconbtn" onclick="addSheetCol()" title="Přidat sloupec">+ sl.</button></th>`:'';
+  const labelHead=s.kind==='players'?'Hráč':'Položka';
+  const colSpan=cols.length+2;
+  let html=`<div class="sheet-meta">${esc(s.name)} · ${s.kind==='players'?'napojeno na roster (řádky = hráči)':'samostatný list'}${editMode?' · <span class="sheet-hint">edit mód: uprav sloupce'+(s.kind==='free'?' a řádky':'')+'</span>':' · <span class="sheet-hint">klikni ✏ Edit pro úpravy</span>'}</div>`;
+  html+=`<table><thead><tr><th>${labelHead}</th>${cols.map(c=>sheetHead(s,c)).join('')}${addColHead}${(s.kind==='free'&&editMode)?'<th style="width:34px"></th>':''}</tr></thead><tbody>`;
+  if(s.kind==='players'){
+    if(!people.length){ html+=`<tr><td colspan="${colSpan}" class="empty">Roster je prázdný — přidej hráče v Main Roster.</td></tr>`; }
+    people.forEach(p=>{
+      const cc=(typeof CC!=='undefined'&&CC[p.cls])?CC[p.cls]:'var(--text)';
+      html+=`<tr><td><span style="font-weight:700;color:${cc}">${esc(p.name)}</span></td>${cols.map(c=>sheetCell(s,p.id,c)).join('')}${addColHead?'<td></td>':''}</tr>`;
+    });
+  } else {
+    if(!s.rows.length){ html+=`<tr><td colspan="${colSpan}" class="empty">Žádné řádky.${editMode?' Přidej přes „+ řádek" níž.':''}</td></tr>`; }
+    s.rows.forEach(r=>{
+      html+=`<tr><td><input class="note-in" value="${esc(r.label||'')}" placeholder="název…" onchange="setSheetRowLabel('${r.id}',this.value)"></td>${cols.map(c=>sheetCell(s,r.id,c)).join('')}${addColHead?'<td></td>':''}${editMode?`<td><button class="iconbtn del" onclick="delSheetRow('${r.id}')" title="Smazat řádek">✕</button></td>`:''}</tr>`;
+    });
+  }
+  html+='</tbody></table>';
+  if(s.kind==='free') html+=`<div style="margin-top:12px"><button class="btn btn-ghost" onclick="addSheetRow()">+ řádek</button></div>`;
+  wrap.innerHTML=html;
 }
 
 (function(){ let pref='classic'; try{ pref=localStorage.getItem('rosterTheme')||'classic'; }catch(e){} applyTheme(pref); try{ layoutMode=localStorage.getItem('rosterLayout')||'side'; }catch(e){} try{ const cr=parseInt(localStorage.getItem('compRows'),10); if(cr>0)compMaxRows=cr; }catch(e){} try{ const cw=JSON.parse(localStorage.getItem('colWidths')||'{}'); if(cw&&typeof cw==='object')colWidths=cw; }catch(e){} applyLayout(); })();
