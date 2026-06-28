@@ -118,7 +118,13 @@
   .fchip{padding:4px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);color:var(--text-dim);font-size:12px;font-weight:600;cursor:pointer;user-select:none;transition:all .12s}
   .fchip.on{border-color:var(--accent-border);color:var(--accent);background:rgba(79,142,255,.12)}
   .fchip:hover{border-color:var(--accent-border)}
-  .zone-dd{position:absolute;z-index:60;left:0;right:0;margin-top:4px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.55);max-height:300px;overflow-y:auto}
+  .zone-dd{position:absolute;z-index:60;left:0;right:0;margin-top:4px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.55);max-height:320px;overflow-y:auto}
+  #wclZoneChips{display:flex;flex-direction:column;gap:0}
+  .zone-item{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:6px;cursor:pointer;font-size:12.5px;color:var(--text)}
+  .zone-item:hover{background:rgba(255,255,255,.05)}
+  .zone-item input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;flex:0 0 auto}
+  .zone-item .zn{flex:1}
+  .zone-cnt{color:var(--text-dim);font-size:11px}
 </style>
 </head>
 <body>
@@ -627,7 +633,7 @@ function renderZoneChips(){
   if(!el) return;
   const all=_zonesAll(); const selIds=new Set(progZones().map(z=>String(z.id)));
   if(!all.length){ el.innerHTML='<span class="am-hint">Klikni „Načíst raidy".</span>'; return; }
-  el.innerHTML=all.map(z=>`<span class="fchip ${selIds.has(String(z.id))?'on':''}" onclick="toggleZone(${z.id})">${esc(z.name)} (${z.total})</span>`).join('');
+  el.innerHTML=all.map(z=>`<label class="zone-item"><input type="checkbox" ${selIds.has(String(z.id))?'checked':''} onchange="toggleZone(${z.id})"><span class="zn">${esc(z.name)}</span><span class="zone-cnt">${z.total} bossů</span></label>`).join('');
 }
 function toggleZoneDD(e){ if(e)e.stopPropagation(); const dd=document.getElementById('wclZoneDD'); if(!dd)return; const show=dd.style.display==='none'; dd.style.display=show?'block':'none'; if(show) setTimeout(()=>document.addEventListener('mousedown',_zoneDDClose),0); }
 function _zoneDDClose(e){ const dd=document.getElementById('wclZoneDD'),btn=document.getElementById('wclZoneBtn'); if(dd&&!dd.contains(e.target)&&e.target!==btn){ dd.style.display='none'; document.removeEventListener('mousedown',_zoneDDClose); } }
