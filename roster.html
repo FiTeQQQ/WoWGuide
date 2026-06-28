@@ -267,6 +267,7 @@
     <button class="btn btn-ghost" onclick="wclToggle()">↻ WCL</button>
     <button class="btn btn-ghost" onclick="clearAll()" title="Smazat všechny Trial kandidáty (Core/Member zůstanou)" style="color:#f87171;border-color:rgba(239,68,68,.3)">🗑 Smazat Trial</button>
     <button class="btn btn-ghost" id="editBtn" onclick="toggleEdit()" title="Upravit ranky, sloupce a vzhled">✏ Edit</button>
+    <button class="btn btn-ghost" id="saveBtn" onclick="flushCloud()" title="Uložit změny do cloudu (jinak se uloží samo po 20 s nebo při zavření)">✓ Uloženo</button>
     <input class="search" id="search" placeholder="Hledat hráče / poznámku…" oninput="render()">
     <span class="status" id="status"></span>
   </div>
@@ -598,6 +599,7 @@ async function load(){
   buildPeopleFromFlat(flat);
   st.textContent='';
   render();
+  _updateSaveBtn();
   _autoRefreshProgress();
 }
 // Plochý hlavní roster → vnořený model people[] (main + alty pod ním přes altOf)
@@ -649,20 +651,34 @@ function buildFlatFromPeople(){
   });
   return out;
 }
-function save(){
-  const flat=buildFlatFromPeople();
-  _flat=flat;
-  try{localStorage.setItem('trkFlat',JSON.stringify(flat));localStorage.setItem('trkRanks',JSON.stringify(ranks));}catch(e){}
-  clearTimeout(saveTimer);
-  const st=document.getElementById('status');st.textContent='Ukládám…';
-  saveTimer=setTimeout(async()=>{
-    try{
-      await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()})});
-      await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenDefault,updatedAt:new Date().toISOString()})});
-      st.textContent='✓ Uloženo';setTimeout(()=>{if(st.textContent==='✓ Uloženo')st.textContent='';},1500);
-    }catch(e){st.textContent='⚠ Cloud offline (uloženo lokálně)';}
-  },700);
+let _dirty=false, _saving=false;
+function _updateSaveBtn(){
+  const b=document.getElementById('saveBtn'); if(!b)return;
+  if(_saving){ b.textContent='⏳ Ukládám…'; b.className='btn btn-ghost'; }
+  else if(_dirty){ b.textContent='💾 Uložit změny'; b.className='btn btn-accent'; }
+  else { b.textContent='✓ Uloženo'; b.className='btn btn-ghost'; }
 }
+// Změna se uloží LOKÁLNĚ hned; do cloudu až na tlačítko (nebo bezpečnostní auto-uložení za 20 s / při zavření).
+function save(){
+  const flat=buildFlatFromPeople(); _flat=flat;
+  try{localStorage.setItem('trkFlat',JSON.stringify(flat));localStorage.setItem('trkRanks',JSON.stringify(ranks));}catch(e){}
+  _dirty=true; _updateSaveBtn();
+  clearTimeout(saveTimer); saveTimer=setTimeout(()=>flushCloud(),20000);
+}
+async function flushCloud(){
+  clearTimeout(saveTimer);
+  if(!_dirty||_saving) return;
+  const flat=buildFlatFromPeople(); _flat=flat;
+  _saving=true; _updateSaveBtn();
+  try{
+    await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()})});
+    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenDefault,updatedAt:new Date().toISOString()})});
+    _dirty=false;
+  }catch(e){ const st=document.getElementById('status'); if(st)st.textContent='⚠ Cloud offline (změny zatím jen lokálně)'; }
+  _saving=false; _updateSaveBtn();
+}
+function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenDefault,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
+window.addEventListener('beforeunload',_flushBeacon);
 
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}render();}
 function sortedPeople(filtered){
@@ -828,7 +844,7 @@ async function apAddWcl(){
           const obj={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills};
           p.prog[z.id]=obj; if(p.chars&&p.chars[0]){ p.chars[0].prog=p.chars[0].prog||{}; p.chars[0].prog[z.id]=obj; }
         }
-        save(); render(); _wclCfgTouch();
+        save(); render(); _wclCfgTouch(); flushCloud();
       }catch(e){}
     }
     toast(nm+' přidán (server '+realm+').'); closeAdd();
@@ -1220,7 +1236,7 @@ async function wclLoadProgress(){
       }
       wclLog(`✓ progress ${p.name}`);
     }
-    save(); render(); _wclCfgTouch();
+    save(); render(); _wclCfgTouch(); flushCloud();
     st.textContent='Progress hotov ✓';
     wclLog('Progress načten pro '+targets.length+' hráčů.','ok');
   }catch(e){ st.textContent='Chyba'; wclLog('CHYBA progress: '+e.message,'err'); }
@@ -1288,7 +1304,7 @@ async function wclRun(){
           }
           wclLog(`✓ progress ${p.name}`);
         }
-        save(); render(); _wclCfgTouch();
+        save(); render(); _wclCfgTouch(); flushCloud();
       }
     }
     st.textContent='Hotovo ✓';
