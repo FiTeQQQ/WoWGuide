@@ -417,9 +417,9 @@ const STATUS_OPTS=[
   {v:'',      label:'—',          icon:'—',  color:'#5b6070'},
   {v:'yes',   label:'Ano',        icon:'✓',  color:'#4ade80'},
   {v:'no',    label:'Ne',         icon:'✕',  color:'#f87171'},
-  {v:'bench', label:'Bench',      icon:'🪑', color:'#fb923c'},
-  {v:'tent',  label:'Předběžně',  icon:'?',  color:'#facc15'},
-  {v:'absent',label:'Nepřítomen', icon:'💤', color:'#9ca3af'}
+  {v:'bench', label:'Bench',          icon:'B',  color:'#fb923c'},
+  {v:'tent',  label:'Předběžně',      icon:'?',  color:'#facc15'},
+  {v:'absent',label:'Out (nemá čas / práce)', icon:'💼', color:'#9ca3af'}
 ];
 
 function uid(){return 't'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);}
@@ -443,7 +443,7 @@ function colHead(col){
 }
 function colCell(p,col){
   const v=(p.custom||{})[col.id];
-  if(col.type==='checkbox'){ const yes=(v===true||v==='true'); const qm=(v==='?'); const icon=yes?'✓':(qm?'?':''); const color=yes?'#4ade80':(qm?'#facc15':''); return `<td style="text-align:center"><button class="chkbox" style="${color?'color:'+color:''}" title="${yes?'Ano':(qm?'Možná':'Ne')}" onclick="cycleCheck('${p.id}','${col.id}')">${icon}</button></td>`; }
+  if(col.type==='checkbox'){ const yes=(v===true||v==='true'); const no=(v==='no'); const qm=(v==='?'); const icon=yes?'✓':(no?'✕':(qm?'?':'')); const color=yes?'#4ade80':(no?'#f87171':(qm?'#facc15':'')); const ttl=yes?'Ano':(no?'Ne':(qm?'Možná':'—')); return `<td style="text-align:center"><button class="chkbox" style="${color?'color:'+color:''}" title="${ttl}" onclick="cycleCheck('${p.id}','${col.id}')">${icon}</button></td>`; }
   if(col.type==='number') return `<td><input class="mini-num" type="number" value="${(v!=null&&v!=='')?esc(v):''}" onchange="setCustom('${p.id}','${col.id}',this.value)"></td>`;
   if(col.type==='select'){ const opts='<option value=""></option>'+(col.options||[]).map(o=>`<option ${String(v)===String(o)?'selected':''}>${esc(o)}</option>`).join(''); return `<td><select class="rank" onchange="setCustom('${p.id}','${col.id}',this.value)">${opts}</select></td>`; }
   if(col.type==='status'){ const o=STATUS_OPTS.find(s=>s.v===(v||''))||STATUS_OPTS[0]; return `<td style="text-align:center"><button class="statuscell" style="color:${o.color}" title="${esc(o.label)}" onclick="openStatusMenu(event,'${p.id}','${col.id}')">${o.icon}</button></td>`; }
@@ -451,7 +451,8 @@ function colCell(p,col){
 }
 function setCustom(pid,cid,val){ const p=find(pid); if(!p)return; p.custom=p.custom||{}; p.custom[cid]=val; save(); }
 // Tří-stavový checkbox: ne(prázdné) → ano(✓) → možná(?) → ne
-function cycleCheck(pid,cid){ const p=find(pid); if(!p)return; p.custom=p.custom||{}; const cur=p.custom[cid]; let nxt; if(cur===true||cur==='true') nxt='?'; else if(cur==='?') nxt=false; else nxt=true; p.custom[cid]=nxt; save(); render(); }
+// Cyklus: prázdné → Ano(✓) → Ne(✕) → Možná(?) → prázdné
+function cycleCheck(pid,cid){ const p=find(pid); if(!p)return; p.custom=p.custom||{}; const cur=p.custom[cid]; let nxt; if(cur===true||cur==='true') nxt='no'; else if(cur==='no') nxt='?'; else if(cur==='?') nxt=''; else nxt=true; p.custom[cid]=nxt; save(); render(); }
 // Status sloupec (ano/ne/bench/předběžně/nepřítomen) — dropdown s ikonou v řádku
 function openStatusMenu(e,pid,cid){
   e.stopPropagation(); closeStatusMenu();
