@@ -303,7 +303,7 @@ const SPECS={
 // Klasifikace rolí podle classy+specu (klíč "class|Spec")
 const TANK_SPECS_R=new Set(['deathknight|Blood','demonhunter|Vengeance','druid|Guardian','monk|Brewmaster','paladin|Protection','warrior|Protection']);
 const HEAL_SPECS_R=new Set(['evoker|Preservation','druid|Restoration','monk|Mistweaver','paladin|Holy','priest|Discipline','priest|Holy','shaman|Restoration']);
-const RANGED_SPECS_R=new Set(['evoker|Devastation','evoker|Augmentation','druid|Balance','hunter|Beast Mastery','hunter|Marksmanship','mage|Arcane','mage|Fire','mage|Frost','priest|Shadow','shaman|Elemental','warlock|Affliction','warlock|Demonology','warlock|Destruction']);
+const RANGED_SPECS_R=new Set(['demonhunter|Devourer','evoker|Devastation','evoker|Augmentation','druid|Balance','hunter|Beast Mastery','hunter|Marksmanship','mage|Arcane','mage|Fire','mage|Frost','priest|Shadow','shaman|Elemental','warlock|Affliction','warlock|Demonology','warlock|Destruction']);
 function roleCatR(cls,spec){ const k=(cls||'').toLowerCase()+'|'+(spec||''); if(TANK_SPECS_R.has(k))return 'tank'; if(HEAL_SPECS_R.has(k))return 'healer'; return RANGED_SPECS_R.has(k)?'ranged':'melee'; }
 let _apCls='',_apSpec=null,_apMatch=null,_mainRosterCache=null,_apTimer=null;
 
@@ -458,7 +458,7 @@ function renderComposition(){
   });
   const cell=o=>{ const clr=CC[(o.cls||'').toLowerCase()]||'var(--text)'; const ic=o.specIcon?`<img src="${esc(o.specIcon)}" onerror="this.style.display='none'">`:''; return `<div class="comp-row" title="${esc(o.alt?('alt — main: '+o.mainName):o.name)}">${ic}<span class="comp-nm" style="color:${clr}">${esc(o.name)}</span>${o.alt?'<span class="comp-alt">alt</span>':''}</div>`; };
   const tbl=(title,arr,clr)=>`<div class="comp-card"><div class="comp-head" style="color:${clr}">${esc(title)} <span class="comp-cnt">(${arr.length})</span></div><div class="comp-list">${arr.length?arr.map(cell).join(''):'<div class="comp-empty">—</div>'}</div></div>`;
-  el.innerHTML=tbl('Tanks',cats.tank,'#60a5fa')+tbl('Healers',cats.healer,'#4ade80')+tbl('Melee DPS',cats.melee,'#f87171')+tbl('Ranged DPS',cats.ranged,'#fbbf24');
+  el.innerHTML=tbl('Tanks',cats.tank,'#60a5fa')+tbl('Healers',cats.healer,'#4ade80')+tbl('Melee DPS',cats.melee,'#f87171')+tbl('Ranged DPS',cats.ranged,'#f87171');
 }
 function render(){
   _progTips=[];
