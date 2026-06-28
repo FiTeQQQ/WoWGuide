@@ -156,10 +156,9 @@
       <div class="wcl-field"><label>Realm (slug) — nutné i pro progress</label><input id="wclRealm" placeholder="napr. twisting-nether"></div>
       <div class="wcl-field"><label>Region</label><select id="wclRegion"><option>EU</option><option>US</option><option>KR</option><option>TW</option></select></div>
     </div>
-    <div class="wcl-row" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-      <div class="wcl-field" style="flex:1;min-width:170px"><label>Raid 1 (progress)</label><select id="wclZone1"><option value="">— načti raidy —</option></select></div>
-      <div class="wcl-field" style="flex:1;min-width:170px"><label>Raid 2 (progress)</label><select id="wclZone2"><option value="">— žádný —</option></select></div>
-      <button class="btn btn-ghost" onclick="wclLoadZones()">Načíst raidy</button>
+    <div class="wcl-row">
+      <label style="display:block;margin-bottom:5px;font-size:11px;color:var(--text-dim)">Raidy pro progress — <button class="btn btn-ghost" style="font-size:11px;padding:3px 9px" onclick="wclLoadZones()">Načíst raidy</button> a zaškrtni, které sledovat (každý = jeden sloupec):</label>
+      <div class="filterbar" id="wclZoneChips" style="margin-bottom:0"><span class="am-hint">Klikni „Načíst raidy".</span></div>
     </div>
     <div class="wcl-row"><label style="display:block;margin-bottom:4px;font-size:11px;color:var(--text-dim)">Ruční reporty (URL nebo kódy, jeden na řádek) — i personal logy</label>
       <textarea id="wclReports" rows="3" placeholder="https://www.warcraftlogs.com/reports/aBcD1234...&#10;aBcD1234..."></textarea></div>
@@ -529,6 +528,7 @@ function wclToggle(){
     document.getElementById('wclGuild').value=localStorage.getItem('wcl_guild')||'';
     document.getElementById('wclRealm').value=localStorage.getItem('wcl_realm')||'';
     document.getElementById('wclRegion').value=localStorage.getItem('wcl_region')||'EU';
+    renderZoneChips();
   }
 }
 function wclSaveCreds(){
@@ -577,8 +577,10 @@ function _wclEntries(pd){
 let _wclIcon={};
 function _deriveSpecIcon(cls,icon){
   if(!icon) return '';
+  const norm=s=>String(s||'').toLowerCase().replace(/[^a-z]/g,'');
   const spec=String(icon).split('-').pop();
-  const s=(SPECS[String(cls||'').toLowerCase()]||[]).find(x=>x.name.toLowerCase()===String(spec).toLowerCase());
+  const list=SPECS[String(cls||'').toLowerCase()]||[];
+  const s=list.find(x=>norm(x.name)===norm(spec))||list.find(x=>norm(spec).indexOf(norm(x.name))>=0||norm(x.name).indexOf(norm(spec))>=0);
   return s?WH_ICON(s.icon):'';
 }
 async function wclReportAttendance(token,code){
@@ -598,20 +600,31 @@ async function wclReportAttendance(token,code){
   await fetchPlayers(mf,result.m);
   return result;
 }
+function _zonesAll(){ try{ return JSON.parse(localStorage.getItem('wcl_zones_all')||'[]'); }catch(e){ return []; } }
 async function wclLoadZones(){
-  const sels=[document.getElementById('wclZone1'),document.getElementById('wclZone2')];
   try{
     const token=await wclToken();
     const d=await wclGQL(token,`query{worldData{zones{id name encounters{id}}}}`,{});
     let zones=(d&&d.worldData&&d.worldData.zones)||[];
-    zones=zones.filter(z=>z.encounters&&z.encounters.length).sort((a,b)=>b.id-a.id);
-    sels.forEach((sel,i)=>{
-      if(!sel) return;
-      const cur=localStorage.getItem('wcl_zone'+(i+1))||'';
-      sel.innerHTML=`<option value="">${i?'— žádný —':'— vyber raid —'}</option>`+zones.map(z=>`<option value="${z.id}" data-bosses="${z.encounters.length}" data-name="${esc(z.name)}" ${String(z.id)===cur?'selected':''}>${esc(z.name)} (${z.encounters.length})</option>`).join('');
-    });
-    wclLog('Raidů načteno: '+zones.length,'ok');
+    zones=zones.filter(z=>z.encounters&&z.encounters.length).sort((a,b)=>b.id-a.id).map(z=>({id:z.id,name:z.name,total:z.encounters.length}));
+    localStorage.setItem('wcl_zones_all',JSON.stringify(zones));
+    renderZoneChips();
+    wclLog('Raidů načteno: '+zones.length+' — zaškrtni, které sledovat.','ok');
   }catch(e){ wclLog('Načtení raidů selhalo: '+e.message,'err'); }
+}
+function renderZoneChips(){
+  const el=document.getElementById('wclZoneChips'); if(!el) return;
+  const all=_zonesAll(); const selIds=new Set(progZones().map(z=>String(z.id)));
+  if(!all.length){ el.innerHTML='<span class="am-hint">Klikni „Načíst raidy".</span>'; return; }
+  el.innerHTML=all.map(z=>`<span class="fchip ${selIds.has(String(z.id))?'on':''}" onclick="toggleZone(${z.id})">${esc(z.name)} (${z.total})</span>`).join('');
+}
+function toggleZone(id){
+  const all=_zonesAll(); let sel=progZones();
+  const z=all.find(x=>String(x.id)===String(id)); if(!z) return;
+  if(sel.some(s=>String(s.id)===String(id))) sel=sel.filter(s=>String(s.id)!==String(id));
+  else sel.push({id:z.id,name:z.name,total:z.total});
+  localStorage.setItem('wcl_zones',JSON.stringify(sel));
+  renderZoneChips(); render();
 }
 // Vrátí seznamy zabitých bossů (jména) pro H a M
 async function wclCharProgress(token,name,realm,region,zoneID){
@@ -621,12 +634,8 @@ async function wclCharProgress(token,name,realm,region,zoneID){
   const kills=zr=>{ try{ return ((zr&&zr.rankings)||[]).filter(x=>x&&((x.totalKills||0)>0)).map(x=>x.encounter&&x.encounter.name).filter(Boolean); }catch(e){ return []; } };
   return { hKills:kills(ch&&ch.h), mKills:kills(ch&&ch.m) };
 }
-// Aktuálně nakonfigurované raidy pro progress (z localStorage)
-function progZones(){
-  const out=[];
-  [1,2].forEach(i=>{ const id=parseInt(localStorage.getItem('wcl_zone'+i)||'0'); if(id) out.push({id,total:parseInt(localStorage.getItem('wcl_zone'+i+'_bosses')||'0')||0,name:localStorage.getItem('wcl_zone'+i+'_name')||('Raid '+i)}); });
-  return out;
-}
+// Vybrané raidy pro progress (z localStorage) — pole {id,name,total}
+function progZones(){ try{ return JSON.parse(localStorage.getItem('wcl_zones')||'[]'); }catch(e){ return []; } }
 async function wclRun(){
   const btn=document.getElementById('wclRunBtn'); btn.disabled=true;
   _wclMeta={}; _wclIcon={};
@@ -737,7 +746,6 @@ function wclAssign(i){
   else return;
   _wclUn.splice(i,1); save(); render(); renderUnassigned();
 }
-[1,2].forEach(function(i){ const z=document.getElementById('wclZone'+i); if(z) z.addEventListener('change',function(){ const o=this.selectedOptions[0]; localStorage.setItem('wcl_zone'+i,this.value||''); localStorage.setItem('wcl_zone'+i+'_bosses',o?(o.dataset.bosses||''):''); localStorage.setItem('wcl_zone'+i+'_name',o?(o.dataset.name||''):''); render(); }); });
 
 load();
 </script>
