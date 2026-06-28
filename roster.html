@@ -135,9 +135,10 @@
   .progtip .ptip-n{color:var(--text-mid)}
   .progtip .ptip-empty{color:var(--text-dim)}
   .pg{font-weight:700;font-size:12px;white-space:nowrap}
-  .pg-g{color:#4ade80}
   .pg-h{color:#a335ee}
+  .pg-hd{color:#c9a0f5}
   .pg-m{color:#ff8000}
+  .pg-md{color:#ffc08a}
   .altrow{background:rgba(255,255,255,.02)}
   .altrow td{padding-top:5px;padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,.04)}
   .altrow .altname{display:flex;align-items:center;gap:7px;padding-left:22px;position:relative}
@@ -544,8 +545,8 @@ function progCell(pr){
   if(!pr) return '<span class="cnt na">—</span>';
   const tot=pr.total||'?'; const totN=+pr.total||0;
   const hc=(pr.hKills||[]).length, mc=(pr.mKills||[]).length;
-  const hCls=(totN>0&&hc>=totN)?'pg-h':'pg-g';
-  const mCls=(totN>0&&mc>=totN)?'pg-m':'pg-g';
+  const hCls=(totN>0&&hc>=totN)?'pg-h':'pg-hd';
+  const mCls=(totN>0&&mc>=totN)?'pg-m':'pg-md';
   if(totN===1) return `<span class="pg ${mCls}">M ${mc}/${tot}</span>`;
   return `<span class="pg ${hCls}">H ${hc}/${tot}</span><span class="pg ${mCls}">M ${mc}/${tot}</span>`;
 }
