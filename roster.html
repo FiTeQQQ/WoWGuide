@@ -460,6 +460,7 @@ function uid(){return 't'+Date.now().toString(36)+Math.floor(Math.random()*1e4).
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function _shortRaid(n){ n=String(n||''); if(n.length<=16) return n; const w=n.split(/\s+/); if(w.length>1) return w.map(x=>x[0]||'').join('').toUpperCase(); return n.slice(0,14)+'…'; }
 function find(id){return people.find(p=>p.id===id);}
+function _defaultRank(){ return (ranks&&ranks.length)?ranks[ranks.length-1]:'Trial'; } // nejnižší rank = výchozí pro nové (rekrut)
 function totals(p){let h=0,m=0;(p.chars||[]).forEach(c=>{h+=(+c.h||0);m+=(+c.m||0);});return{h,m};}
 function breakdown(p,key){const a=(p.chars||[]).filter(c=>(+c[key]||0)>0).map(c=>`${c.name||'?'} ${+c[key]||0}×`);return a.length>1?a.join(' · '):'';}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200);}
@@ -804,7 +805,7 @@ async function openAdd(){
   document.getElementById('apName').value='';
   document.getElementById('apFound').innerHTML='';
   _apCls=''; _apSpec=null; _apMatch=null;
-  document.getElementById('apRank').innerHTML=ranks.map(r=>`<option ${r==='Trial'?'selected':''}>${esc(r)}</option>`).join('');
+  document.getElementById('apRank').innerHTML=ranks.map(r=>`<option ${r===_defaultRank()?'selected':''}>${esc(r)}</option>`).join('');
   renderApClasses(); renderApSpecs();
   document.getElementById('apManual').style.display='block';
   document.getElementById('addModal').classList.add('open');
@@ -840,7 +841,7 @@ function apAdd(){
   const nm=(document.getElementById('apName').value||'').trim();
   if(!nm){ toast('Zadej jméno.'); return; }
   if(people.some(p=>(p.name||'').toLowerCase()===nm.toLowerCase()||(p.chars||[]).some(c=>(c.name||'').toLowerCase()===nm.toLowerCase()))){ toast('Tento hráč/postava už v rosteru je.'); return; }
-  const rank=document.getElementById('apRank').value||'Trial';
+  const rank=document.getElementById('apRank').value||_defaultRank();
   let cls='',spec='',specIcon='';
   if(_apMatch){ cls=(_apMatch.class||'').toLowerCase(); spec=_apMatch.spec||''; specIcon=_apMatch.specIcon||WH_ICON(((SPECS[cls]||[]).find(s=>s.name===spec)||{}).icon); }
   else if(_apSpec){ cls=_apCls; spec=_apSpec.name; specIcon=WH_ICON(_apSpec.icon); }
@@ -882,7 +883,7 @@ async function apAddWcl(){
       try{ const d2=await wclGQL(token,`query($n:String!,$s:String!,$r:String!){characterData{character(name:$n,serverSlug:$s,serverRegion:$r){name}}}`,{n:nm,s:realm,r:region}); if(d2&&d2.characterData&&d2.characterData.character) found=true; }catch(_){}
     }
     if(!found){ stEl.textContent='Postava nenalezena na realmu '+realm+' ('+region+'). Zkontroluj jméno/realm.'; if(btn)btn.disabled=false; return; }
-    const rank=document.getElementById('apRank').value||'Trial';
+    const rank=document.getElementById('apRank').value||_defaultRank();
     const nid=uid();
     people.push({id:nid,_mainId:nid,name:nm,rank,note:'',cls,spec:'',specIcon:'',prog:{},custom:{},chars:[{name:nm,h:0,m:0,cls,specIcon:'',server:realm,_pid:nid,_role:'dps',_spec:''}]});
     expanded[nid]=true; save(); render();
@@ -1381,7 +1382,7 @@ function applyWclCounts(counts){
     else {
       const ln=name.toLowerCase(); const cls=_wclMeta[ln]||''; const si=_wclIcon[ln]||''; const srv=_wclServer[ln]||'';
       const nid=uid();
-      people.push({id:nid,_mainId:nid,name,rank:'Trial',note:'',cls,spec:'',specIcon:si,prog:{},chars:[{name,h:cnt.h,m:cnt.m,cls,specIcon:si,server:srv,_pid:nid,_role:'dps',_spec:''}]});
+      people.push({id:nid,_mainId:nid,name,rank:_defaultRank(),note:'',cls,spec:'',specIcon:si,prog:{},chars:[{name,h:cnt.h,m:cnt.m,cls,specIcon:si,server:srv,_pid:nid,_role:'dps',_spec:''}]});
       added++;
     }
   });
@@ -1402,7 +1403,7 @@ function wclAssign(i){
   const u=_wclUn[i]; if(!u) return;
   const sel=document.getElementById('un_'+i); if(!sel) return;
   const v=sel.value;
-  if(v==='__new'){ const id=uid(); const c2=(_wclMeta[u.name.toLowerCase()]||''); people.push({id,_mainId:id,name:u.name,rank:'Trial',note:'',cls:c2,spec:'',specIcon:'',prog:{},chars:[{name:u.name,h:u.h,m:u.m,cls:c2,specIcon:'',_pid:id,_role:'dps',_spec:''}]}); }
+  if(v==='__new'){ const id=uid(); const c2=(_wclMeta[u.name.toLowerCase()]||''); people.push({id,_mainId:id,name:u.name,rank:_defaultRank(),note:'',cls:c2,spec:'',specIcon:'',prog:{},chars:[{name:u.name,h:u.h,m:u.m,cls:c2,specIcon:'',_pid:id,_role:'dps',_spec:''}]}); }
   else if(v){ const p=find(v); if(p){ (p.chars=p.chars||[]).push({name:u.name,h:u.h,m:u.m,cls:(_wclMeta[u.name.toLowerCase()]||''),specIcon:''}); } }
   else return;
   _wclUn.splice(i,1); save(); render(); renderUnassigned();
