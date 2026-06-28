@@ -58,6 +58,9 @@
   .char-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap}
   .char-row input[type=text]{flex:1 1 160px;min-width:110px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none}
   .char-row .lbl{font-size:11px;color:var(--text-dim)}
+  .mainbadge{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);background:rgba(79,142,255,.12);border:1px solid var(--accent-border);border-radius:8px;padding:1px 7px}
+  .bulkbar{display:flex;align-items:center;gap:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:8px 14px;margin-bottom:10px;font-size:13px;color:var(--text)}
+  .rowchk{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;vertical-align:middle;margin-right:5px}
   .mini-num{width:58px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:5px;outline:none;text-align:center}
   .empty{text-align:center;color:var(--text-dim);font-size:14px;padding:50px 10px}
   .legend{font-size:11px;color:var(--text-dim);margin-top:12px}
@@ -106,6 +109,7 @@
   </div>
 
   <div class="filterbar" id="filterbar"></div>
+  <div id="bulkbar"></div>
 
   <!-- WCL panel -->
   <div class="wcl-panel" id="wclPanel" style="display:none">
@@ -149,6 +153,7 @@ let ranks=['Core','Member','Trial'];
 let expanded={};
 let sortKey='rank', sortDir=1;
 let hiddenRanks=new Set();
+let selected=new Set();
 let saveTimer=null;
 
 function uid(){return 't'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);}
@@ -195,6 +200,7 @@ function sortedPeople(filtered){
 
 function render(){
   renderFilter();
+  renderBulk();
   const wrap=document.getElementById('tableWrap');
   const q=(document.getElementById('search').value||'').toLowerCase().trim();
   const filtered=people.filter(p=>(!q||(p.name||'').toLowerCase().includes(q)||(p.note||'').toLowerCase().includes(q)||(p.chars||[]).some(c=>(c.name||'').toLowerCase().includes(q)))&&!hiddenRanks.has(p.rank));
@@ -204,7 +210,7 @@ function render(){
   const arrow=k=>sortKey===k?`<span class="arr">${sortDir>0?'▲':'▼'}</span>`:'';
   const rankOpts=name=>ranks.map(r=>`<option ${r===name?'selected':''}>${esc(r)}</option>`).join('');
   let html=`<table><thead><tr>
-    <th style="width:18px"></th>
+    <th style="width:46px"></th>
     <th onclick="setSort('name')">Hráč ${arrow('name')}</th>
     <th style="width:110px" onclick="setSort('rank')">Rank ${arrow('rank')}</th>
     <th style="width:120px" title="Aktuální progress postavy v tieru (kolik bossů zabito)">Progress H/M</th>
@@ -220,7 +226,7 @@ function render(){
     const ico=p.specIcon?`<img class="spec-ic" src="${esc(p.specIcon)}" onerror="this.style.display='none'">`:'';
     const naCore=p.rank==='Core';
     html+=`<tr class="${flag?'flag':''}">
-      <td><span class="expand" onclick="toggle('${p.id}')">${exp?'▾':'▸'}</span></td>
+      <td><input type="checkbox" class="rowchk" ${selected.has(p.id)?'checked':''} onclick="event.stopPropagation();toggleSel('${p.id}')"><span class="expand" onclick="toggle('${p.id}')">${exp?'▾':'▸'}</span></td>
       <td>${ico}<span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${altN>0?`<span class="altcnt">+${altN} alt</span>`:''}${flag?'<span class="warn">⚠ 0× Heroic</span>':''}</td>
       <td><select class="rank" onchange="setRank('${p.id}',this.value)">${rankOpts(p.rank)}</select></td>
       <td>${naCore?'<span class="cnt na">—</span>':`<div class="prog"><b>H</b>${esc(p.progH||'—')}</div><div class="prog"><b>M</b>${esc(p.progM||'—')}</div>`}</td>
@@ -235,7 +241,9 @@ function render(){
       html+=`<tr><td></td><td colspan="7"><div class="chars">
         <div class="sub" style="margin-bottom:7px">Postavy / alty — počty se sčítají pod hráče (H = Heroic, M = Mythic).</div>
         ${(p.chars||[]).map((c,ci)=>`<div class="char-row">
-          <input type="text" value="${esc(c.name||'')}" placeholder="jméno postavy" onchange="setChar('${p.id}',${ci},'name',this.value)">
+          ${c.specIcon?`<img class="spec-ic" src="${esc(c.specIcon)}" onerror="this.style.display='none'">`:''}
+          <input type="text" style="color:${CC[(c.cls||'').toLowerCase()]||'var(--text)'};font-weight:600" value="${esc(c.name||'')}" placeholder="jméno postavy" onchange="setChar('${p.id}',${ci},'name',this.value)">
+          ${ci===0?'<span class="mainbadge">main</span>':''}
           <span class="lbl">H</span><input class="mini-num" type="number" min="0" value="${+c.h||0}" onchange="setChar('${p.id}',${ci},'h',this.value)">
           <span class="lbl">M</span><input class="mini-num" type="number" min="0" value="${+c.m||0}" onchange="setChar('${p.id}',${ci},'m',this.value)">
           <button class="iconbtn del" title="Odebrat postavu" onclick="delChar('${p.id}',${ci})">✕</button>
@@ -261,7 +269,20 @@ function clearAll(){
   if(!people.length){ toast('Roster je už prázdný.'); return; }
   if(!confirm(`Smazat VŠECHNY hráče (${people.length})? Nevratné.`)) return;
   if(!confirm('Opravdu? Tohle vymaže celý seznam.')) return;
-  people=[]; _wclUn=[]; save(); render(); toast('Roster vymazán.');
+  people=[]; _wclUn=[]; selected.clear(); save(); render(); toast('Roster vymazán.');
+}
+function toggleSel(id){ if(selected.has(id))selected.delete(id); else selected.add(id); renderBulk(); }
+function clearSel(){ selected.clear(); render(); }
+function deleteSelected(){
+  if(!selected.size) return;
+  if(!confirm(`Smazat ${selected.size} vybraných hráčů? Nevratné.`)) return;
+  people=people.filter(p=>!selected.has(p.id)); selected.clear(); save(); render();
+}
+function renderBulk(){
+  const el=document.getElementById('bulkbar'); if(!el) return;
+  el.innerHTML = selected.size>0
+    ? `<div class="bulkbar"><b>Vybráno ${selected.size}</b><button class="btn btn-ghost" style="color:#f87171;border-color:rgba(239,68,68,.3)" onclick="deleteSelected()">🗑 Smazat vybrané</button><button class="btn btn-ghost" onclick="clearSel()">Zrušit výběr</button></div>`
+    : '';
 }
 
 async function promote(id){
@@ -322,14 +343,13 @@ async function importRoster(){
       }
       members.forEach(pl=>{
         const cn=(pl.name||'').trim(); if(!cn) return;
-        // pokud postava existuje jako samostatný hráč → slož pod maina (zachová počty) a samostatného smaž
-        const standalone=people.find(pp=>pp!==person && (pp.name||'').toLowerCase()===cn.toLowerCase());
-        if(standalone){
-          (standalone.chars||[]).forEach(c=>{ if(!(person.chars||[]).some(x=>(x.name||'').toLowerCase()===(c.name||'').toLowerCase())) person.chars.push(c); });
-          people=people.filter(pp=>pp!==standalone); addedC++;
-        } else if(!(person.chars||[]).some(c=>(c.name||'').toLowerCase()===cn.toLowerCase())){
-          person.chars.push({name:cn,h:0,m:0}); addedC++;
-        }
+        const plCls=(pl.class||'').toLowerCase(), plIco=pl.specIcon||'';
+        // počty ze samostatného hráče (pokud už existuje) → slož pod maina, samostatného smaž
+        let h=0,m=0; const standalone=people.find(pp=>pp!==person && (pp.name||'').toLowerCase()===cn.toLowerCase());
+        if(standalone){ (standalone.chars||[]).forEach(c=>{ h+=(+c.h||0); m+=(+c.m||0); }); people=people.filter(pp=>pp!==standalone); }
+        const ex=(person.chars||[]).find(c=>(c.name||'').toLowerCase()===cn.toLowerCase());
+        if(ex){ ex.cls=ex.cls||plCls; ex.specIcon=ex.specIcon||plIco; if(standalone){ ex.h=ex.h||h; ex.m=ex.m||m; } }
+        else { (person.chars=person.chars||[]).push({name:cn,h,m,cls:plCls,specIcon:plIco}); addedC++; }
       });
     });
     save(); render();
@@ -510,7 +530,7 @@ function wclAssign(i){
   const sel=document.getElementById('un_'+i); if(!sel) return;
   const v=sel.value;
   if(v==='__new'){ const id=uid(); people.push({id,name:u.name,rank:'Trial',note:'',cls:(_wclMeta[u.name.toLowerCase()]||''),spec:'',specIcon:'',chars:[{name:u.name,h:u.h,m:u.m}]}); }
-  else if(v){ const p=find(v); if(p){ (p.chars=p.chars||[]).push({name:u.name,h:u.h,m:u.m}); } }
+  else if(v){ const p=find(v); if(p){ (p.chars=p.chars||[]).push({name:u.name,h:u.h,m:u.m,cls:(_wclMeta[u.name.toLowerCase()]||''),specIcon:''}); } }
   else return;
   _wclUn.splice(i,1); save(); render(); renderUnassigned();
 }
