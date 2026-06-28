@@ -141,9 +141,9 @@
   <div class="toolbar">
     <button class="btn btn-accent" onclick="openAdd()">+ Přidat hráče</button>
     <button class="btn btn-ghost" onclick="addRank()">+ Rank</button>
-    <button class="btn btn-ghost" onclick="importRoster()" title="Naimportovat hráče z hlavního rosteru (Assignments)">⬇ Import z rosteru</button>
+    <button class="btn btn-ghost" onclick="importRoster()" title="Načíst znovu z hlavního rosteru (sdíleno s guide)">↻ Načíst znovu</button>
     <button class="btn btn-ghost" onclick="wclToggle()">↻ WCL účast</button>
-    <button class="btn btn-ghost" onclick="clearAll()" title="Smazat všechny hráče" style="color:#f87171;border-color:rgba(239,68,68,.3)">🗑 Vymazat vše</button>
+    <button class="btn btn-ghost" onclick="clearAll()" title="Smazat všechny Trial kandidáty (Core/Member zůstanou)" style="color:#f87171;border-color:rgba(239,68,68,.3)">🗑 Smazat Trial</button>
     <input class="search" id="search" placeholder="Hledat hráče / poznámku…" oninput="render()">
     <span class="status" id="status"></span>
   </div>
@@ -183,7 +183,7 @@
   </div>
 
   <div class="card"><div id="tableWrap"></div></div>
-  <div class="legend">⚠ Trial bez jediného Heroic raidu je červeně zvýrazněný. WCL auto-načítání účasti přidáme v dalším kroku. Klikni na ▸ u hráče pro slučování altů.</div>
+  <div class="legend">Tento roster je <b>sdílený s guide</b> (Assignments) — rank i alty se propisují oběma směry. ⚠ Trial bez jediného Heroic raidu je zvýrazněný. Klikni na ▸ u hráče pro slučování altů, pravým tlačítkem pro promote / přiřazení alta.</div>
 </div>
 <datalist id="euRealms">
 <option value="drakthul">Drak'thul</option><option value="draenor">Draenor</option><option value="tarren-mill">Tarren Mill</option><option value="kazzak">Kazzak</option><option value="twisting-nether">Twisting Nether</option><option value="ravencrest">Ravencrest</option><option value="silvermoon">Silvermoon</option><option value="argent-dawn">Argent Dawn</option><option value="stormscale">Stormscale</option><option value="sylvanas">Sylvanas</option><option value="outland">Outland</option><option value="ragnaros">Ragnaros</option><option value="defias-brotherhood">Defias Brotherhood</option><option value="the-maelstrom">The Maelstrom</option><option value="magtheridon">Magtheridon</option><option value="blackmoore">Blackmoore</option><option value="doomhammer">Doomhammer</option><option value="dragonblight">Dragonblight</option><option value="emerald-dream">Emerald Dream</option><option value="hellfire">Hellfire</option><option value="kilrogg">Kilrogg</option><option value="nagrand">Nagrand</option><option value="nordrassil">Nordrassil</option><option value="runetotem">Runetotem</option><option value="terenas">Terenas</option><option value="turalyon">Turalyon</option><option value="aerie-peak">Aerie Peak</option><option value="al-akir">Al'Akir</option><option value="alonsus">Alonsus</option><option value="anachronos">Anachronos</option><option value="antonidas">Antonidas</option><option value="arathor">Arathor</option><option value="azjol-nerub">Azjol-Nerub</option><option value="blades-edge">Blade's Edge</option><option value="bloodfeather">Bloodfeather</option><option value="bronzebeard">Bronzebeard</option><option value="burning-blade">Burning Blade</option><option value="burning-legion">Burning Legion</option><option value="chamber-of-aspects">Chamber of Aspects</option><option value="darkmoon-faire">Darkmoon Faire</option><option value="darksorrow">Darksorrow</option><option value="dentarg">Dentarg</option><option value="earthen-ring">Earthen Ring</option><option value="frostmane">Frostmane</option><option value="frostwhisper">Frostwhisper</option><option value="garona">Garona</option><option value="genjuros">Genjuros</option><option value="gilneas">Gilneas</option><option value="grim-batol">Grim Batol</option><option value="hyjal">Hyjal</option><option value="khadgar">Khadgar</option><option value="kul-tiras">Kul Tiras</option><option value="laughing-skull">Laughing Skull</option><option value="lightbringer">Lightbringer</option><option value="lightnings-blade">Lightning's Blade</option><option value="malygos">Malygos</option><option value="moonglade">Moonglade</option><option value="ner-zhul">Ner'zhul</option><option value="proudmoore">Proudmoore</option><option value="quelthalas">Quel'Thalas</option><option value="saurfang">Saurfang</option><option value="shattered-hand">Shattered Hand</option><option value="steamwheedle-cartel">Steamwheedle Cartel</option><option value="sunstrider">Sunstrider</option><option value="thrall">Thrall</option><option value="tichondrius">Tichondrius</option><option value="veknilash">Vek'nilash</option><option value="wildhammer">Wildhammer</option><option value="xavius">Xavius</option><option value="zenedar">Zenedar</option><option value="zuljin">Zul'jin</option><option value="aggramar">Aggramar</option><option value="aszune">Aszune</option><option value="bladefist">Bladefist</option><option value="bloodhoof">Bloodhoof</option><option value="deathwing">Deathwing</option><option value="dunemaul">Dunemaul</option><option value="emeriss">Emeriss</option><option value="eonar">Eonar</option><option value="executus">Executus</option><option value="haomarush">Haomarush</option><option value="kor-gall">Kor'gall</option><option value="mazrigos">Mazrigos</option><option value="shadowsong">Shadowsong</option><option value="skullcrusher">Skullcrusher</option><option value="spinebreaker">Spinebreaker</option><option value="stormrage">Stormrage</option><option value="thunderhorn">Thunderhorn</option><option value="trollbane">Trollbane</option><option value="vashj">Vashj</option><option value="vekn">Vek'nilash</option>
@@ -233,6 +233,7 @@ const SPECS={
 let _apCls='',_apSpec=null,_apMatch=null,_mainRosterCache=null,_apTimer=null;
 
 let people=[];
+let _flat=[];            // plochý hlavní roster (zdroj pravdy = /api/roster/main)
 let ranks=['Core','Member','Trial'];
 let expanded={};
 let sortKey='rank', sortDir=1;
@@ -250,22 +251,82 @@ function toast(t){const e=document.getElementById('toast');e.textContent=t;e.cla
 
 async function load(){
   const st=document.getElementById('status');st.textContent='Načítám…';
+  let flat=[];
   try{
-    const r=await fetch(API_BASE+'/api/roster/'+TRK_KEY,{cache:'no-cache'});
-    if(r.ok){const j=await r.json();if(j){if(Array.isArray(j.people))people=j.people;if(Array.isArray(j.ranks)&&j.ranks.length)ranks=j.ranks;}}
+    const r=await fetch(API_BASE+'/api/roster/main',{cache:'no-cache'});
+    if(r.ok){const j=await r.json();if(Array.isArray(j.roster))flat=j.roster;}
   }catch(e){
-    try{const d=JSON.parse(localStorage.getItem('trkData')||'null');if(d){people=d.people||[];if(d.ranks&&d.ranks.length)ranks=d.ranks;}}catch(_){}
+    try{const d=JSON.parse(localStorage.getItem('trkFlat')||'null');if(Array.isArray(d))flat=d;}catch(_){}
   }
+  // seznam ranků (meta klíč — guide ho nepřepisuje)
+  try{
+    const rm=await fetch(API_BASE+'/api/roster/'+TRK_KEY,{cache:'no-cache'});
+    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;}
+  }catch(e){
+    try{const lr=JSON.parse(localStorage.getItem('trkRanks')||'null');if(Array.isArray(lr)&&lr.length)ranks=lr;}catch(_){}
+  }
+  buildPeopleFromFlat(flat);
   st.textContent='';
   render();
 }
+// Plochý hlavní roster → vnořený model people[] (main + alty pod ním přes altOf)
+function buildPeopleFromFlat(flat){
+  _flat=Array.isArray(flat)?flat.slice():[];
+  try{localStorage.setItem('trkFlat',JSON.stringify(_flat));}catch(e){}
+  const byId={}; _flat.forEach(p=>{ if(p&&p.id) byId[p.id]=p; });
+  const mainOf=p=>{ let c=p,g=0; while(c&&c.altOf&&byId[c.altOf]&&g<12){c=byId[c.altOf];g++;} return c; };
+  const groups={};
+  _flat.forEach(p=>{ if(!p||!(p.name||'').trim())return; const m=mainOf(p); if(!m)return; (groups[m.id]=groups[m.id]||[]).push(p); });
+  people=Object.keys(groups).map(mid=>{
+    const m=byId[mid];
+    const members=groups[mid].slice().sort((a,b)=>(a.id===mid?-1:b.id===mid?1:0));
+    const chars=members.map(pl=>({name:pl.name||'',h:+pl.h||0,m:+pl.m||0,cls:(pl.class||'').toLowerCase(),specIcon:pl.specIcon||'',_pid:pl.id,_role:pl.role||'',_spec:pl.spec||''}));
+    return {id:mid,_mainId:mid,name:m.name||'',rank:m.rank||'Core',note:m.note||'',cls:(m.class||'').toLowerCase(),spec:m.spec||'',specIcon:m.specIcon||'',prog:m.prog||{},chars};
+  });
+}
+// Vnořený model → plochý hlavní roster (zachová pole guide jako role/spec)
+function buildFlatFromPeople(){
+  const origById={}; (_flat||[]).forEach(p=>{ if(p&&p.id) origById[p.id]=p; });
+  const out=[];
+  people.forEach(per=>{
+    const mainId=per._mainId||per.id;
+    (per.chars||[]).forEach((c,ci)=>{
+      const isMain=ci===0;
+      const pid=c._pid||(isMain?mainId:uid());
+      const base=origById[pid]?Object.assign({},origById[pid]):{};
+      base.id=pid;
+      base.name=c.name||'';
+      base.class=(c.cls||base.class||'').toLowerCase();
+      base.specIcon=c.specIcon||base.specIcon||'';
+      base.spec=(c._spec!==undefined&&c._spec!=='')?c._spec:(isMain?(per.spec||base.spec||''):(base.spec||''));
+      base.role=(c._role!==undefined&&c._role!=='')?c._role:(base.role||'dps');
+      base.h=+c.h||0; base.m=+c.m||0;
+      if(isMain){
+        delete base.altOf;
+        base.rank=per.rank||'Core';
+        base.note=per.note||'';
+        base.prog=per.prog||{};
+      }else{
+        base.altOf=mainId;
+        delete base.rank; delete base.note; delete base.prog;
+      }
+      out.push(base);
+    });
+  });
+  return out;
+}
 function save(){
-  try{localStorage.setItem('trkData',JSON.stringify({people,ranks}));}catch(e){}
+  const flat=buildFlatFromPeople();
+  _flat=flat;
+  try{localStorage.setItem('trkFlat',JSON.stringify(flat));localStorage.setItem('trkRanks',JSON.stringify(ranks));}catch(e){}
   clearTimeout(saveTimer);
   const st=document.getElementById('status');st.textContent='Ukládám…';
   saveTimer=setTimeout(async()=>{
-    try{await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({people,ranks,updatedAt:new Date().toISOString()})});st.textContent='✓ Uloženo';setTimeout(()=>{if(st.textContent==='✓ Uloženo')st.textContent='';},1500);}
-    catch(e){st.textContent='⚠ Cloud offline (uloženo lokálně)';}
+    try{
+      await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()})});
+      await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,updatedAt:new Date().toISOString()})});
+      st.textContent='✓ Uloženo';setTimeout(()=>{if(st.textContent==='✓ Uloženo')st.textContent='';},1500);
+    }catch(e){st.textContent='⚠ Cloud offline (uloženo lokálně)';}
   },700);
 }
 
@@ -396,7 +457,7 @@ function apAdd(){
   else if(_apSpec){ cls=_apCls; spec=_apSpec.name; specIcon=WH_ICON(_apSpec.icon); }
   else if(_apCls){ cls=_apCls; }
   const id=uid();
-  people.push({id,name:nm,rank,note:'',cls,spec,specIcon,chars:[{name:nm,h:0,m:0,cls,specIcon}]});
+  people.push({id,_mainId:id,name:nm,rank,note:'',cls,spec,specIcon,prog:{},chars:[{name:nm,h:0,m:0,cls,specIcon,_pid:id,_role:'dps',_spec:spec}]});
   expanded[id]=true;
   save(); render(); closeAdd();
   toast(`${nm} přidán.`);
@@ -409,11 +470,12 @@ function setChar(id,ci,key,v){const p=find(id);if(p&&p.chars[ci]){p.chars[ci][ke
 function addChar(id){const p=find(id);if(p){(p.chars=p.chars||[]).push({name:'',h:0,m:0});save();render();}}
 function delChar(id,ci){const p=find(id);if(p&&p.chars){p.chars.splice(ci,1);save();render();}}
 function del(id){const p=find(id);if(!p)return;if(!confirm(`Smazat „${p.name}" z rosteru?`))return;people=people.filter(x=>x.id!==id);save();render();}
+// Pozor: roster je sdílený s guide → nemažeme celý guild, jen Trial kandidáty.
 function clearAll(){
-  if(!people.length){ toast('Roster je už prázdný.'); return; }
-  if(!confirm(`Smazat VŠECHNY hráče (${people.length})? Nevratné.`)) return;
-  if(!confirm('Opravdu? Tohle vymaže celý seznam.')) return;
-  people=[]; _wclUn=[]; selected.clear(); save(); render(); toast('Roster vymazán.');
+  const trials=people.filter(p=>p.rank==='Trial');
+  if(!trials.length){ toast('Žádní Trial hráči k smazání.'); return; }
+  if(!confirm(`Smazat všech ${trials.length} Trial hráčů? (Core/Member zůstanou. Smaže se i z guide rosteru.)`)) return;
+  people=people.filter(p=>p.rank!=='Trial'); _wclUn=[]; selected.clear(); save(); render(); toast('Trial kandidáti smazáni.');
 }
 function toggleSel(id){ if(selected.has(id))selected.delete(id); else selected.add(id); renderBulk(); }
 function clearSel(){ selected.clear(); render(); }
@@ -458,21 +520,13 @@ function renderBulk(){
     : '';
 }
 
-async function promote(id){
+// Promote = jen změna ranku na Core (hráč už je součástí hlavního rosteru).
+function promote(id){
   const p=find(id);if(!p)return;
-  if(!confirm(`Přesunout „${p.name}" do hlavního rosteru (core)?`))return;
-  try{
-    const r=await fetch(API_BASE+'/api/roster/main',{cache:'no-cache'});
-    let data=r.ok?await r.json():{};
-    data.roster=Array.isArray(data.roster)?data.roster:[];
-    if(!data.roster.find(x=>(x.name||'').toLowerCase()===p.name.toLowerCase())){
-      data.roster.push({id:uid(),name:p.name,class:(p.cls||'warrior'),spec:'',specIcon:'',role:'dps'});
-      data.updatedAt=new Date().toISOString();
-      await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-    }
-    people=people.filter(x=>x.id!==id);save();render();
-    toast(`${p.name} přesunut do hlavního rosteru.`);
-  }catch(e){toast('Promote selhalo: '+e.message);}
+  if(p.rank==='Core'){ toast(`${p.name} už je Core.`); return; }
+  if(!confirm(`Povýšit „${p.name}" na Core? Projeví se i v assign rosteru (guide).`))return;
+  p.rank='Core'; save(); render();
+  toast(`${p.name} je teď Core.`);
 }
 
 /* ───────── Filtr ranků ───────── */
@@ -486,49 +540,11 @@ function renderFilter(){
 }
 function toggleFilter(i){ const r=ranks[i]; if(r==null)return; if(hiddenRanks.has(r))hiddenRanks.delete(r); else hiddenRanks.add(r); render(); }
 
-/* ───────── Import z hlavního rosteru (Assignments) ───────── */
+/* ───────── Načíst znovu z cloudu ───────── */
+// Tracker i guide sdílí jeden roster (/api/roster/main), takže stačí jen reload.
 async function importRoster(){
-  if(!confirm('Naimportovat hráče z hlavního rosteru (Assignments)? Alty se zařadí pod maina; stávající se zkonsolidují.')) return;
-  const st=document.getElementById('status'); st.textContent='Importuji…';
-  try{
-    const r=await fetch(API_BASE+'/api/roster/main',{cache:'no-cache'});
-    const data=r.ok?await r.json():{};
-    const rl=Array.isArray(data.roster)?data.roster:[];
-    const byId={}; rl.forEach(pl=>{ if(pl&&pl.id) byId[pl.id]=pl; });
-    const mainOf=pl=>{ let cur=pl,g=0; while(cur&&cur.altOf&&byId[cur.altOf]&&g<12){ cur=byId[cur.altOf]; g++; } return cur; };
-    // seskup postavy podle maina
-    const groups={};
-    rl.forEach(pl=>{ if(!pl||!(pl.name||'').trim())return; const m=mainOf(pl); if(!m)return; (groups[m.id]=groups[m.id]||[]).push(pl); });
-    const personByName=nm=>people.find(p=>(p.name||'').toLowerCase()===nm.toLowerCase()||(p.chars||[]).some(c=>(c.name||'').toLowerCase()===nm.toLowerCase()));
-    let addedP=0, addedC=0;
-    Object.keys(groups).forEach(mid=>{
-      const m=byId[mid]; if(!m) return;
-      const mainNm=(m.name||'').trim(); if(!mainNm) return;
-      // main jako první, pak alty
-      const members=groups[mid].slice().sort((a,b)=>(a.id===mid?-1:(b.id===mid?1:0)));
-      let person=personByName(mainNm);
-      if(!person){
-        person={id:uid(),name:mainNm,rank:'Core',note:'',cls:(m.class||'').toLowerCase(),spec:m.spec||'',specIcon:m.specIcon||'',chars:[]};
-        people.push(person); addedP++;
-      } else {
-        if(!person.cls&&m.class) person.cls=(m.class||'').toLowerCase();
-        if(!person.specIcon&&m.specIcon) person.specIcon=m.specIcon;
-      }
-      members.forEach(pl=>{
-        const cn=(pl.name||'').trim(); if(!cn) return;
-        const plCls=(pl.class||'').toLowerCase(), plIco=pl.specIcon||'';
-        // počty ze samostatného hráče (pokud už existuje) → slož pod maina, samostatného smaž
-        let h=0,m=0; const standalone=people.find(pp=>pp!==person && (pp.name||'').toLowerCase()===cn.toLowerCase());
-        if(standalone){ (standalone.chars||[]).forEach(c=>{ h+=(+c.h||0); m+=(+c.m||0); }); people=people.filter(pp=>pp!==standalone); }
-        const ex=(person.chars||[]).find(c=>(c.name||'').toLowerCase()===cn.toLowerCase());
-        if(ex){ ex.cls=ex.cls||plCls; ex.specIcon=ex.specIcon||plIco; if(standalone){ ex.h=ex.h||h; ex.m=ex.m||m; } }
-        else { (person.chars=person.chars||[]).push({name:cn,h,m,cls:plCls,specIcon:plIco}); addedC++; }
-      });
-    });
-    save(); render();
-    st.textContent='';
-    toast(`Import hotov: ${addedP} nových hráčů, ${addedC} postav (alty pod mainy).`);
-  }catch(e){ st.textContent=''; toast('Import selhal: '+e.message); }
+  await load();
+  toast('Načteno z hlavního rosteru.');
 }
 
 /* ───────── WarcraftLogs napojení ───────── */
@@ -740,7 +756,8 @@ function applyWclCounts(counts){
     }
     else {
       const ln=name.toLowerCase(); const cls=_wclMeta[ln]||''; const si=_wclIcon[ln]||'';
-      people.push({id:uid(),name,rank:'Trial',note:'',cls,spec:'',specIcon:si,chars:[{name,h:cnt.h,m:cnt.m,cls,specIcon:si}]});
+      const nid=uid();
+      people.push({id:nid,_mainId:nid,name,rank:'Trial',note:'',cls,spec:'',specIcon:si,prog:{},chars:[{name,h:cnt.h,m:cnt.m,cls,specIcon:si,_pid:nid,_role:'dps',_spec:''}]});
       added++;
     }
   });
@@ -761,7 +778,7 @@ function wclAssign(i){
   const u=_wclUn[i]; if(!u) return;
   const sel=document.getElementById('un_'+i); if(!sel) return;
   const v=sel.value;
-  if(v==='__new'){ const id=uid(); people.push({id,name:u.name,rank:'Trial',note:'',cls:(_wclMeta[u.name.toLowerCase()]||''),spec:'',specIcon:'',chars:[{name:u.name,h:u.h,m:u.m}]}); }
+  if(v==='__new'){ const id=uid(); const c2=(_wclMeta[u.name.toLowerCase()]||''); people.push({id,_mainId:id,name:u.name,rank:'Trial',note:'',cls:c2,spec:'',specIcon:'',prog:{},chars:[{name:u.name,h:u.h,m:u.m,cls:c2,specIcon:'',_pid:id,_role:'dps',_spec:''}]}); }
   else if(v){ const p=find(v); if(p){ (p.chars=p.chars||[]).push({name:u.name,h:u.h,m:u.m,cls:(_wclMeta[u.name.toLowerCase()]||''),specIcon:''}); } }
   else return;
   _wclUn.splice(i,1); save(); render(); renderUnassigned();
