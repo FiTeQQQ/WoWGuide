@@ -433,7 +433,7 @@ function colResizeEnd(){
   document.removeEventListener('mouseup',colResizeEnd);
   document.body.style.userSelect='';
   try{localStorage.setItem('colWidths',JSON.stringify(colWidths));}catch(e){}
-  _rz=null;
+  _rz=null; save();
 }
 let hiddenDefault=[];       // ranky skryté ve výchozím (perzistentní)
 let rankColors={};          // barvy štítků ranků (sdílené)
@@ -446,7 +446,7 @@ let saveTimer=null;
 function uidCol(){return 'c'+Date.now().toString(36)+Math.floor(Math.random()*1e3).toString(36);}
 let layoutMode='side';      // 'side' = roster vedle složení, 'top' = složení 2x2 nahoře + roster pod
 let compMaxRows=5;          // max viditelných postav v tabulce složení (pak scroll)
-function setCompRows(n){ compMaxRows=Math.max(1,Math.min(50,+n||5)); try{localStorage.setItem('compRows',compMaxRows);}catch(e){} renderComposition(); }
+function setCompRows(n){ compMaxRows=Math.max(1,Math.min(50,+n||5)); try{localStorage.setItem('compRows',compMaxRows);}catch(e){} renderComposition(); save(); }
 // Stavy pro typ sloupce "status" (ano/ne/bench/předběžně/nepřítomen)
 const STATUS_OPTS=[
   {v:'',      label:'—',          icon:'—',  color:'#5b6070'},
@@ -507,7 +507,7 @@ function closeStatusMenu(){ const m=document.getElementById('statusMenu'); if(m)
 function pickStatus(pid,cid,v){ closeStatusMenu(); setCustom(pid,cid,v); render(); }
 // Rozložení (roster vedle složení / složení nahoře + roster pod)
 function applyLayout(){ const el=document.querySelector('.roster-layout'); if(el) el.className='roster-layout layout-'+(layoutMode==='top'?'top':'side'); }
-function setLayout(m){ layoutMode=(m==='top')?'top':'side'; try{localStorage.setItem('rosterLayout',layoutMode);}catch(e){} applyLayout(); }
+function setLayout(m){ layoutMode=(m==='top')?'top':'side'; try{localStorage.setItem('rosterLayout',layoutMode);}catch(e){} applyLayout(); save(); flushCloud(); }
 // Sjednocené pořadí všech sloupců (vestavěné + custom)
 function _ensureColOrder(){
   const builtins=['name','progress','h','m','note'];
@@ -585,7 +585,7 @@ function applyTheme(m){
   const b=document.getElementById('themeBtn'); if(b) b.textContent=themeMode==='glass'?'🪟 Glass':'🗔 Classic';
   const bg=document.querySelector('.glass-bg'); if(bg && !bg.style.backgroundImage) bg.style.backgroundImage="url('Images/Roster/Roster_Background.jpg?v=2')";
 }
-function toggleTheme(){ applyTheme(themeMode==='glass'?'classic':'glass'); try{localStorage.setItem('rosterTheme',themeMode);}catch(e){} }
+function toggleTheme(){ applyTheme(themeMode==='glass'?'classic':'glass'); try{localStorage.setItem('rosterTheme',themeMode);}catch(e){} save(); flushCloud(); }
 // Progress: zelená dokud není plné; H plné = epic fialová, M plné = legendary oranžová. 1-boss raid = jen M.
 function progCell(pr){
   if(!pr) return '<span class="cnt na">—</span>';
@@ -629,7 +629,7 @@ async function load(){
   // seznam ranků (meta klíč — guide ho nepřepisuje)
   try{
     const rm=await fetch(API_BASE+'/api/roster/'+TRK_KEY,{cache:'no-cache'});
-    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.colOrder))colOrder=jm.colOrder;if(Array.isArray(jm.hiddenCols))hiddenCols=jm.hiddenCols;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;if(jm.rankColors&&typeof jm.rankColors==='object')rankColors=jm.rankColors;}
+    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.colOrder))colOrder=jm.colOrder;if(Array.isArray(jm.hiddenCols))hiddenCols=jm.hiddenCols;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;if(jm.rankColors&&typeof jm.rankColors==='object')rankColors=jm.rankColors;if(jm.colWidths&&typeof jm.colWidths==='object')colWidths=jm.colWidths;if(+jm.compMaxRows>0)compMaxRows=+jm.compMaxRows;if(jm.theme)themeMode=jm.theme;if(jm.layout)layoutMode=jm.layout;}
   }catch(e){
     try{const lr=JSON.parse(localStorage.getItem('trkRanks')||'null');if(Array.isArray(lr)&&lr.length)ranks=lr;}catch(_){}
   }
@@ -641,6 +641,7 @@ async function load(){
   }catch(e){}
   await _wclCfgLoad();
   buildPeopleFromFlat(flat);
+  applyTheme(themeMode); applyLayout();
   st.textContent='';
   render();
   _updateSaveBtn();
@@ -716,12 +717,12 @@ async function flushCloud(){
   _saving=true; _updateSaveBtn();
   try{
     await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()})});
-    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,updatedAt:new Date().toISOString()})});
+    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()})});
     _dirty=false;
   }catch(e){ const st=document.getElementById('status'); if(st)st.textContent='⚠ Cloud offline (změny zatím jen lokálně)'; }
   _saving=false; _updateSaveBtn();
 }
-function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
+function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
 window.addEventListener('beforeunload',_flushBeacon);
 
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}render();}
