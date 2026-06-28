@@ -12,7 +12,7 @@
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;padding:28px 26px 60px}
   a{color:inherit;text-decoration:none}
-  .wrap{max-width:1100px;margin:0 auto}
+  .wrap{max-width:1480px;margin:0 auto}
   .topbar{display:flex;align-items:center;gap:14px;margin-bottom:6px;flex-wrap:wrap}
   .home-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--surface2);border:1px solid var(--border2);color:var(--text-mid);font-size:12px;font-weight:600;cursor:pointer}
   .home-btn:hover{color:var(--accent);border-color:var(--accent-border)}
@@ -37,9 +37,9 @@
   tbody tr.prow{cursor:pointer;transition:background .12s}
   tbody tr.prow:hover{background:rgba(79,142,255,.07)}
   tbody tr.prow:hover .expand{color:var(--accent)}
-  .comp-wrap{margin-bottom:14px}
-  .comp-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:8px}
-  #rosterComp{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .roster-layout{display:grid;grid-template-columns:1fr 380px;gap:14px;align-items:start}
+  .comp-side .comp-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:8px}
+  #rosterComp{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
   .comp-card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:11px 13px;min-width:0}
   .comp-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;white-space:nowrap}
   .comp-cnt{color:var(--text-dim);font-weight:400}
@@ -49,7 +49,7 @@
   .comp-nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .comp-alt{color:var(--text-dim);font-size:9px;font-weight:600;flex:0 0 auto}
   .comp-empty{color:var(--text-dim);font-size:12px}
-  @media(max-width:760px){#rosterComp{grid-template-columns:1fr 1fr}}
+  @media(max-width:1000px){.roster-layout{grid-template-columns:1fr}}
   .name{font-weight:700}
   .spec-ic{width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:7px;border:1px solid rgba(255,255,255,.12)}
   .altcnt{font-size:10px;color:var(--text-dim);background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:10px;padding:1px 7px;margin-left:7px;font-weight:600}
@@ -247,12 +247,13 @@
     <div id="wclLog" class="wcl-log"></div>
   </div>
 
-  <div class="comp-wrap">
-    <div class="comp-title">Složení rosteru podle rolí</div>
-    <div id="rosterComp"></div>
+  <div class="roster-layout">
+    <div class="card"><div id="tableWrap"></div></div>
+    <div class="comp-side">
+      <div class="comp-title">Složení podle rolí</div>
+      <div id="rosterComp"></div>
+    </div>
   </div>
-
-  <div class="card"><div id="tableWrap"></div></div>
   <div class="legend">Tento roster je <b>sdílený s guide</b> (Assignments) — rank i alty se propisují oběma směry. ⚠ Trial bez jediného Heroic raidu je zvýrazněný. Klikni na ▸ u hráče pro slučování altů, pravým tlačítkem pro promote / přiřazení alta.</div>
 </div>
 <datalist id="euRealms">
