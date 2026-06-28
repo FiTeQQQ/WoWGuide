@@ -37,15 +37,15 @@
   tbody tr.prow{cursor:pointer;transition:background .12s}
   tbody tr.prow:hover{background:rgba(79,142,255,.07)}
   tbody tr.prow:hover .expand{color:var(--accent)}
-  .roster-layout{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1fr);gap:16px;align-items:start}
+  .roster-layout{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:16px;align-items:start}
   .comp-side .comp-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:8px}
   #rosterComp{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
-  .comp-card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;min-width:0}
-  .comp-head{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;white-space:nowrap}
+  .comp-card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:11px 13px;min-width:0}
+  .comp-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;white-space:nowrap}
   .comp-cnt{color:var(--text-dim);font-weight:400}
-  .comp-list{display:flex;flex-direction:column;gap:6px}
-  .comp-row{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;min-width:0}
-  .comp-row img{width:20px;height:20px;border-radius:4px;flex:0 0 auto;border:1px solid rgba(255,255,255,.12)}
+  .comp-list{display:flex;flex-direction:column;gap:5px}
+  .comp-row{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;min-width:0}
+  .comp-row img{width:18px;height:18px;border-radius:4px;flex:0 0 auto;border:1px solid rgba(255,255,255,.12)}
   .comp-nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .comp-alt{color:var(--text-dim);font-size:9px;font-weight:600;flex:0 0 auto}
   .comp-empty{color:var(--text-dim);font-size:12px}
@@ -370,7 +370,7 @@ function applyTheme(m){
   themeMode=(m==='glass')?'glass':'classic';
   document.body.classList.toggle('glass-on',themeMode==='glass');
   const b=document.getElementById('themeBtn'); if(b) b.textContent=themeMode==='glass'?'🪟 Glass':'🗔 Classic';
-  const bg=document.querySelector('.glass-bg'); if(bg && !bg.style.backgroundImage) bg.style.backgroundImage="url('Images/Roster/Roster_Background.jpg')";
+  const bg=document.querySelector('.glass-bg'); if(bg && !bg.style.backgroundImage) bg.style.backgroundImage="url('Images/Roster/Roster_Background.jpg?v=2')";
 }
 function toggleTheme(){ applyTheme(themeMode==='glass'?'classic':'glass'); try{localStorage.setItem('rosterTheme',themeMode);}catch(e){} }
 // Barevný progress H (epic) + M (legendary) vedle sebe
@@ -412,6 +412,11 @@ async function load(){
   }catch(e){
     try{const lr=JSON.parse(localStorage.getItem('trkRanks')||'null');if(Array.isArray(lr)&&lr.length)ranks=lr;}catch(_){}
   }
+  // WCL klíče z cloudu (sdílené) — aby progress mohl načíst i ten, kdo otevře sdílený odkaz
+  try{
+    const rc=await fetch(API_BASE+'/api/roster/wcl-creds',{cache:'no-cache'});
+    if(rc.ok){const jc=await rc.json();if(jc&&jc.id){localStorage.setItem('wcl_id',jc.id);if(jc.sec)localStorage.setItem('wcl_sec',jc.sec);}}
+  }catch(e){}
   buildPeopleFromFlat(flat);
   st.textContent='';
   render();
@@ -542,7 +547,7 @@ function render(){
     const naCore=p.rank==='Core';
     html+=`<tr class="prow ${flag?'flag':''}" onclick="prowClick(event,'${p.id}')" oncontextmenu="rosterCtx(event,'${p.id}');return false;">
       <td><span class="expand">${exp?'▾':'▸'}</span></td>
-      <td>${ico}<span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${rankChip(p.rank)}${altN>0?`<span class="altcnt">+${altN} alt</span>`:''}</td>
+      <td style="white-space:nowrap">${ico}<span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${rankChip(p.rank)}${altN>0?`<span class="altcnt">+${altN} alt</span>`:''}</td>
       ${(zonesP.length?zonesP:[{id:'_',name:'',total:0}]).map(z=>progTd(z.name,(p.prog||{})[z.id])).join('')}
       <td>${naCore?'<span class="cnt na" title="U Core hráče se účast neřeší">—</span>':`<div class="cnt ${t.h===0?'zero':''}">${t.h}×</div>${bh?`<div class="break">${esc(bh)}</div>`:''}`}</td>
       <td>${naCore?'<span class="cnt na">—</span>':`<div class="cnt ${t.m===0?'zero':''}">${t.m}×</div>${bm?`<div class="break">${esc(bm)}</div>`:''}`}</td>
@@ -808,9 +813,13 @@ function wclToggleSettings(){
   if(b) b.textContent=show?'⚙ Skrýt nastavení':'⚙ Nastavení';
 }
 function wclSaveCreds(){
-  localStorage.setItem('wcl_id',document.getElementById('wclId').value.trim());
-  localStorage.setItem('wcl_sec',document.getElementById('wclSec').value.trim());
-  wclLog('Klíče uloženy do prohlížeče.','ok');
+  const id=document.getElementById('wclId').value.trim();
+  const sec=document.getElementById('wclSec').value.trim();
+  localStorage.setItem('wcl_id',id);
+  localStorage.setItem('wcl_sec',sec);
+  fetch(API_BASE+'/api/roster/wcl-creds',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,sec,updatedAt:new Date().toISOString()})})
+    .then(r=>{ if(r.ok) wclLog('Klíče uloženy do cloudu — progress půjde načíst i ostatním přes sdílený odkaz.','ok'); else throw 0; })
+    .catch(()=>wclLog('Klíče uloženy lokálně (cloud offline).','err'));
 }
 function wclLog(msg,cls){ const el=document.getElementById('wclLog'); if(!el)return; el.innerHTML+=`<div class="${cls||''}">${esc(msg)}</div>`; el.scrollTop=el.scrollHeight; }
 async function wclToken(){
