@@ -840,6 +840,8 @@ function toggle(id){expanded[id]=!expanded[id];render();}
 function prowClick(e,id){ if(e.target.closest('input,button,select,a,label,.act')) return; toggle(id); }
 function setRank(id,v){const p=find(id);if(p){p.rank=v;save();render();}}
 function setNote(id,v){const p=find(id);if(p){p.note=v;save();}}
+function renamePerson(id){ const p=find(id); if(!p)return; const nn=(window.prompt('Nové jméno hráče (např. po změně nicku ve hře):',p.name)||'').trim(); if(!nn||nn===p.name)return; p.name=nn; if(p.chars&&p.chars[0])p.chars[0].name=nn; save(); render(); toast('Přejmenováno na '+nn+'.'); }
+function renameAlt(pid,ci){ const p=find(pid); if(!p||!p.chars||!p.chars[ci])return; const c=p.chars[ci]; const nn=(window.prompt('Nové jméno alta:',c.name)||'').trim(); if(!nn||nn===c.name)return; c.name=nn; save(); render(); toast('Alt přejmenován na '+nn+'.'); }
 function setChar(id,ci,key,v){const p=find(id);if(p&&p.chars[ci]){p.chars[ci][key]=(key==='name')?v:(+v||0);save();render();}}
 function addChar(id){const p=find(id);if(p){(p.chars=p.chars||[]).push({name:'',h:0,m:0});save();render();}}
 function delChar(id,ci){const p=find(id);if(p&&p.chars){p.chars.splice(ci,1);save();render();}}
@@ -899,6 +901,7 @@ function rosterCtx(e,id){
   _ctxAltList(menu,(mid)=>assignAlt(id,mid),id);
   menu.appendChild(_ctxSep());
   // Smazat
+  const rn=document.createElement('button'); rn.className='ctx-item'; rn.innerHTML='✎ Přejmenovat'; rn.onclick=()=>{ closeCtx(); renamePerson(id); }; menu.appendChild(rn);
   const rm=document.createElement('button'); rm.className='ctx-item danger'; rm.innerHTML='🗑 Smazat hráče'; rm.onclick=()=>{ del(id); closeCtx(); }; menu.appendChild(rm);
   _ctxPlace(menu,e);
 }
@@ -928,6 +931,7 @@ function altCtx(e,pid,ci){
   // Zrušit alt
   const un=document.createElement('button'); un.className='ctx-item'; un.innerHTML='✕ Zrušit Alt (samostatný hráč)'; un.onclick=()=>{ unAlt(pid,ci); closeCtx(); }; menu.appendChild(un);
   // Odebrat
+  const rn=document.createElement('button'); rn.className='ctx-item'; rn.innerHTML='✎ Přejmenovat alta'; rn.onclick=()=>{ closeCtx(); renameAlt(pid,ci); }; menu.appendChild(rn);
   const rm=document.createElement('button'); rm.className='ctx-item danger'; rm.innerHTML='🗑 Odebrat alta'; rm.onclick=()=>{ delChar(pid,ci); closeCtx(); }; menu.appendChild(rm);
   _ctxPlace(menu,e);
 }
