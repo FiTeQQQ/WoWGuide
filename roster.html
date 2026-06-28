@@ -75,6 +75,22 @@
   .ctxmenu .ctx-row:hover{background:rgba(255,255,255,.06)}
   .ctxmenu .ctx-row.danger:hover{background:rgba(239,68,68,.15);color:#f87171}
   .ctxmenu .ctx-sep{height:1px;background:var(--border2);margin:5px 2px}
+  /* ── Kontextové menu 1:1 s guide ── */
+  .ctx-menu{position:fixed;z-index:400;background:#1a1d2a;border:1px solid var(--border2);border-radius:9px;padding:5px;min-width:200px;box-shadow:0 8px 28px rgba(0,0,0,.65);animation:ctxIn .12s ease}
+  @keyframes ctxIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+  .ctx-menu .ctx-head{padding:5px 10px 8px;font-size:11px;font-weight:700;border-bottom:1px solid var(--border2);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ctx-menu .ctx-lbl{font-size:10px;color:var(--text-dim);padding:2px 10px 4px;text-transform:uppercase;letter-spacing:.06em}
+  .ctx-menu .ctx-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;font-size:12px;color:var(--text-mid);cursor:pointer;transition:background .1s;border:none;background:none;width:100%;text-align:left}
+  .ctx-menu .ctx-item img{width:16px;height:16px;border-radius:3px}
+  .ctx-menu .ctx-item:hover{background:var(--surface2);color:#c8ccd8}
+  .ctx-menu .ctx-item.danger:hover{background:rgba(239,68,68,.1);color:#f87171}
+  .ctx-menu .ctx-item.sel{background:rgba(79,142,255,.18);color:var(--accent)}
+  .ctx-menu .ctx-sep{height:1px;background:var(--border2);margin:4px 0}
+  .ctx-menu .ctx-rankrow{display:flex;gap:4px;padding:0 8px 6px}
+  .ctx-menu .ctx-rankrow button{flex:1;text-align:center;padding:5px 6px;font-size:11px;border-radius:6px;border:1px solid var(--border2);background:none;color:var(--text-mid);cursor:pointer}
+  .ctx-menu .ctx-rankrow button.sel{background:rgba(79,142,255,.18);color:var(--accent);border-color:var(--accent-border)}
+  .ctx-menu .ctx-search2{width:calc(100% - 12px);margin:0 6px 4px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;font-size:11px;color:#c8ccd8;outline:none}
+  .ctx-menu .ctx-altlist{max-height:160px;overflow-y:auto;padding:0 4px 4px;display:flex;flex-direction:column;gap:2px}
   .mini-num{width:58px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:5px;outline:none;text-align:center}
   .empty{text-align:center;color:var(--text-dim);font-size:14px;padding:50px 10px}
   .legend{font-size:11px;color:var(--text-dim);margin-top:12px}
@@ -398,7 +414,7 @@ function render(){
         if(ci===0) return ''; // hlavní postava = sám hráč, neukazujeme ji znovu
         const icon=c.specIcon?`<img class="spec-ic" src="${esc(c.specIcon)}" onerror="this.style.display='none'">`:'';
         const hm=naCore?'':`<span class="lbl">H</span><input class="mini-num" type="number" min="0" value="${+c.h||0}" onchange="setChar('${p.id}',${ci},'h',this.value)"><span class="lbl">M</span><input class="mini-num" type="number" min="0" value="${+c.m||0}" onchange="setChar('${p.id}',${ci},'m',this.value)">`;
-        return `<div class="char-row">${icon}<input type="text" style="color:${CC[(c.cls||'').toLowerCase()]||'var(--text)'};font-weight:600" value="${esc(c.name||'')}" placeholder="jméno alta" onchange="setChar('${p.id}',${ci},'name',this.value)">${hm}<button class="iconbtn del" title="Odebrat alta" onclick="delChar('${p.id}',${ci})">✕</button></div>`;
+        return `<div class="char-row" oncontextmenu="altCtx(event,'${p.id}',${ci});return false;">${icon}<input type="text" style="color:${CC[(c.cls||'').toLowerCase()]||'var(--text)'};font-weight:600" value="${esc(c.name||'')}" placeholder="jméno alta" onchange="setChar('${p.id}',${ci},'name',this.value)">${hm}<button class="iconbtn del" title="Odebrat alta (nebo pravý klik pro víc možností)" onclick="delChar('${p.id}',${ci})">✕</button></div>`;
       }).join('');
       html+=`<tr><td></td><td colspan="${6+(zonesP.length||1)}"><div class="chars">
         <div class="sub" style="margin-bottom:7px">Alty hráče${naCore?' (u Core se účast neřeší)':' — počty H/M se sčítají pod hráče'}.</div>
@@ -479,22 +495,96 @@ function clearAll(){
 }
 function toggleSel(id){ if(selected.has(id))selected.delete(id); else selected.add(id); renderBulk(); }
 function clearSel(){ selected.clear(); render(); }
+function _ctxSep(){ const d=document.createElement('div'); d.className='ctx-sep'; return d; }
+function _ctxPlace(menu,e){
+  document.body.appendChild(menu);
+  menu.style.left=Math.min(e.clientX,window.innerWidth-(menu.offsetWidth+10))+'px';
+  menu.style.top=Math.min(e.clientY,Math.max(8,window.innerHeight-menu.offsetHeight-10))+'px';
+  setTimeout(()=>document.addEventListener('mousedown',closeCtxOnce),0);
+}
+function _ctxAltList(menu,onPick,excludeId){
+  const search=document.createElement('input'); search.className='ctx-search2'; search.placeholder='hledat maina…'; menu.appendChild(search);
+  const list=document.createElement('div'); list.className='ctx-altlist';
+  const others=people.filter(o=>o.id!==excludeId);
+  const draw=q=>{ list.innerHTML=''; others.filter(o=>(o.name||'').toLowerCase().includes((q||'').toLowerCase())).forEach(o=>{
+    const b=document.createElement('button'); b.className='ctx-item'; b.style.color=CC[(o.cls||'').toLowerCase()]||'var(--text)'; b.textContent=o.name;
+    b.onclick=()=>onPick(o.id); list.appendChild(b);
+  }); if(!list.children.length){ const em=document.createElement('div'); em.className='ctx-lbl'; em.textContent='Žádný výsledek'; list.appendChild(em); } };
+  draw(''); search.oninput=()=>draw(search.value); menu.appendChild(list);
+}
+// ── Kontextové menu hráče (main) — 1:1 s guide ──
 function rosterCtx(e,id){
   e.preventDefault(); closeCtx();
   const p=find(id); if(!p) return;
-  const menu=document.createElement('div'); menu.className='ctxmenu'; menu.id='ctxmenu';
-  const others=people.filter(o=>o.id!==id);
-  menu.innerHTML=`<div class="ctx-h">${esc(p.name)}</div>`
-    +`<button class="ctx-row" onclick="promote('${id}');closeCtx()">↗ Promote do hlavního rosteru</button>`
-    +`<button class="ctx-row danger" onclick="del('${id}');closeCtx()">✕ Smazat hráče</button>`
-    +`<div class="ctx-sep"></div>`
-    +`<div class="ctx-sub">Přiřadit jako alt k:</div>`
-    +`<input class="ctx-search" placeholder="hledat maina…" oninput="ctxFilter(this.value)">`
-    +`<div class="ctx-list" id="ctxList">`+others.map(o=>`<button onclick="assignAlt('${id}','${o.id}')"><span style="color:${CC[(o.cls||'').toLowerCase()]||'var(--text)'}">${esc(o.name)}</span></button>`).join('')+`</div>`;
-  document.body.appendChild(menu);
-  menu.style.left=Math.min(e.clientX,window.innerWidth-244)+'px';
-  menu.style.top=Math.min(e.clientY,Math.max(8,window.innerHeight-menu.offsetHeight-10))+'px';
-  setTimeout(()=>document.addEventListener('mousedown',closeCtxOnce),0);
+  const menu=document.createElement('div'); menu.className='ctx-menu'; menu.id='ctxmenu';
+  const clr=CC[(p.cls||'').toLowerCase()]||'#9ca3af';
+  const hdr=document.createElement('div'); hdr.className='ctx-head'; hdr.style.color=clr; hdr.textContent=p.name+(p.cls?' — '+p.cls:''); menu.appendChild(hdr);
+  // Spec
+  const specs=SPECS[(p.cls||'').toLowerCase()]||[];
+  if(specs.length){
+    const sl=document.createElement('div'); sl.className='ctx-lbl'; sl.textContent='Spec'; menu.appendChild(sl);
+    specs.forEach(s=>{
+      const b=document.createElement('button'); b.className='ctx-item'+(p.spec===s.name?' sel':'');
+      b.innerHTML=`<img src="${WH_ICON(s.icon)}" onerror="this.style.display='none'"><span>${esc(s.name)}</span>`;
+      b.onclick=()=>{ p.spec=s.name; p.specIcon=WH_ICON(s.icon); if(p.chars&&p.chars[0]){ p.chars[0].specIcon=p.specIcon; p.chars[0]._spec=s.name; } save(); render(); closeCtx(); };
+      menu.appendChild(b);
+    });
+    menu.appendChild(_ctxSep());
+  }
+  // Rank
+  const rl=document.createElement('div'); rl.className='ctx-lbl'; rl.textContent='Rank'; menu.appendChild(rl);
+  const rr=document.createElement('div'); rr.className='ctx-rankrow'; const cur=p.rank||'Core';
+  ranks.forEach(rk=>{ const b=document.createElement('button'); if(rk===cur)b.className='sel'; b.textContent=rk; b.onclick=()=>{ p.rank=rk; save(); render(); closeCtx(); }; rr.appendChild(b); });
+  menu.appendChild(rr); menu.appendChild(_ctxSep());
+  // Přiřadit jako alt k
+  const al=document.createElement('div'); al.className='ctx-lbl'; al.textContent='Přiřadit jako alt k'; menu.appendChild(al);
+  _ctxAltList(menu,(mid)=>assignAlt(id,mid),id);
+  menu.appendChild(_ctxSep());
+  // Smazat
+  const rm=document.createElement('button'); rm.className='ctx-item danger'; rm.innerHTML='🗑 Smazat hráče'; rm.onclick=()=>{ del(id); closeCtx(); }; menu.appendChild(rm);
+  _ctxPlace(menu,e);
+}
+// ── Kontextové menu alta (řádek v rozbaleném seznamu) ──
+function altCtx(e,pid,ci){
+  e.preventDefault(); e.stopPropagation(); closeCtx();
+  const p=find(pid); if(!p||!p.chars||!p.chars[ci]) return; const c=p.chars[ci];
+  const menu=document.createElement('div'); menu.className='ctx-menu'; menu.id='ctxmenu';
+  const clr=CC[(c.cls||'').toLowerCase()]||'#9ca3af';
+  const hdr=document.createElement('div'); hdr.className='ctx-head'; hdr.style.color=clr; hdr.textContent=(c.name||'alt')+(c.cls?' — '+c.cls:'')+'  · alt'; menu.appendChild(hdr);
+  // Spec
+  const specs=SPECS[(c.cls||'').toLowerCase()]||[];
+  if(specs.length){
+    const sl=document.createElement('div'); sl.className='ctx-lbl'; sl.textContent='Spec'; menu.appendChild(sl);
+    specs.forEach(s=>{
+      const b=document.createElement('button'); b.className='ctx-item'+(c._spec===s.name?' sel':'');
+      b.innerHTML=`<img src="${WH_ICON(s.icon)}" onerror="this.style.display='none'"><span>${esc(s.name)}</span>`;
+      b.onclick=()=>{ c.specIcon=WH_ICON(s.icon); c._spec=s.name; save(); render(); closeCtx(); };
+      menu.appendChild(b);
+    });
+    menu.appendChild(_ctxSep());
+  }
+  // Změnit main
+  const al=document.createElement('div'); al.className='ctx-lbl'; al.textContent='Změnit main'; menu.appendChild(al);
+  _ctxAltList(menu,(tid)=>moveAltTo(pid,ci,tid),pid);
+  menu.appendChild(_ctxSep());
+  // Zrušit alt
+  const un=document.createElement('button'); un.className='ctx-item'; un.innerHTML='✕ Zrušit Alt (samostatný hráč)'; un.onclick=()=>{ unAlt(pid,ci); closeCtx(); }; menu.appendChild(un);
+  // Odebrat
+  const rm=document.createElement('button'); rm.className='ctx-item danger'; rm.innerHTML='🗑 Odebrat alta'; rm.onclick=()=>{ delChar(pid,ci); closeCtx(); }; menu.appendChild(rm);
+  _ctxPlace(menu,e);
+}
+function moveAltTo(pid,ci,targetId){
+  const p=find(pid),t=find(targetId); closeCtx();
+  if(!p||!t||p===t||!p.chars[ci]) return;
+  const c=p.chars[ci]; p.chars.splice(ci,1); (t.chars=t.chars||[]).push(c);
+  save(); render(); toast(`${c.name||'Alt'} přesunut pod ${t.name}.`);
+}
+function unAlt(pid,ci){
+  const p=find(pid); if(!p||!p.chars[ci]) return;
+  const c=p.chars[ci]; p.chars.splice(ci,1);
+  const nid=uid();
+  people.push({id:nid,_mainId:nid,name:c.name||'',rank:p.rank||'Member',note:'',cls:c.cls||'',spec:c._spec||'',specIcon:c.specIcon||'',prog:{},chars:[{name:c.name||'',h:+c.h||0,m:+c.m||0,cls:c.cls||'',specIcon:c.specIcon||'',_pid:c._pid||nid,_role:c._role||'dps',_spec:c._spec||''}]});
+  expanded[nid]=true; save(); render(); toast(`${c.name||'Alt'} je teď samostatný hráč.`);
 }
 function closeCtxOnce(e){ const m=document.getElementById('ctxmenu'); if(m&&!m.contains(e.target)) closeCtx(); }
 function closeCtx(){ const m=document.getElementById('ctxmenu'); if(m) m.remove(); document.removeEventListener('mousedown',closeCtxOnce); }

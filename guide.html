@@ -3059,7 +3059,7 @@ function renderRoster(){
     let spText=p.spec||p.class;
     if(p.altOf){const main=playerById(p.altOf);if(main){const mc=CC[main.class]||'#9ca3af';spText+=` · Main: <span style="color:${mc};">${main.name}</span>`;}}
     const _rk=p.rank||'Core';
-    if(_rk!=='Core'){const rkc=_rk==='Trial'?'#f59e0b':'#60a5fa';spText=`<span style="color:${rkc};font-weight:700;">${_rk}</span> · `+spText;}
+    if(_rk!=='Core'){const rkc=_rk==='Trial'?'#f59e0b':'#2563eb';spText=`<span style="color:${rkc};font-weight:700;">${_rk}</span> · `+spText;}
     spLine.innerHTML=spText;
     info.appendChild(nm);info.appendChild(spLine);row.appendChild(info);
     row.appendChild(roleBadgeEl(p.role||'dps'));
