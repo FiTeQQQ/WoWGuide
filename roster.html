@@ -38,6 +38,8 @@
   tbody tr.prow:hover{background:rgba(79,142,255,.07)}
   tbody tr.prow:hover .expand{color:var(--accent)}
   .roster-layout{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:16px;align-items:start}
+  .roster-layout.layout-top{grid-template-columns:1fr}
+  .roster-layout.layout-top .comp-side{order:-1}
   .comp-side .comp-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:8px}
   #rosterComp{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
   .comp-card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:11px 13px;min-width:0}
@@ -66,6 +68,9 @@
   .cdrag{color:var(--text-dim);cursor:grab;font-size:12px}
   .cdel{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:12px;padding:0 2px}
   .cdel:hover{color:#f87171}
+  .chkbox,.statuscell{width:26px;height:24px;border:1.5px solid var(--border2);border-radius:6px;background:var(--surface2);cursor:pointer;font-size:13px;font-weight:800;line-height:1;display:inline-flex;align-items:center;justify-content:center;color:var(--text-mid)}
+  .chkbox:hover,.statuscell:hover{border-color:var(--accent-border)}
+  .statuscell{width:30px;font-size:14px}
   .cname,.ctype,.copts{width:112px;background:var(--surface2);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:3px 6px;outline:none;text-transform:none;letter-spacing:0;display:block}
   .cname{font-size:11px;margin-bottom:3px;font-weight:600}
   .ctype{font-size:11px}
@@ -393,6 +398,16 @@ let hiddenRanks=new Set();
 let selected=new Set();
 let saveTimer=null;
 function uidCol(){return 'c'+Date.now().toString(36)+Math.floor(Math.random()*1e3).toString(36);}
+let layoutMode='side';      // 'side' = roster vedle složení, 'top' = složení 2x2 nahoře + roster pod
+// Stavy pro typ sloupce "status" (ano/ne/bench/předběžně/nepřítomen)
+const STATUS_OPTS=[
+  {v:'',      label:'—',          icon:'—',  color:'#5b6070'},
+  {v:'yes',   label:'Ano',        icon:'✓',  color:'#4ade80'},
+  {v:'no',    label:'Ne',         icon:'✕',  color:'#f87171'},
+  {v:'bench', label:'Bench',      icon:'🪑', color:'#fb923c'},
+  {v:'tent',  label:'Předběžně',  icon:'?',  color:'#facc15'},
+  {v:'absent',label:'Nepřítomen', icon:'💤', color:'#9ca3af'}
+];
 
 function uid(){return 't'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -409,18 +424,37 @@ function colHead(col){
   return `<th class="ccol cedit" draggable="true" ondragstart="colDragStart(event,'${col.id}')" ondragover="event.preventDefault()" ondrop="colDrop(event,'${col.id}')">
     <div class="cedit-top"><span class="cdrag" title="Přetáhni pro pořadí">⠿</span><button class="cdel" title="Smazat sloupec" onclick="delCol('${col.id}')">✕</button></div>
     <input class="cname" value="${esc(col.name)}" onchange="renameCol('${col.id}',this.value)">
-    <select class="ctype" onchange="setColType('${col.id}',this.value)">${to('text','Text')}${to('number','Číslo')}${to('select','Dropdown')}${to('checkbox','Checkbox')}</select>
+    <select class="ctype" onchange="setColType('${col.id}',this.value)">${to('text','Text')}${to('number','Číslo')}${to('select','Dropdown')}${to('checkbox','Checkbox ✓/☐/?')}${to('status','Stav ✓/✕/bench…')}</select>
     ${col.type==='select'?`<input class="copts" value="${esc((col.options||[]).join(', '))}" placeholder="volby, oddělené čárkou" onchange="setColOptions('${col.id}',this.value)">`:''}
   </th>`;
 }
 function colCell(p,col){
   const v=(p.custom||{})[col.id];
-  if(col.type==='checkbox') return `<td style="text-align:center"><input type="checkbox" class="rowchk" ${v?'checked':''} onclick="setCustom('${p.id}','${col.id}',this.checked)"></td>`;
+  if(col.type==='checkbox'){ const yes=(v===true||v==='true'); const qm=(v==='?'); const icon=yes?'✓':(qm?'?':''); const color=yes?'#4ade80':(qm?'#facc15':''); return `<td style="text-align:center"><button class="chkbox" style="${color?'color:'+color:''}" title="${yes?'Ano':(qm?'Možná':'Ne')}" onclick="cycleCheck('${p.id}','${col.id}')">${icon}</button></td>`; }
   if(col.type==='number') return `<td><input class="mini-num" type="number" value="${(v!=null&&v!=='')?esc(v):''}" onchange="setCustom('${p.id}','${col.id}',this.value)"></td>`;
   if(col.type==='select'){ const opts='<option value=""></option>'+(col.options||[]).map(o=>`<option ${String(v)===String(o)?'selected':''}>${esc(o)}</option>`).join(''); return `<td><select class="rank" onchange="setCustom('${p.id}','${col.id}',this.value)">${opts}</select></td>`; }
+  if(col.type==='status'){ const o=STATUS_OPTS.find(s=>s.v===(v||''))||STATUS_OPTS[0]; return `<td style="text-align:center"><button class="statuscell" style="color:${o.color}" title="${esc(o.label)}" onclick="openStatusMenu(event,'${p.id}','${col.id}')">${o.icon}</button></td>`; }
   return `<td><input class="note-in" value="${esc(v||'')}" placeholder="…" onchange="setCustom('${p.id}','${col.id}',this.value)"></td>`;
 }
 function setCustom(pid,cid,val){ const p=find(pid); if(!p)return; p.custom=p.custom||{}; p.custom[cid]=val; save(); }
+// Tří-stavový checkbox: ne(prázdné) → ano(✓) → možná(?) → ne
+function cycleCheck(pid,cid){ const p=find(pid); if(!p)return; p.custom=p.custom||{}; const cur=p.custom[cid]; let nxt; if(cur===true||cur==='true') nxt='?'; else if(cur==='?') nxt=false; else nxt=true; p.custom[cid]=nxt; save(); render(); }
+// Status sloupec (ano/ne/bench/předběžně/nepřítomen) — dropdown s ikonou v řádku
+function openStatusMenu(e,pid,cid){
+  e.stopPropagation(); closeStatusMenu();
+  const menu=document.createElement('div'); menu.className='ctx-menu'; menu.id='statusMenu'; menu.style.minWidth='160px';
+  menu.innerHTML=STATUS_OPTS.map(o=>`<button class="ctx-item" onclick="pickStatus('${pid}','${cid}','${o.v}')"><span style="color:${o.color};width:18px;display:inline-block;text-align:center;font-weight:800">${o.icon}</span><span>${esc(o.label)}</span></button>`).join('');
+  document.body.appendChild(menu);
+  menu.style.left=Math.min(e.clientX,window.innerWidth-(menu.offsetWidth+10))+'px';
+  menu.style.top=Math.min(e.clientY,Math.max(8,window.innerHeight-menu.offsetHeight-10))+'px';
+  setTimeout(()=>document.addEventListener('mousedown',_statusClose),0);
+}
+function _statusClose(e){ const m=document.getElementById('statusMenu'); if(m&&!m.contains(e.target)) closeStatusMenu(); }
+function closeStatusMenu(){ const m=document.getElementById('statusMenu'); if(m)m.remove(); document.removeEventListener('mousedown',_statusClose); }
+function pickStatus(pid,cid,v){ closeStatusMenu(); setCustom(pid,cid,v); render(); }
+// Rozložení (roster vedle složení / složení nahoře + roster pod)
+function applyLayout(){ const el=document.querySelector('.roster-layout'); if(el) el.className='roster-layout layout-'+(layoutMode==='top'?'top':'side'); }
+function setLayout(m){ layoutMode=(m==='top')?'top':'side'; try{localStorage.setItem('rosterLayout',layoutMode);}catch(e){} applyLayout(); }
 // Sjednocené pořadí všech sloupců (vestavěné + custom)
 function _ensureColOrder(){
   const builtins=['name','progress','h','m','note'];
@@ -483,7 +517,7 @@ function renderEditBar(){
   el.innerHTML=`<div class="eb-grid">
     <div class="eb-sec"><div class="eb-title">Ranky — přejmenování / výchozí skrytí</div>${rankRows}<button class="btn btn-ghost" style="margin-top:6px" onclick="addRank()">+ Rank</button></div>
     <div class="eb-sec"><div class="eb-title">Sloupce</div><div class="eb-hint">Vlastní sloupec přidáš tlačítkem a upravíš přímo v hlavičce tabulky (název, typ, u dropdownu volby oddělené čárkou). Pořadí změníš přetažením hlavičky.</div><button class="btn btn-accent" onclick="addCol()">+ Přidat sloupec</button></div>
-    <div class="eb-sec"><div class="eb-title">Vzhled</div><button class="btn btn-ghost" id="themeBtn" onclick="toggleTheme()">${themeMode==='glass'?'🪟 Glass':'🗔 Classic'}</button></div>
+    <div class="eb-sec"><div class="eb-title">Vzhled</div><button class="btn btn-ghost" id="themeBtn" onclick="toggleTheme()">${themeMode==='glass'?'🪟 Glass':'🗔 Classic'}</button><div style="margin-top:8px"><div class="eb-hint" style="margin-bottom:4px">Rozložení</div><select class="ctype" style="width:100%" onchange="setLayout(this.value)"><option value="side" ${layoutMode==='side'?'selected':''}>Roster vedle složení</option><option value="top" ${layoutMode==='top'?'selected':''}>Složení (2×2) nahoře, roster pod</option></select></div></div>
   </div>`;
 }
 // ── GLASS / CLASSIC TÉMA (1:1 s guide) ──
@@ -1252,7 +1286,7 @@ function wclAssign(i){
   _wclUn.splice(i,1); save(); render(); renderUnassigned();
 }
 
-(function(){ let pref='classic'; try{ pref=localStorage.getItem('rosterTheme')||'classic'; }catch(e){} applyTheme(pref); })();
+(function(){ let pref='classic'; try{ pref=localStorage.getItem('rosterTheme')||'classic'; }catch(e){} applyTheme(pref); try{ layoutMode=localStorage.getItem('rosterLayout')||'side'; }catch(e){} applyLayout(); })();
 load();
 </script>
 </body>
