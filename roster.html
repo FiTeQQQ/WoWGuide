@@ -304,7 +304,16 @@ const SPECS={
 const TANK_SPECS_R=new Set(['deathknight|Blood','demonhunter|Vengeance','druid|Guardian','monk|Brewmaster','paladin|Protection','warrior|Protection']);
 const HEAL_SPECS_R=new Set(['evoker|Preservation','druid|Restoration','monk|Mistweaver','paladin|Holy','priest|Discipline','priest|Holy','shaman|Restoration']);
 const RANGED_SPECS_R=new Set(['demonhunter|Devourer','evoker|Devastation','evoker|Augmentation','druid|Balance','hunter|Beast Mastery','hunter|Marksmanship','mage|Arcane','mage|Fire','mage|Frost','priest|Shadow','shaman|Elemental','warlock|Affliction','warlock|Demonology','warlock|Destruction']);
-function roleCatR(cls,spec){ const k=(cls||'').toLowerCase()+'|'+(spec||''); if(TANK_SPECS_R.has(k))return 'tank'; if(HEAL_SPECS_R.has(k))return 'healer'; return RANGED_SPECS_R.has(k)?'ranged':'melee'; }
+function _iconBase(u){ const m=String(u||'').match(/([a-z0-9_]+)\.(?:jpg|png)/i); return m?m[1].toLowerCase():''; }
+// Vrátí jméno specu — z jména, nebo (když chybí, např. u WCL/log hráčů) odvodí ze spec ikony
+function specOf(cls,spec,specIcon){
+  cls=(cls||'').toLowerCase(); const list=SPECS[cls]||[];
+  if(spec){ const s=list.find(x=>x.name===spec); if(s) return s.name; }
+  const ib=_iconBase(specIcon);
+  if(ib){ const s=list.find(x=>String(x.icon).toLowerCase()===ib); if(s) return s.name; }
+  return spec||'';
+}
+function roleCatR(cls,spec,specIcon){ const sp=specOf(cls,spec,specIcon); const k=(cls||'').toLowerCase()+'|'+sp; if(TANK_SPECS_R.has(k))return 'tank'; if(HEAL_SPECS_R.has(k))return 'healer'; return RANGED_SPECS_R.has(k)?'ranged':'melee'; }
 let _apCls='',_apSpec=null,_apMatch=null,_mainRosterCache=null,_apTimer=null;
 
 let people=[];
@@ -452,8 +461,9 @@ function renderComposition(){
       if(!c.name) return;
       const spec = ci===0 ? (p.spec||c._spec||'') : (c._spec||'');
       const cls = c.cls||(ci===0?p.cls:'');
-      const k=roleCatR(cls,spec);
-      (cats[k]||cats.melee).push({name:c.name,cls,specIcon:c.specIcon||(ci===0?p.specIcon:''),alt:ci>0,mainName:p.name});
+      const sIcon = c.specIcon||(ci===0?p.specIcon:'');
+      const k=roleCatR(cls,spec,sIcon);
+      (cats[k]||cats.melee).push({name:c.name,cls,specIcon:sIcon,alt:ci>0,mainName:p.name});
     });
   });
   const cell=o=>{ const clr=CC[(o.cls||'').toLowerCase()]||'var(--text)'; const ic=o.specIcon?`<img src="${esc(o.specIcon)}" onerror="this.style.display='none'">`:''; return `<div class="comp-row" title="${esc(o.alt?('alt — main: '+o.mainName):o.name)}">${ic}<span class="comp-nm" style="color:${clr}">${esc(o.name)}</span>${o.alt?'<span class="comp-alt">alt</span>':''}</div>`; };
