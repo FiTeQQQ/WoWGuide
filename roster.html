@@ -276,24 +276,47 @@ function toggleFilter(i){ const r=ranks[i]; if(r==null)return; if(hiddenRanks.ha
 
 /* ───────── Import z hlavního rosteru (Assignments) ───────── */
 async function importRoster(){
-  if(!confirm('Naimportovat hráče z hlavního rosteru (Assignments)? Stávající se nezduplikují.')) return;
+  if(!confirm('Naimportovat hráče z hlavního rosteru (Assignments)? Alty se zařadí pod maina; stávající se zkonsolidují.')) return;
   const st=document.getElementById('status'); st.textContent='Importuji…';
   try{
     const r=await fetch(API_BASE+'/api/roster/main',{cache:'no-cache'});
     const data=r.ok?await r.json():{};
     const rl=Array.isArray(data.roster)?data.roster:[];
-    const existing=new Set();
-    people.forEach(p=>{ if(p.name)existing.add(p.name.toLowerCase()); (p.chars||[]).forEach(c=>{if(c.name)existing.add(c.name.toLowerCase());}); });
-    let added=0;
-    rl.forEach(pl=>{
-      const nm=(pl.name||'').trim(); if(!nm) return;
-      if(existing.has(nm.toLowerCase())) return;
-      people.push({id:uid(),name:nm,rank:'Core',note:'',cls:(pl.class||'').toLowerCase(),spec:pl.spec||'',specIcon:pl.specIcon||'',chars:[{name:nm,h:0,m:0}]});
-      existing.add(nm.toLowerCase()); added++;
+    const byId={}; rl.forEach(pl=>{ if(pl&&pl.id) byId[pl.id]=pl; });
+    const mainOf=pl=>{ let cur=pl,g=0; while(cur&&cur.altOf&&byId[cur.altOf]&&g<12){ cur=byId[cur.altOf]; g++; } return cur; };
+    // seskup postavy podle maina
+    const groups={};
+    rl.forEach(pl=>{ if(!pl||!(pl.name||'').trim())return; const m=mainOf(pl); if(!m)return; (groups[m.id]=groups[m.id]||[]).push(pl); });
+    const personByName=nm=>people.find(p=>(p.name||'').toLowerCase()===nm.toLowerCase()||(p.chars||[]).some(c=>(c.name||'').toLowerCase()===nm.toLowerCase()));
+    let addedP=0, addedC=0;
+    Object.keys(groups).forEach(mid=>{
+      const m=byId[mid]; if(!m) return;
+      const mainNm=(m.name||'').trim(); if(!mainNm) return;
+      // main jako první, pak alty
+      const members=groups[mid].slice().sort((a,b)=>(a.id===mid?-1:(b.id===mid?1:0)));
+      let person=personByName(mainNm);
+      if(!person){
+        person={id:uid(),name:mainNm,rank:'Core',note:'',cls:(m.class||'').toLowerCase(),spec:m.spec||'',specIcon:m.specIcon||'',chars:[]};
+        people.push(person); addedP++;
+      } else {
+        if(!person.cls&&m.class) person.cls=(m.class||'').toLowerCase();
+        if(!person.specIcon&&m.specIcon) person.specIcon=m.specIcon;
+      }
+      members.forEach(pl=>{
+        const cn=(pl.name||'').trim(); if(!cn) return;
+        // pokud postava existuje jako samostatný hráč → slož pod maina (zachová počty) a samostatného smaž
+        const standalone=people.find(pp=>pp!==person && (pp.name||'').toLowerCase()===cn.toLowerCase());
+        if(standalone){
+          (standalone.chars||[]).forEach(c=>{ if(!(person.chars||[]).some(x=>(x.name||'').toLowerCase()===(c.name||'').toLowerCase())) person.chars.push(c); });
+          people=people.filter(pp=>pp!==standalone); addedC++;
+        } else if(!(person.chars||[]).some(c=>(c.name||'').toLowerCase()===cn.toLowerCase())){
+          person.chars.push({name:cn,h:0,m:0}); addedC++;
+        }
+      });
     });
     save(); render();
     st.textContent='';
-    toast(`Importováno ${added} hráčů z rosteru.`);
+    toast(`Import hotov: ${addedP} nových hráčů, ${addedC} postav (alty pod mainy).`);
   }catch(e){ st.textContent=''; toast('Import selhal: '+e.message); }
 }
 
