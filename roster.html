@@ -64,6 +64,17 @@
   .rowchk:hover{border-color:var(--accent-border)}
   .rowchk:checked{background:var(--accent);border-color:var(--accent)}
   .rowchk:checked::after{content:'';position:absolute;left:5px;top:1.5px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .ctxmenu{position:fixed;z-index:400;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.6);padding:8px;width:230px}
+  .ctxmenu .ctx-h{font-size:12px;font-weight:800;color:#fff;padding:2px 6px 6px}
+  .ctxmenu .ctx-sub{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-dim);padding:4px 6px 4px;font-weight:700}
+  .ctxmenu .ctx-search{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:5px 8px;outline:none;margin-bottom:5px}
+  .ctxmenu .ctx-list{max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:1px}
+  .ctxmenu .ctx-list button{text-align:left;background:none;border:none;color:var(--text);font-size:12.5px;padding:6px 8px;border-radius:5px;cursor:pointer}
+  .ctxmenu .ctx-list button:hover{background:rgba(79,142,255,.15);color:var(--accent)}
+  .ctxmenu .ctx-row{text-align:left;width:100%;background:none;border:none;color:var(--text);font-size:12.5px;padding:6px 8px;border-radius:5px;cursor:pointer}
+  .ctxmenu .ctx-row:hover{background:rgba(255,255,255,.06)}
+  .ctxmenu .ctx-row.danger:hover{background:rgba(239,68,68,.15);color:#f87171}
+  .ctxmenu .ctx-sep{height:1px;background:var(--border2);margin:5px 2px}
   .mini-num{width:58px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:5px;outline:none;text-align:center}
   .empty{text-align:center;color:var(--text-dim);font-size:14px;padding:50px 10px}
   .legend{font-size:11px;color:var(--text-dim);margin-top:12px}
@@ -282,7 +293,7 @@ function render(){
     const altN=(p.chars||[]).length-1;
     const ico=p.specIcon?`<img class="spec-ic" src="${esc(p.specIcon)}" onerror="this.style.display='none'">`:'';
     const naCore=p.rank==='Core';
-    html+=`<tr class="${flag?'flag':''}">
+    html+=`<tr class="${flag?'flag':''}" oncontextmenu="rosterCtx(event,'${p.id}');return false;">
       <td><span class="expand" onclick="toggle('${p.id}')">${exp?'▾':'▸'}</span></td>
       <td>${ico}<span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${altN>0?`<span class="altcnt">+${altN} alt</span>`:''}${flag?'<span class="warn">⚠ 0× Heroic</span>':''}</td>
       <td><select class="rank" onchange="setRank('${p.id}',this.value)">${rankOpts(p.rank)}</select></td>
@@ -380,6 +391,35 @@ function clearAll(){
 }
 function toggleSel(id){ if(selected.has(id))selected.delete(id); else selected.add(id); renderBulk(); }
 function clearSel(){ selected.clear(); render(); }
+function rosterCtx(e,id){
+  e.preventDefault(); closeCtx();
+  const p=find(id); if(!p) return;
+  const menu=document.createElement('div'); menu.className='ctxmenu'; menu.id='ctxmenu';
+  const others=people.filter(o=>o.id!==id);
+  menu.innerHTML=`<div class="ctx-h">${esc(p.name)}</div>`
+    +`<button class="ctx-row" onclick="promote('${id}');closeCtx()">↗ Promote do hlavního rosteru</button>`
+    +`<button class="ctx-row danger" onclick="del('${id}');closeCtx()">✕ Smazat hráče</button>`
+    +`<div class="ctx-sep"></div>`
+    +`<div class="ctx-sub">Přiřadit jako alt k:</div>`
+    +`<input class="ctx-search" placeholder="hledat maina…" oninput="ctxFilter(this.value)">`
+    +`<div class="ctx-list" id="ctxList">`+others.map(o=>`<button onclick="assignAlt('${id}','${o.id}')"><span style="color:${CC[(o.cls||'').toLowerCase()]||'var(--text)'}">${esc(o.name)}</span></button>`).join('')+`</div>`;
+  document.body.appendChild(menu);
+  menu.style.left=Math.min(e.clientX,window.innerWidth-244)+'px';
+  menu.style.top=Math.min(e.clientY,Math.max(8,window.innerHeight-menu.offsetHeight-10))+'px';
+  setTimeout(()=>document.addEventListener('mousedown',closeCtxOnce),0);
+}
+function closeCtxOnce(e){ const m=document.getElementById('ctxmenu'); if(m&&!m.contains(e.target)) closeCtx(); }
+function closeCtx(){ const m=document.getElementById('ctxmenu'); if(m) m.remove(); document.removeEventListener('mousedown',closeCtxOnce); }
+function ctxFilter(q){ q=(q||'').toLowerCase(); document.querySelectorAll('#ctxList button').forEach(b=>{ b.style.display=b.textContent.toLowerCase().includes(q)?'':'none'; }); }
+function assignAlt(altId,mainId){
+  const alt=find(altId), main=find(mainId);
+  closeCtx();
+  if(!alt||!main||alt===main) return;
+  (alt.chars||[]).forEach(c=>{ if(!(main.chars||[]).some(x=>(x.name||'').toLowerCase()===(c.name||'').toLowerCase())) (main.chars=main.chars||[]).push(c); });
+  people=people.filter(x=>x.id!==altId);
+  save(); render();
+  toast(`${alt.name} přiřazen jako alt k ${main.name}.`);
+}
 function deleteSelected(){
   if(!selected.size) return;
   if(!confirm(`Smazat ${selected.size} vybraných hráčů? Nevratné.`)) return;
@@ -524,13 +564,21 @@ function _wclEntries(pd){
   }catch(e){ return []; }
 }
 async function wclReportAttendance(token,code){
-  const q=`query($c:String!){reportData{report(code:$c){heroic:playerDetails(startTime:0,endTime:99999999999,difficulty:4) mythic:playerDetails(startTime:0,endTime:99999999999,difficulty:5)}}}`;
-  const d=await wclGQL(token,q,{c:code});
-  const rep=d&&d.reportData&&d.reportData.report;
-  try{ console.log('WCL report',code,rep); }catch(e){}
-  const he=_wclEntries(rep&&rep.heroic), me=_wclEntries(rep&&rep.mythic);
-  [].concat(he,me).forEach(x=>{ if(x.name&&x.type) _wclMeta[String(x.name).toLowerCase()]=String(x.type).toLowerCase(); });
-  return { h:new Set(he.map(x=>x.name)), m:new Set(me.map(x=>x.name)) };
+  // 1) fights s obtížností
+  const d1=await wclGQL(token,`query($c:String!){reportData{report(code:$c){fights{id difficulty}}}}`,{c:code});
+  const fights=(d1&&d1.reportData&&d1.reportData.report&&d1.reportData.report.fights)||[];
+  const hf=fights.filter(f=>f.difficulty===4).map(f=>f.id);
+  const mf=fights.filter(f=>f.difficulty===5).map(f=>f.id);
+  const result={h:new Set(),m:new Set()};
+  const fetchPlayers=async(fids,set)=>{
+    if(!fids.length) return;
+    const d=await wclGQL(token,`query($c:String!,$f:[Int]){reportData{report(code:$c){playerDetails(fightIDs:$f)}}}`,{c:code,f:fids});
+    const pd=d&&d.reportData&&d.reportData.report&&d.reportData.report.playerDetails;
+    _wclEntries(pd).forEach(x=>{ if(x.name){ set.add(x.name); if(x.type) _wclMeta[String(x.name).toLowerCase()]=String(x.type).toLowerCase(); } });
+  };
+  await fetchPlayers(hf,result.h);
+  await fetchPlayers(mf,result.m);
+  return result;
 }
 async function wclLoadZones(){
   const sel=document.getElementById('wclZone'); if(!sel) return;
@@ -613,15 +661,21 @@ async function wclRun(){
   btn.disabled=false;
 }
 function applyWclCounts(counts){
-  _wclUn=[];
   const map={};
   people.forEach(p=>(p.chars||[]).forEach((c,ci)=>{ if(c.name) map[c.name.toLowerCase()]={p,ci}; }));
+  let added=0;
   Object.keys(counts).forEach(name=>{
     const cnt=counts[name]; const hit=map[name.toLowerCase()];
     if(hit){ hit.p.chars[hit.ci].h=cnt.h; hit.p.chars[hit.ci].m=cnt.m; }
-    else _wclUn.push({name,h:cnt.h,m:cnt.m});
+    else {
+      const cls=_wclMeta[name.toLowerCase()]||'';
+      people.push({id:uid(),name,rank:'Trial',note:'',cls,spec:'',specIcon:'',chars:[{name,h:cnt.h,m:cnt.m,cls,specIcon:''}]});
+      added++;
+    }
   });
-  save(); render(); renderUnassigned();
+  const un=document.getElementById('wclUnassigned'); if(un) un.innerHTML='';
+  save(); render();
+  if(added) wclLog('Nových hráčů přidáno jako Trial: '+added,'ok');
 }
 function renderUnassigned(){
   const el=document.getElementById('wclUnassigned');
