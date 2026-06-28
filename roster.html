@@ -199,7 +199,7 @@
       <textarea id="wclReports" rows="3" placeholder="https://www.warcraftlogs.com/reports/aBcD1234...&#10;aBcD1234..."></textarea></div>
     <div class="wcl-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button class="btn btn-accent" onclick="wclRun()" id="wclRunBtn">↻ Načíst účast (6 týdnů)</button>
-      <button class="btn btn-ghost" onclick="wclLoadProgress()" id="wclProgBtn" title="Načte jen progress (9/9 H/M) pro Trial/Member z jejich postav — nepotřebuje žádný log">↻ Načíst jen progress</button>
+      <button class="btn btn-ghost" onclick="wclLoadProgress()" id="wclProgBtn" title="Načte jen progress (9/9 H/M) pro všechny hráče z jejich postav — nepotřebuje žádný log">↻ Načíst jen progress</button>
       <span class="status" id="wclStatus"></span>
     </div>
     <div id="wclUnassigned"></div>
@@ -401,7 +401,6 @@ function render(){
       <td><span class="expand">${exp?'▾':'▸'}</span></td>
       <td>${ico}<span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${rankChip(p.rank)}${altN>0?`<span class="altcnt">+${altN} alt</span>`:''}</td>
       ${(zonesP.length?zonesP:[{id:'_',name:'',total:0}]).map(z=>{
-        if(naCore) return '<td><span class="cnt na">—</span></td>';
         const pr=(p.prog||{})[z.id];
         if(!pr) return '<td><span class="cnt na">—</span></td>';
         const hc=pr.hKills.length, mc=pr.mKills.length, tot=pr.total||'?';
@@ -782,8 +781,8 @@ async function wclLoadProgress(){
     if(!realm){ wclLog('Vyplň Realm (slug).','err'); return; }
     localStorage.setItem('wcl_realm',realm); localStorage.setItem('wcl_region',region);
     wclLog('Získávám token…'); const token=await wclToken(); wclLog('Token OK.','ok');
-    const targets=people.filter(p=>p.rank==='Trial'||p.rank==='Member');
-    if(!targets.length){ wclLog('Žádní Trial/Member — progress se počítá jen pro ně (Core se neřeší).','err'); return; }
+    const targets=people.slice();
+    if(!targets.length){ wclLog('Roster je prázdný.','err'); return; }
     wclLog('Načítám progress pro '+targets.length+' hráčů × '+zones.length+' raid(y)…');
     let j=0;
     for(const p of targets){
@@ -850,7 +849,7 @@ async function wclRun(){
       if(!realm){ wclLog('Pro progress vyplň Realm (slug) + vyber raid.','err'); }
       else{
         localStorage.setItem('wcl_realm',realm); localStorage.setItem('wcl_region',region);
-        const targets=people.filter(p=>p.rank==='Trial'||p.rank==='Member');
+        const targets=people.slice();
         wclLog('Načítám progress pro '+targets.length+' hráčů × '+zones.length+' raid(y)…');
         let j=0;
         for(const p of targets){
