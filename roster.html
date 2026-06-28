@@ -40,6 +40,8 @@
   .roster-layout{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:16px;align-items:start}
   .roster-layout.layout-top{grid-template-columns:1fr}
   .roster-layout.layout-top .comp-side{order:-1}
+  .roster-layout.layout-top #rosterComp{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:900px){.roster-layout.layout-top #rosterComp{grid-template-columns:1fr 1fr}}
   .comp-side .comp-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:8px}
   #rosterComp{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
   .comp-card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:11px 13px;min-width:0}
