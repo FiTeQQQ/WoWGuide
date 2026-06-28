@@ -6,3 +6,9 @@ Lightblinded Vanguard Guide*
 # OS
 .DS_Store
 Thumbs.db
+
+# Study-case addons (loot history research) — nepushovat
+Addons/
+
+# Testovací loot export
+loot-test-export.json
