@@ -894,12 +894,14 @@ async function apAddWcl(){
     const zones=progZones();
     if(zones.length){
       try{
-        const p=find(nid); p.prog={};
+        const p=find(nid); p.prog={}; let _capSpec='';
         for(const z of zones){
           const pr=await wclCharProgress(token,nm,realm,region,z.id);
+          if(!_capSpec && pr.spec) _capSpec=pr.spec;
           const obj={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills};
           p.prog[z.id]=obj; if(p.chars&&p.chars[0]){ p.chars[0].prog=p.chars[0].prog||{}; p.chars[0].prog[z.id]=obj; }
         }
+        if(_capSpec){ const s=(SPECS[(cls||'').toLowerCase()]||[]).find(x=>x.name===_capSpec); if(s){ p.spec=s.name; p.specIcon=WH_ICON(s.icon); if(p.chars&&p.chars[0]){ p.chars[0].specIcon=p.specIcon; p.chars[0]._spec=s.name; } } }
         save(); render(); _wclCfgTouch(); flushCloud();
       }catch(e){}
     }
@@ -1207,7 +1209,8 @@ async function wclCharProgress(token,name,realm,region,zoneID){
   const d=await wclGQL(token,q,{n:name,s:realm,r:region,z:zoneID});
   const ch=d&&d.characterData&&d.characterData.character;
   const kills=zr=>{ try{ return ((zr&&zr.rankings)||[]).filter(x=>x&&((x.totalKills||0)>0)).map(x=>x.encounter&&x.encounter.name).filter(Boolean); }catch(e){ return []; } };
-  return { hKills:kills(ch&&ch.h), mKills:kills(ch&&ch.m) };
+  const specOf=zr=>{ try{ const rs=(zr&&zr.rankings)||[]; for(const x of rs){ if(x&&x.spec) return String(x.spec); } }catch(e){} return ''; };
+  return { hKills:kills(ch&&ch.h), mKills:kills(ch&&ch.m), spec:specOf(ch&&ch.m)||specOf(ch&&ch.h) };
 }
 // Seznam realmů guildy (hlavní + další z nastavení) — pro hráče bez známého serveru
 function _guildRealms(){
@@ -1284,7 +1287,7 @@ async function wclLoadProgress(){
         const hSet=new Set(), mSet=new Set();
         for(const ch of (p.chars||[])){
           if(!ch.name) continue;
-          try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
+          try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; if(pr.spec&&!ch.specIcon){ const _s=(SPECS[(ch.cls||'').toLowerCase()]||[]).find(x=>x.name===pr.spec); if(_s){ ch.specIcon=WH_ICON(_s.icon); ch._spec=_s.name; if(p.chars&&ch===p.chars[0]){ p.specIcon=ch.specIcon; p.spec=_s.name; } } } }
           catch(e){ wclLog(`✗ progress ${ch.name} (${z.name}): ${e.message}`,'err'); }
           await new Promise(r=>setTimeout(r,120));
         }
@@ -1352,7 +1355,7 @@ async function wclRun(){
             const hSet=new Set(), mSet=new Set();
             for(const ch of (p.chars||[])){
               if(!ch.name) continue;
-              try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; }
+              try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; if(pr.spec&&!ch.specIcon){ const _s=(SPECS[(ch.cls||'').toLowerCase()]||[]).find(x=>x.name===pr.spec); if(_s){ ch.specIcon=WH_ICON(_s.icon); ch._spec=_s.name; if(p.chars&&ch===p.chars[0]){ p.specIcon=ch.specIcon; p.spec=_s.name; } } } }
               catch(e){ wclLog(`✗ progress ${ch.name} (${z.name}): ${e.message}`,'err'); }
               await new Promise(r=>setTimeout(r,120));
             }
