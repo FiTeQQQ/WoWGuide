@@ -60,7 +60,10 @@
   .char-row .lbl{font-size:11px;color:var(--text-dim)}
   .mainbadge{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);background:rgba(79,142,255,.12);border:1px solid var(--accent-border);border-radius:8px;padding:1px 7px}
   .bulkbar{display:flex;align-items:center;gap:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:8px 14px;margin-bottom:10px;font-size:13px;color:var(--text)}
-  .rowchk{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;vertical-align:middle;margin-right:5px}
+  .rowchk{appearance:none;-webkit-appearance:none;width:18px;height:18px;border:1.5px solid var(--border2);border-radius:5px;background:var(--surface2);cursor:pointer;position:relative;flex:0 0 auto;vertical-align:middle;transition:border-color .12s,background .12s;margin-left:4px}
+  .rowchk:hover{border-color:var(--accent-border)}
+  .rowchk:checked{background:var(--accent);border-color:var(--accent)}
+  .rowchk:checked::after{content:'';position:absolute;left:5px;top:1.5px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
   .mini-num{width:58px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:5px;outline:none;text-align:center}
   .empty{text-align:center;color:var(--text-dim);font-size:14px;padding:50px 10px}
   .legend{font-size:11px;color:var(--text-dim);margin-top:12px}
@@ -294,15 +297,13 @@ function render(){
       </div></td></tr>`;
     if(exp){
       const charRows=(p.chars||[]).map((c,ci)=>{
-        const isMain=ci===0;
-        if(naCore&&isMain) return ''; // u Core hlavní postavu neukazujeme (účast se neřeší)
+        if(ci===0) return ''; // hlavní postava = sám hráč, neukazujeme ji znovu
         const icon=c.specIcon?`<img class="spec-ic" src="${esc(c.specIcon)}" onerror="this.style.display='none'">`:'';
         const hm=naCore?'':`<span class="lbl">H</span><input class="mini-num" type="number" min="0" value="${+c.h||0}" onchange="setChar('${p.id}',${ci},'h',this.value)"><span class="lbl">M</span><input class="mini-num" type="number" min="0" value="${+c.m||0}" onchange="setChar('${p.id}',${ci},'m',this.value)">`;
-        const delBtn=isMain?'':`<button class="iconbtn del" title="Odebrat alta" onclick="delChar('${p.id}',${ci})">✕</button>`;
-        return `<div class="char-row">${icon}<input type="text" style="color:${CC[(c.cls||'').toLowerCase()]||'var(--text)'};font-weight:600" value="${esc(c.name||'')}" placeholder="jméno postavy" onchange="setChar('${p.id}',${ci},'name',this.value)">${isMain?'<span class="mainbadge">main</span>':''}${hm}${delBtn}</div>`;
+        return `<div class="char-row">${icon}<input type="text" style="color:${CC[(c.cls||'').toLowerCase()]||'var(--text)'};font-weight:600" value="${esc(c.name||'')}" placeholder="jméno alta" onchange="setChar('${p.id}',${ci},'name',this.value)">${hm}<button class="iconbtn del" title="Odebrat alta" onclick="delChar('${p.id}',${ci})">✕</button></div>`;
       }).join('');
       html+=`<tr><td></td><td colspan="7"><div class="chars">
-        <div class="sub" style="margin-bottom:7px">${naCore?'Alty hráče (u Core se účast neřeší)':'Hlavní postava + alty — počty H/M se sčítají pod hráče'}.</div>
+        <div class="sub" style="margin-bottom:7px">Alty hráče${naCore?' (u Core se účast neřeší)':' — počty H/M se sčítají pod hráče'}.</div>
         ${charRows||'<div class="sub" style="opacity:.7;margin-bottom:7px">Žádní alti.</div>'}
         <button class="iconbtn" onclick="addChar('${p.id}')">+ Přidat alta</button>
       </div></td></tr>`;
