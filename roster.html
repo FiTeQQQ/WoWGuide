@@ -851,7 +851,19 @@ function apAdd(){
   save(); render(); closeAdd();
   toast(`${nm} přidán.`);
 }
-function _classFromId(id){ return ({1:'warrior',2:'paladin',3:'hunter',4:'rogue',5:'priest',6:'deathknight',7:'shaman',8:'mage',9:'warlock',10:'monk',11:'druid',12:'demonhunter',13:'evoker'})[+id]||''; }
+// WCL má vlastní číslování tříd (ne Blizzardí). Natáhneme správnou mapu z API, fallback = abecední WCL pořadí.
+let _wclClasses=null;
+async function _wclClassMap(token){
+  if(_wclClasses) return _wclClasses;
+  try{
+    const d=await wclGQL(token,`query{gameData{classes{id name slug}}}`,{});
+    const arr=(d&&d.gameData&&d.gameData.classes)||[];
+    const m={}; arr.forEach(c=>{ if(c&&c.id!=null) m[c.id]=String(c.slug||c.name||'').toLowerCase().replace(/[^a-z]/g,''); });
+    if(Object.keys(m).length){ _wclClasses=m; return m; }
+  }catch(e){}
+  _wclClasses={1:'deathknight',2:'druid',3:'hunter',4:'mage',5:'monk',6:'paladin',7:'priest',8:'rogue',9:'shaman',10:'warlock',11:'warrior',12:'demonhunter',13:'evoker'};
+  return _wclClasses;
+}
 async function apAddWcl(){
   const nm=(document.getElementById('apName').value||'').trim();
   const stEl=document.getElementById('apWclStatus'); const btn=document.getElementById('apWclBtn');
@@ -865,7 +877,7 @@ async function apAddWcl(){
     let cls='', found=false;
     try{
       const d=await wclGQL(token,`query($n:String!,$s:String!,$r:String!){characterData{character(name:$n,serverSlug:$s,serverRegion:$r){name classID}}}`,{n:nm,s:realm,r:region});
-      const ch=d&&d.characterData&&d.characterData.character; if(ch){ found=true; cls=_classFromId(ch.classID); }
+      const ch=d&&d.characterData&&d.characterData.character; if(ch){ found=true; try{ const cm=await _wclClassMap(token); cls=cm[ch.classID]||''; }catch(_e){} }
     }catch(e){
       try{ const d2=await wclGQL(token,`query($n:String!,$s:String!,$r:String!){characterData{character(name:$n,serverSlug:$s,serverRegion:$r){name}}}`,{n:nm,s:realm,r:region}); if(d2&&d2.characterData&&d2.characterData.character) found=true; }catch(_){}
     }
