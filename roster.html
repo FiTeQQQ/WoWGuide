@@ -50,6 +50,17 @@
   .prog b{color:var(--text-dim);font-weight:700;font-size:10px;margin-right:3px}
   .prog .full{color:#4ade80}
   .progline{display:flex;gap:9px;align-items:center;white-space:nowrap}
+  .prog-cell{cursor:default}
+  .progtip{position:fixed;z-index:500;display:none;background:var(--surface);border:1px solid var(--border2);border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.62);padding:11px 13px;max-width:340px;font-size:12px;pointer-events:none}
+  .progtip .ptip-head{font-weight:800;font-size:13px;margin-bottom:5px;color:var(--text)}
+  .progtip .ptip-sub{display:flex;gap:12px;margin-bottom:8px;font-weight:700;border-bottom:1px solid var(--border2);padding-bottom:7px}
+  .progtip .ptip-list{display:flex;flex-direction:column;gap:3px}
+  .progtip .ptip-row{display:flex;align-items:center;gap:9px;white-space:nowrap}
+  .progtip .ptip-d{font-weight:800;width:13px;text-align:center;flex:0 0 auto;font-size:12px}
+  .progtip .pd-h{color:#a335ee}
+  .progtip .pd-m{color:#ff8000}
+  .progtip .ptip-n{color:var(--text-mid)}
+  .progtip .ptip-empty{color:var(--text-dim)}
   .pg{font-weight:700;font-size:12px;white-space:nowrap}
   .pg-h{color:#a335ee}
   .pg-m{color:#ff8000}
@@ -140,7 +151,7 @@
   .wcl-panel input,.wcl-panel select,.wcl-panel textarea{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:6px 9px;outline:none;width:100%;font-family:inherit}
   .wcl-panel input:focus,.wcl-panel textarea:focus,.wcl-panel select:focus{border-color:var(--accent-border)}
   .wcl-row{margin-bottom:10px}
-  .wcl-chk{font-size:13px;color:var(--text);display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+  .wcl-chk{font-size:13px;color:var(--text);display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap}
   .wcl-log{font-size:11px;color:var(--text-dim);font-family:monospace;max-height:160px;overflow-y:auto;margin-top:8px;white-space:pre-wrap;line-height:1.5}
   .wcl-log .ok{color:#4ade80}
   .wcl-log .err{color:#f87171}
@@ -177,7 +188,7 @@
     <button class="btn btn-accent" onclick="openAdd()">+ Přidat hráče</button>
     <button class="btn btn-ghost" onclick="addRank()">+ Rank</button>
     <button class="btn btn-ghost" onclick="importRoster()" title="Načíst znovu z hlavního rosteru (sdíleno s guide)">↻ Načíst znovu</button>
-    <button class="btn btn-ghost" onclick="wclToggle()">↻ WCL účast</button>
+    <button class="btn btn-ghost" onclick="wclToggle()">↻ WCL</button>
     <button class="btn btn-ghost" onclick="clearAll()" title="Smazat všechny Trial kandidáty (Core/Member zůstanou)" style="color:#f87171;border-color:rgba(239,68,68,.3)">🗑 Smazat Trial</button>
     <input class="search" id="search" placeholder="Hledat hráče / poznámku…" oninput="render()">
     <span class="status" id="status"></span>
@@ -188,16 +199,22 @@
 
   <!-- WCL panel -->
   <div class="wcl-panel" id="wclPanel" style="display:none">
-    <div class="wcl-grid">
-      <div class="wcl-field"><label>WCL Client ID</label><input id="wclId" placeholder="z warcraftlogs.com/api/clients"></div>
-      <div class="wcl-field"><label>Client Secret</label><input id="wclSec" type="password" placeholder="secret"></div>
-      <button class="btn btn-ghost" onclick="wclSaveCreds()" style="align-self:end">Uložit klíče</button>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+      <button class="btn btn-ghost" onclick="wclToggleSettings()" id="wclSettingsBtn" title="Nastavení API klíčů a guild logu">⚙ Nastavení</button>
     </div>
-    <div class="wcl-row"><label class="wcl-chk"><input type="checkbox" id="wclGuildChk"> Načíst i <b>guild log</b> (posledních 6 týdnů)</label></div>
-    <div class="wcl-grid" id="wclGuildFields">
-      <div class="wcl-field"><label>Guild (jen pro guild log)</label><input id="wclGuild" placeholder="Název guildy"></div>
-      <div class="wcl-field"><label>Realm (EU) — nutné i pro progress</label><input id="wclRealm" list="euRealms" value="drakthul" placeholder="vyber / napiš realm" autocomplete="off"></div>
-      <div class="wcl-field"><label>Region</label><select id="wclRegion"><option>EU</option><option>US</option><option>KR</option><option>TW</option></select></div>
+    <!-- Nastavení (skryté pod ⚙) -->
+    <div id="wclSettings" style="display:none;border:1px solid var(--border2);border-radius:10px;padding:12px 14px;margin-bottom:12px;background:rgba(0,0,0,.18)">
+      <div class="wcl-grid">
+        <div class="wcl-field"><label>WCL Client ID</label><input id="wclId" placeholder="z warcraftlogs.com/api/clients"></div>
+        <div class="wcl-field"><label>Client Secret</label><input id="wclSec" type="password" placeholder="secret"></div>
+        <button class="btn btn-ghost" onclick="wclSaveCreds()" style="align-self:end">Uložit klíče</button>
+      </div>
+      <div class="wcl-row"><label class="wcl-chk"><input type="checkbox" id="wclGuildChk"> <span>Načíst i <b>guild log</b> (posledních 6 týdnů)</span></label></div>
+      <div class="wcl-grid" id="wclGuildFields">
+        <div class="wcl-field"><label>Guild (jen pro guild log)</label><input id="wclGuild" placeholder="Název guildy"></div>
+        <div class="wcl-field"><label>Realm (EU) — nutné i pro progress</label><input id="wclRealm" list="euRealms" value="drakthul" placeholder="vyber / napiš realm" autocomplete="off"></div>
+        <div class="wcl-field"><label>Region</label><select id="wclRegion"><option>EU</option><option>US</option><option>KR</option><option>TW</option></select></div>
+      </div>
     </div>
     <div class="wcl-row" style="position:relative;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
       <div style="flex:1;min-width:200px">
@@ -210,7 +227,7 @@
     <div class="wcl-row"><label style="display:block;margin-bottom:4px;font-size:11px;color:var(--text-dim)">Ruční reporty (URL nebo kódy, jeden na řádek) — i personal logy</label>
       <textarea id="wclReports" rows="3" placeholder="https://www.warcraftlogs.com/reports/aBcD1234...&#10;aBcD1234..."></textarea></div>
     <div class="wcl-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <button class="btn btn-accent" onclick="wclRun()" id="wclRunBtn">↻ Načíst účast (6 týdnů)</button>
+      <button class="btn btn-accent" onclick="wclRun()" id="wclRunBtn">↻ Načíst</button>
       <button class="btn btn-ghost" onclick="wclLoadProgress()" id="wclProgBtn" title="Načte jen progress (9/9 H/M) pro všechny hráče z jejich postav — nepotřebuje žádný log">↻ Načíst jen progress</button>
       <span class="status" id="wclStatus"></span>
     </div>
@@ -270,6 +287,7 @@ let _apCls='',_apSpec=null,_apMatch=null,_mainRosterCache=null,_apTimer=null;
 
 let people=[];
 let _flat=[];            // plochý hlavní roster (zdroj pravdy = /api/roster/main)
+let _progTips=[];        // data pro stylované tooltipy progressu
 let ranks=['Core','Member','Trial'];
 let expanded={};
 let sortKey='rank', sortDir=1;
@@ -285,8 +303,28 @@ function totals(p){let h=0,m=0;(p.chars||[]).forEach(c=>{h+=(+c.h||0);m+=(+c.m||
 function breakdown(p,key){const a=(p.chars||[]).filter(c=>(+c[key]||0)>0).map(c=>`${c.name||'?'} ${+c[key]||0}×`);return a.length>1?a.join(' · '):'';}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200);}
 function rankChip(r){ if(!r||r==='Core') return ''; const c=r==='Trial'?'#f59e0b':'#2563eb'; return `<span class="rankchip" style="color:${c};border-color:${c}55;background:${c}1a">${esc(r)}</span>`; }
-// Barevný progress H (zelená) + M (fialová) vedle sebe
+// Barevný progress H (epic) + M (legendary) vedle sebe
 function progCell(pr){ if(!pr) return '<span class="cnt na">—</span>'; const tot=pr.total||'?'; return `<span class="pg pg-h">H ${pr.hKills.length}/${tot}</span><span class="pg pg-m">M ${pr.mKills.length}/${tot}</span>`; }
+// Buňka progressu se stylovaným tooltipem (data v _progTips, index v data-tip)
+function progTd(zoneName,pr){
+  if(!pr) return '<td><span class="cnt na">—</span></td>';
+  const idx=_progTips.push({zone:zoneName||'',total:pr.total||'?',hKills:pr.hKills||[],mKills:pr.mKills||[]})-1;
+  return `<td class="prog-cell" data-tip="${idx}"><div class="progline">${progCell(pr)}</div></td>`;
+}
+function _ensureProgTip(){ let t=document.getElementById('progTip'); if(!t){ t=document.createElement('div'); t.id='progTip'; t.className='progtip'; document.body.appendChild(t); } return t; }
+function _posProgTip(tip,e){ const pad=14; const r=tip.getBoundingClientRect(); let x=e.clientX+pad, y=e.clientY+pad; if(x+r.width>window.innerWidth-8) x=e.clientX-r.width-pad; if(y+r.height>window.innerHeight-8) y=window.innerHeight-r.height-8; tip.style.left=Math.max(8,x)+'px'; tip.style.top=Math.max(8,y)+'px'; }
+function showProgTip(e,td){
+  const d=_progTips[+td.getAttribute('data-tip')]; if(!d) return;
+  const tip=_ensureProgTip();
+  const seen=new Set(), rows=[];
+  d.mKills.forEach(n=>{ const k=String(n).toLowerCase(); if(!seen.has(k)){ seen.add(k); rows.push({n,d:'M'}); } });
+  d.hKills.forEach(n=>{ const k=String(n).toLowerCase(); if(!seen.has(k)){ seen.add(k); rows.push({n,d:'H'}); } });
+  const list=rows.length?rows.map(b=>`<div class="ptip-row"><span class="ptip-d ${b.d==='M'?'pd-m':'pd-h'}">${b.d}</span><span class="ptip-n">${esc(b.n)}</span></div>`).join(''):'<div class="ptip-empty">Žádné zabití</div>';
+  tip.innerHTML=`<div class="ptip-head">${esc(d.zone)}</div><div class="ptip-sub"><span class="pg pg-h">H ${d.hKills.length}/${d.total}</span><span class="pg pg-m">M ${d.mKills.length}/${d.total}</span></div><div class="ptip-list">${list}</div>`;
+  tip.style.display='block'; _posProgTip(tip,e);
+}
+document.addEventListener('mouseover',e=>{ const td=e.target.closest&&e.target.closest('.prog-cell'); if(td) showProgTip(e,td); });
+document.addEventListener('mousemove',e=>{ const tip=document.getElementById('progTip'); if(!tip||tip.style.display!=='block')return; const td=e.target.closest&&e.target.closest('.prog-cell'); if(td) _posProgTip(tip,e); else tip.style.display='none'; });
 
 async function load(){
   const st=document.getElementById('status');st.textContent='Načítám…';
@@ -385,6 +423,7 @@ function sortedPeople(filtered){
 }
 
 function render(){
+  _progTips=[];
   renderFilter();
   renderBulk();
   const wrap=document.getElementById('tableWrap');
@@ -415,13 +454,7 @@ function render(){
     html+=`<tr class="prow ${flag?'flag':''}" onclick="prowClick(event,'${p.id}')" oncontextmenu="rosterCtx(event,'${p.id}');return false;">
       <td><span class="expand">${exp?'▾':'▸'}</span></td>
       <td>${ico}<span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${rankChip(p.rank)}${altN>0?`<span class="altcnt">+${altN} alt</span>`:''}</td>
-      ${(zonesP.length?zonesP:[{id:'_',name:'',total:0}]).map(z=>{
-        const pr=(p.prog||{})[z.id];
-        if(!pr) return '<td><span class="cnt na">—</span></td>';
-        const hc=pr.hKills.length, mc=pr.mKills.length, tot=pr.total||'?';
-        const tip=`${z.name}\nHeroic (${hc}/${tot}): ${pr.hKills.join(', ')||'—'}\nMythic (${mc}/${tot}): ${pr.mKills.join(', ')||'—'}`;
-        return `<td title="${esc(tip)}"><div class="progline">${progCell(pr)}</div></td>`;
-      }).join('')}
+      ${(zonesP.length?zonesP:[{id:'_',name:'',total:0}]).map(z=>progTd(z.name,(p.prog||{})[z.id])).join('')}
       <td>${naCore?'<span class="cnt na" title="U Core hráče se účast neřeší">—</span>':`<div class="cnt ${t.h===0?'zero':''}">${t.h}×</div>${bh?`<div class="break">${esc(bh)}</div>`:''}`}</td>
       <td>${naCore?'<span class="cnt na">—</span>':`<div class="cnt ${t.m===0?'zero':''}">${t.m}×</div>${bm?`<div class="break">${esc(bm)}</div>`:''}`}</td>
       <td><input class="note-in" value="${esc(p.note||'')}" placeholder="…" onchange="setNote('${p.id}',this.value)"></td>
@@ -436,7 +469,7 @@ function render(){
         if(ci===0) return ''; // hlavní postava = sám hráč
         const icon=c.specIcon?`<img class="spec-ic" src="${esc(c.specIcon)}" onerror="this.style.display='none'">`:'';
         const cclr=CC[(c.cls||'').toLowerCase()]||'var(--text)';
-        const progTds=zlist.map(z=>{ const pr=(c.prog||{})[z.id]; if(!pr) return '<td><span class="cnt na">—</span></td>'; const tot=pr.total||'?'; const tip=`${z.name}\nHeroic (${pr.hKills.length}/${tot}): ${pr.hKills.join(', ')||'—'}\nMythic (${pr.mKills.length}/${tot}): ${pr.mKills.join(', ')||'—'}`; return `<td title="${esc(tip)}"><div class="progline">${progCell(pr)}</div></td>`; }).join('');
+        const progTds=zlist.map(z=>progTd(z.name,(c.prog||{})[z.id])).join('');
         const chh=+c.h||0, chm=+c.m||0;
         const hTd=naCore?'<td><span class="cnt na">—</span></td>':`<td><div class="cnt ${chh===0?'zero':''}">${chh}×</div></td>`;
         const mTd=naCore?'<td><span class="cnt na">—</span></td>':`<td><div class="cnt ${chm===0?'zero':''}">${chm}×</div></td>`;
@@ -676,6 +709,12 @@ function wclToggle(){
     document.getElementById('wclRegion').value=localStorage.getItem('wcl_region')||'EU';
     renderZoneChips();
   }
+}
+function wclToggleSettings(){
+  const s=document.getElementById('wclSettings'); const b=document.getElementById('wclSettingsBtn');
+  const show=s.style.display==='none';
+  s.style.display=show?'block':'none';
+  if(b) b.textContent=show?'⚙ Skrýt nastavení':'⚙ Nastavení';
 }
 function wclSaveCreds(){
   localStorage.setItem('wcl_id',document.getElementById('wclId').value.trim());
