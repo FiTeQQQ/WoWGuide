@@ -37,19 +37,46 @@
   tbody tr.prow{cursor:pointer;transition:background .12s}
   tbody tr.prow:hover{background:rgba(79,142,255,.07)}
   tbody tr.prow:hover .expand{color:var(--accent)}
-  .roster-layout{display:grid;grid-template-columns:1fr 380px;gap:14px;align-items:start}
+  .roster-layout{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1fr);gap:16px;align-items:start}
   .comp-side .comp-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:8px}
-  #rosterComp{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
-  .comp-card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:11px 13px;min-width:0}
-  .comp-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;white-space:nowrap}
+  #rosterComp{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+  .comp-card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;min-width:0}
+  .comp-head{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;white-space:nowrap}
   .comp-cnt{color:var(--text-dim);font-weight:400}
-  .comp-list{display:flex;flex-direction:column;gap:4px}
-  .comp-row{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;min-width:0}
-  .comp-row img{width:18px;height:18px;border-radius:4px;flex:0 0 auto;border:1px solid rgba(255,255,255,.12)}
+  .comp-list{display:flex;flex-direction:column;gap:6px}
+  .comp-row{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;min-width:0}
+  .comp-row img{width:20px;height:20px;border-radius:4px;flex:0 0 auto;border:1px solid rgba(255,255,255,.12)}
   .comp-nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .comp-alt{color:var(--text-dim);font-size:9px;font-weight:600;flex:0 0 auto}
   .comp-empty{color:var(--text-dim);font-size:12px}
   @media(max-width:1000px){.roster-layout{grid-template-columns:1fr}}
+  /* ═══════════ GLASS MODE (1:1 s guide; classic = beze změny) ═══════════ */
+  .glass-bg{position:fixed;inset:0;z-index:-3;display:none;background-position:center;background-size:cover;background-repeat:no-repeat;filter:brightness(.6) saturate(.9)}
+  .glass-bg::after{content:'';position:absolute;inset:0;background:
+    radial-gradient(135% 115% at 50% 32%, transparent 0%, transparent 34%, rgba(2,3,8,.58) 82%, rgba(1,2,6,.84) 100%),
+    linear-gradient(180deg, rgba(4,6,14,.42) 0%, rgba(3,4,10,.60) 60%, rgba(2,3,8,.76) 100%)}
+  body.glass-on .glass-bg{display:block}
+  body.glass-on{background:transparent !important}
+  body.glass-on .card,
+  body.glass-on .wcl-panel,
+  body.glass-on .comp-card{
+    background:rgba(12,16,28,.40) !important;
+    backdrop-filter:blur(20px) saturate(165%);-webkit-backdrop-filter:blur(20px) saturate(165%);
+    border:1px solid rgba(255,255,255,.12) !important;box-shadow:none !important;
+  }
+  body.glass-on #wclSettings{background:rgba(0,0,0,.22) !important}
+  body.glass-on table th{border-bottom-color:rgba(255,255,255,.12) !important}
+  body.glass-on td{border-bottom-color:rgba(255,255,255,.06)}
+  body.glass-on tbody tr.prow:hover{background:rgba(255,255,255,.07) !important}
+  body.glass-on .altrow{background:rgba(255,255,255,.03)}
+  body.glass-on .btn-ghost,body.glass-on .home-btn{background:rgba(255,255,255,.08) !important;border:1px solid rgba(255,255,255,.16) !important;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#eef2fb !important;box-shadow:none !important}
+  body.glass-on .btn-ghost:hover,body.glass-on .home-btn:hover{background:rgba(255,255,255,.16) !important}
+  body.glass-on .btn-accent{background:linear-gradient(135deg,rgba(74,138,252,.9),rgba(50,104,218,.9)) !important;border:1px solid rgba(150,185,255,.55) !important;color:#fff !important;box-shadow:none !important}
+  body.glass-on .fchip{background:rgba(255,255,255,.06) !important;border:1px solid rgba(255,255,255,.14) !important}
+  body.glass-on .fchip.on{background:rgba(79,142,255,.22) !important;border-color:var(--accent-border) !important;color:#bcd4ff !important}
+  body.glass-on .search,body.glass-on .note-in:focus,body.glass-on .mini-num,body.glass-on .wcl-panel input,body.glass-on .wcl-panel textarea,body.glass-on .wcl-panel select{background:rgba(255,255,255,.07) !important;border:1px solid rgba(255,255,255,.14) !important}
+  body.glass-on .rank,body.glass-on .iconbtn{background:rgba(255,255,255,.07) !important;border:1px solid rgba(255,255,255,.14) !important}
+  body.glass-on .addmodal,body.glass-on .ctx-menu,body.glass-on .progtip,body.glass-on .zone-dd{background:rgba(16,20,32,.90) !important;backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%)}
   .name{font-weight:700}
   .spec-ic{width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:7px;border:1px solid rgba(255,255,255,.12)}
   .altcnt{font-size:10px;color:var(--text-dim);background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:10px;padding:1px 7px;margin-left:7px;font-weight:600}
@@ -187,6 +214,7 @@
 </style>
 </head>
 <body>
+<div class="glass-bg"></div>
 <div class="wrap">
   <div class="topbar">
     <a class="home-btn" href="index.html">⌂ Dashboard</a>
@@ -202,6 +230,7 @@
     <button class="btn btn-ghost" onclick="importRoster()" title="Načíst znovu z hlavního rosteru (sdíleno s guide)">↻ Načíst znovu</button>
     <button class="btn btn-ghost" onclick="wclToggle()">↻ WCL</button>
     <button class="btn btn-ghost" onclick="clearAll()" title="Smazat všechny Trial kandidáty (Core/Member zůstanou)" style="color:#f87171;border-color:rgba(239,68,68,.3)">🗑 Smazat Trial</button>
+    <button class="btn btn-ghost" id="themeBtn" onclick="toggleTheme()" title="Přepnout vzhled Classic / Glass" style="opacity:.85">🗔 Classic</button>
     <input class="search" id="search" placeholder="Hledat hráče / poznámku…" oninput="render()">
     <span class="status" id="status"></span>
   </div>
@@ -335,6 +364,15 @@ function totals(p){let h=0,m=0;(p.chars||[]).forEach(c=>{h+=(+c.h||0);m+=(+c.m||
 function breakdown(p,key){const a=(p.chars||[]).filter(c=>(+c[key]||0)>0).map(c=>`${c.name||'?'} ${+c[key]||0}×`);return a.length>1?a.join(' · '):'';}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200);}
 function rankChip(r){ if(!r||r==='Core') return ''; const c=r==='Trial'?'#f59e0b':'#2563eb'; return `<span class="rankchip" style="color:${c};border-color:${c}55;background:${c}1a">${esc(r)}</span>`; }
+// ── GLASS / CLASSIC TÉMA (1:1 s guide) ──
+let themeMode='classic';
+function applyTheme(m){
+  themeMode=(m==='glass')?'glass':'classic';
+  document.body.classList.toggle('glass-on',themeMode==='glass');
+  const b=document.getElementById('themeBtn'); if(b) b.textContent=themeMode==='glass'?'🪟 Glass':'🗔 Classic';
+  const bg=document.querySelector('.glass-bg'); if(bg && !bg.style.backgroundImage) bg.style.backgroundImage="url('Images/Roster/Roster_Background.jpg')";
+}
+function toggleTheme(){ applyTheme(themeMode==='glass'?'classic':'glass'); try{localStorage.setItem('rosterTheme',themeMode);}catch(e){} }
 // Barevný progress H (epic) + M (legendary) vedle sebe
 function progCell(pr){ if(!pr) return '<span class="cnt na">—</span>'; const tot=pr.total||'?'; return `<span class="pg pg-h">H ${pr.hKills.length}/${tot}</span><span class="pg pg-m">M ${pr.mKills.length}/${tot}</span>`; }
 // Buňka progressu se stylovaným tooltipem (data v _progTips, index v data-tip)
@@ -1024,6 +1062,7 @@ function wclAssign(i){
   _wclUn.splice(i,1); save(); render(); renderUnassigned();
 }
 
+(function(){ let pref='classic'; try{ pref=localStorage.getItem('rosterTheme')||'classic'; }catch(e){} applyTheme(pref); })();
 load();
 </script>
 </body>
