@@ -455,6 +455,12 @@ let colOrder=[];            // pořadí VŠECH sloupců (klíče: name/progress/
 let hiddenCols=[];          // skryté sloupce (klíče) — sdílené
 let colWidths={};           // šířky sloupců (px), klíč = klíč sloupce — lokální preference
 let zoneNames={};           // vlastní názvy progress sloupců (raidů): {zoneId: název} — sdílené
+let builtinNames={};        // přejmenování předdef. sloupců {h,m,note: název} — sdílené
+let removedCols={};         // ručně odebrané předdef./raid sloupce {key:true} — sdílené
+function _builtinLabel(key){ const d={h:'S námi H',m:'S námi M',note:'Poznámka'}; return (builtinNames&&builtinNames[key]!=null&&builtinNames[key]!=='')?builtinNames[key]:(d[key]||key); }
+function renameBuiltin(key,v){ v=(v||'').trim(); builtinNames=builtinNames||{}; if(v) builtinNames[key]=v; else delete builtinNames[key]; save(); flushCloud(); render(); }
+function delPredef(key){ removedCols=removedCols||{}; removedCols[key]=true; colOrder=colOrder.filter(k=>k!==key); save(); flushCloud(); render(); }
+function addPredef(key){ removedCols=removedCols||{}; delete removedCols[key]; if(!colOrder.includes(key)){ const ni=colOrder.indexOf('name'); colOrder.splice(ni>=0?ni+1:colOrder.length,0,key); } save(); flushCloud(); render(); }
 function _colW(key){ if(String(key).indexOf('z:')===0) return (colWidths&&colWidths[key])||118; const d={name:180,progress:118,h:100,m:100,note:160}; return (colWidths&&colWidths[key])||d[key]||120; }
 function _zoneDefaultLabel(z){ const tag=(+((z&&z.total)||0)===1)?'M':'H/M'; return (_shortRaid((z&&z.name)||'')+' '+tag).trim(); }
 function _zoneLabel(key,z){ const zid=String(key).indexOf('z:')===0?String(key).slice(2):(z&&z.id); if(zoneNames&&zoneNames[zid]!=null&&zoneNames[zid]!=='') return zoneNames[zid]; return _zoneDefaultLabel(z||{id:zid,name:String(zid)}); }
@@ -560,19 +566,22 @@ function applyLayout(){ const el=document.querySelector('.roster-layout'); if(el
 function setLayout(m){ layoutMode=(m==='top')?'top':'side'; try{localStorage.setItem('rosterLayout',layoutMode);}catch(e){} applyLayout(); save(); flushCloud(); }
 // Sjednocené pořadí všech sloupců (vestavěné + custom)
 function _ensureColOrder(){
-  const builtins=['name','h','m','note'];
+  const optional=['h','m','note'];
   const zKeys=progZones().map(z=>'z:'+z.id);
   const validCustom=new Set(customCols.map(c=>c.id));
   const validZ=new Set(zKeys);
   if(!Array.isArray(colOrder)) colOrder=[];
-  // migrace: starý jeden sloupec 'progress' → samostatné sloupce na jeho místě
+  // migrace starého 'progress' → samostatné raid sloupce
   const expanded=[]; colOrder.forEach(k=>{ if(k==='progress'){ zKeys.forEach(z=>expanded.push(z)); } else expanded.push(k); });
   colOrder=expanded;
-  // jen platné klíče + dedupe
+  // první spuštění → výchozí sada (vše); jinak respektuj uživatelův výběr
+  if(colOrder.length===0){ colOrder=['name',...zKeys,'h','m','note']; }
+  // dedupe + jen platné klíče
   const seen=new Set();
-  colOrder=colOrder.filter(k=>{ if(seen.has(k))return false; seen.add(k); return builtins.includes(k)||validCustom.has(k)||(String(k).indexOf('z:')===0&&validZ.has(k)); });
-  builtins.forEach(b=>{ if(!colOrder.includes(b)) colOrder.push(b); });
-  zKeys.forEach(k=>{ if(!colOrder.includes(k)){ const ni=colOrder.indexOf('name'); colOrder.splice(ni>=0?ni+1:colOrder.length,0,k); } });
+  colOrder=colOrder.filter(k=>{ if(seen.has(k))return false; seen.add(k); return k==='name'||optional.includes(k)||validCustom.has(k)||(String(k).indexOf('z:')===0&&validZ.has(k)); });
+  if(!colOrder.includes('name')) colOrder.unshift('name');
+  // nové raidy z WCL auto-přidat, pokud je uživatel ručně neodebral
+  zKeys.forEach(k=>{ if(!colOrder.includes(k) && !(removedCols&&removedCols[k])){ const ni=colOrder.indexOf('name'); colOrder.splice(ni>=0?ni+1:colOrder.length,0,k); } });
   customCols.forEach(c=>{ if(!colOrder.includes(c.id)) colOrder.push(c.id); });
 }
 function dragA(key){ return editMode?` draggable="true" ondragstart="colDragStart(event,'${key}')" ondragover="event.preventDefault()" ondrop="colDrop(event,'${key}')"`:''; }
@@ -592,9 +601,12 @@ function headFor(key,ctx){
     }
     return `<th class="coldrag" ${_thW(key)}${dragA(key)} title="Progress v ${esc(z.name)} (součet přes alty)">${_dh()}${esc(label)}${_rzH(key)}</th>`;
   }
-  if(key==='h') return `<th class="coldrag" ${_thW('h')}${dragA('h')} ${so('h')} title="Kolik raidů odehrál s námi (Heroic)">${_dh()}S námi H ${arrow('h')}${_rzH('h')}</th>`;
-  if(key==='m') return `<th class="coldrag" ${_thW('m')}${dragA('m')} ${so('m')} title="Kolik raidů odehrál s námi (Mythic)">${_dh()}S námi M ${arrow('m')}${_rzH('m')}</th>`;
-  if(key==='note') return `<th class="coldrag" ${_thW('note')}${dragA('note')}>${_dh()}Poznámka${_rzH('note')}</th>`;
+  if(key==='h'||key==='m'||key==='note'){
+    if(editMode) return `<th class="ccol cedit coldrag" ${_thW(key)} draggable="true" ondragstart="colDragStart(event,'${key}')" ondragover="event.preventDefault()" ondrop="colDrop(event,'${key}')">${_rzH(key)}<div class="cedit-top"><span class="cdrag" title="Pořadí">⠿</span><button class="cdel" title="Odebrat sloupec" onclick="delPredef('${key}')">✕</button></div><input class="cname" value="${esc(_builtinLabel(key))}" onchange="renameBuiltin('${key}',this.value)"></th>`;
+    const tip=key==='h'?'Kolik raidů odehrál s námi (Heroic)':key==='m'?'Kolik raidů odehrál s námi (Mythic)':'';
+    const srt=(key==='note')?'':`${so(key)} `;
+    return `<th class="coldrag" ${_thW(key)}${dragA(key)} ${srt}title="${tip}">${_dh()}${esc(_builtinLabel(key))} ${key!=='note'?arrow(key):''}${_rzH(key)}</th>`;
+  }
   const col=customCols.find(c=>c.id===key); if(col) return colHead(col);
   return '';
 }
@@ -622,7 +634,7 @@ function delCol(id){ if(!confirm('Smazat sloupec i jeho data?'))return; customCo
 function renameCol(id,v){ const c=customCols.find(x=>x.id===id); if(c){ c.name=(v||'').trim()||'Sloupec'; save(); } }
 function setColType(id,t){ const c=customCols.find(x=>x.id===id); if(c){ c.type=t; if(t==='select'&&!Array.isArray(c.options))c.options=[]; save(); render(); } }
 function setColOptions(id,v){ const c=customCols.find(x=>x.id===id); if(c){ c.options=String(v||'').split(',').map(s=>s.trim()).filter(Boolean); save(); render(); } }
-function _colLabel(key){ if(key==='name')return 'Hráč'; if(String(key).indexOf('z:')===0){ const zid=String(key).slice(2); const z=progZones().find(x=>String(x.id)===zid); return _zoneLabel(key,z||{id:zid,name:zid}); } if(key==='h')return 'S námi H'; if(key==='m')return 'S námi M'; if(key==='note')return 'Poznámka'; const c=customCols.find(x=>x.id===key); return c?(c.name||'Sloupec'):key; }
+function _colLabel(key){ if(key==='name')return 'Hráč'; if(String(key).indexOf('z:')===0){ const zid=String(key).slice(2); const z=progZones().find(x=>String(x.id)===zid); return _zoneLabel(key,z||{id:zid,name:zid}); } if(key==='h'||key==='m'||key==='note')return _builtinLabel(key); const c=customCols.find(x=>x.id===key); return c?(c.name||'Sloupec'):key; }
 function toggleColHidden(key){ if(hiddenCols.includes(key)) hiddenCols=hiddenCols.filter(k=>k!==key); else hiddenCols.push(key); save(); render(); }
 let _dragCol=null;
 function colDragStart(e,key){ _dragCol=key; if(e.dataTransfer)e.dataTransfer.effectAllowed='move'; }
@@ -639,9 +651,11 @@ function renderEditBar(){
   const rankRows=ranks.map(r=>`<div class="eb-rank"><input class="eb-rankname" value="${esc(r)}" onchange="renameRank('${q(r)}',this.value)"><input type="color" value="${_rankColor(r)||'#5b6070'}" onchange="setRankColor('${q(r)}',this.value)" title="Barva štítku ranku" style="width:30px;height:26px;padding:0;border:1px solid var(--border2);border-radius:6px;background:none;cursor:pointer;flex:0 0 auto"><label class="eb-hidechk"><input type="checkbox" ${hiddenDefault.includes(r)?'checked':''} onchange="toggleRankDefaultHidden('${q(r)}')"> skrýt</label><button class="iconbtn del" title="Smazat rank" onclick="delRank('${q(r)}')">✕</button></div>`).join('');
   _ensureColOrder();
   const visList=colOrder.filter(k=>k!=='name').map(k=>`<label class="eb-hidechk" style="display:block;margin:3px 0"><input type="checkbox" ${!hiddenCols.includes(k)?'checked':''} onchange="toggleColHidden('${k}')"> ${esc(_colLabel(k))}</label>`).join('');
+  const _avail=[]; ['h','m','note'].forEach(k=>{ if(!colOrder.includes(k)) _avail.push({key:k,label:_builtinLabel(k)}); }); progZones().forEach(z=>{ const k='z:'+z.id; if(!colOrder.includes(k)) _avail.push({key:k,label:_zoneLabel(k,z)}); });
+  const predefBtns=_avail.length?('<div class="eb-hint" style="margin-top:8px;margin-bottom:3px">Přidat předdefinovaný (WCL):</div>'+_avail.map(p=>`<button class="btn btn-ghost" style="margin:2px 4px 2px 0;font-size:11px" onclick="addPredef('${p.key}')">+ ${esc(p.label)}</button>`).join('')):'';
   el.innerHTML=`<div class="eb-grid">
     <div class="eb-sec"><div class="eb-title">Ranky — přejmenování / výchozí skrytí</div>${rankRows}<button class="btn btn-ghost" style="margin-top:6px" onclick="addRank()">+ Rank</button></div>
-    <div class="eb-sec"><div class="eb-title">Sloupce — zobrazit / skrýt</div>${visList}<div class="eb-hint" style="margin-top:6px">Vlastní sloupec: přidej tlačítkem, uprav v hlavičce (název, typ), pořadí i šířku tažením hlavičky.</div><button class="btn btn-accent" onclick="addCol()">+ Přidat sloupec</button></div>
+    <div class="eb-sec"><div class="eb-title">Sloupce — zobrazit / skrýt</div>${visList}${predefBtns}<div class="eb-hint" style="margin-top:8px">Vlastní sloupec: přidej tlačítkem, uprav v hlavičce (název, typ), pořadí i šířku tažením hlavičky.</div><button class="btn btn-accent" onclick="addCol()">+ Přidat sloupec</button></div>
     <div class="eb-sec"><div class="eb-title">Vzhled</div><button class="btn btn-ghost" id="themeBtn" onclick="toggleTheme()">${themeMode==='glass'?'🪟 Glass':'🗔 Classic'}</button><div style="margin-top:8px"><div class="eb-hint" style="margin-bottom:4px">Rozložení</div><select class="ctype" style="width:100%" onchange="setLayout(this.value)"><option value="side" ${layoutMode==='side'?'selected':''}>Roster vedle složení</option><option value="top" ${layoutMode==='top'?'selected':''}>Složení (2×2) nahoře, roster pod</option></select></div><div style="margin-top:8px"><label class="eb-hidechk" style="display:flex;gap:6px;align-items:center">Max postav v tabulce <input type="number" min="1" max="50" value="${compMaxRows}" class="mini-num" onchange="setCompRows(this.value)" style="width:54px"></label></div></div>
   </div>`;
 }
@@ -697,7 +711,7 @@ async function load(){
   // seznam ranků (meta klíč — guide ho nepřepisuje)
   try{
     const rm=await fetch(API_BASE+'/api/roster/'+TRK_KEY,{cache:'no-cache'});
-    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.colOrder))colOrder=jm.colOrder;if(Array.isArray(jm.hiddenCols))hiddenCols=jm.hiddenCols;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;if(jm.rankColors&&typeof jm.rankColors==='object')rankColors=jm.rankColors;if(jm.colWidths&&typeof jm.colWidths==='object')colWidths=jm.colWidths;if(jm.zoneNames&&typeof jm.zoneNames==='object')zoneNames=jm.zoneNames;if(+jm.compMaxRows>0)compMaxRows=+jm.compMaxRows;if(jm.theme)themeMode=jm.theme;if(jm.layout)layoutMode=jm.layout;}
+    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.colOrder))colOrder=jm.colOrder;if(Array.isArray(jm.hiddenCols))hiddenCols=jm.hiddenCols;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;if(jm.rankColors&&typeof jm.rankColors==='object')rankColors=jm.rankColors;if(jm.colWidths&&typeof jm.colWidths==='object')colWidths=jm.colWidths;if(jm.zoneNames&&typeof jm.zoneNames==='object')zoneNames=jm.zoneNames;if(jm.builtinNames&&typeof jm.builtinNames==='object')builtinNames=jm.builtinNames;if(jm.removedCols&&typeof jm.removedCols==='object')removedCols=jm.removedCols;if(+jm.compMaxRows>0)compMaxRows=+jm.compMaxRows;if(jm.theme)themeMode=jm.theme;if(jm.layout)layoutMode=jm.layout;}
   }catch(e){
     try{const lr=JSON.parse(localStorage.getItem('trkRanks')||'null');if(Array.isArray(lr)&&lr.length)ranks=lr;}catch(_){}
   }
@@ -786,12 +800,12 @@ async function flushCloud(){
   _saving=true; _updateSaveBtn();
   try{
     await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()})});
-    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,zoneNames,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()})});
+    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,zoneNames,builtinNames,removedCols,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()})});
     _dirty=false;
   }catch(e){ const st=document.getElementById('status'); if(st)st.textContent='⚠ Cloud offline (změny zatím jen lokálně)'; }
   _saving=false; _updateSaveBtn();
 }
-function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,zoneNames,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
+function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,zoneNames,builtinNames,removedCols,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
 window.addEventListener('beforeunload',_flushBeacon);
 
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}render();}
@@ -1518,7 +1532,7 @@ function _sEnsure(s){ if(!Array.isArray(s.columns))s.columns=[]; if(!s.data||typ
 
 function renderSheetTabs(){
   const el=document.getElementById('sheetTabs'); if(!el) return;
-  let h=`<button class="sheet-tab ${currentSheet==='main'?'active':''}" onclick="switchSheet('main')">Main Roster</button>`;
+  let h=`<button class="sheet-tab ${currentSheet==='main'?'active':''}" onclick="switchSheet('main')" oncontextmenu="mainRosterCtx(event);return false;" title="Pravý klik = duplikovat jako list">Main Roster</button>`;
   h+=`<button class="sheet-tab ${currentSheet==='loot'?'active':''}" onclick="switchSheet('loot')">Loot History</button>`;
   sheets.forEach(s=>{
     const del=editMode?` <span class="st-del" onclick="event.stopPropagation();deleteSheet('${s.id}')" title="Smazat list">✕</span>`:'';
@@ -1551,6 +1565,25 @@ function duplicateSheet(id){
 }
 function closeSheetCtx(){ const m=document.getElementById('sheetCtx'); if(m)m.remove(); document.removeEventListener('mousedown',_sheetCtxClose); }
 function _sheetCtxClose(e){ const m=document.getElementById('sheetCtx'); if(m&&!m.contains(e.target)) closeSheetCtx(); }
+function duplicateMainRoster(){
+  const id='sh'+Date.now().toString(36)+Math.floor(Math.random()*1e3).toString(36);
+  const cols=(customCols||[]).map(c=>({id:c.id,name:c.name,type:c.type,options:(c.options||[]).slice()}));
+  if(!cols.length) cols.push({id:uidCol(),name:'Poznámka',type:'text',options:[]});
+  const data={};
+  (people||[]).forEach(p=>{ if(p.custom){ data[p.id]=Object.assign({},p.custom); } });
+  sheets.push({id,name:'Main Roster (kopie)',kind:'players',columns:cols,data,rows:[]});
+  currentSheet=id; try{localStorage.setItem('rosterSheet',id);}catch(e){}
+  saveSheets(); render();
+}
+function mainRosterCtx(e){
+  e.preventDefault(); closeSheetCtx();
+  const m=document.createElement('div'); m.className='ctx-menu'; m.id='sheetCtx'; m.style.minWidth='190px';
+  m.innerHTML=`<button class="ctx-item" onclick="closeSheetCtx();duplicateMainRoster()">⧉ Duplikovat jako list</button>`;
+  document.body.appendChild(m);
+  m.style.left=Math.min(e.clientX,window.innerWidth-(m.offsetWidth+12))+'px';
+  m.style.top=Math.min(e.clientY,Math.max(8,window.innerHeight-m.offsetHeight-10))+'px';
+  setTimeout(()=>document.addEventListener('mousedown',_sheetCtxClose),0);
+}
 function sheetTabCtx(e,id){
   e.preventDefault(); closeSheetCtx();
   const m=document.createElement('div'); m.className='ctx-menu'; m.id='sheetCtx'; m.style.minWidth='160px';
