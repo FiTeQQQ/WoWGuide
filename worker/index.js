@@ -298,6 +298,35 @@ export default {
       }
     }
 
+    /* ----- Raider.IO character (iLvl + spec + M+ score) ----- */
+    if (request.method === 'GET' && pathname === '/api/rio-char') {
+      const region = (url.searchParams.get('region') || 'eu').toLowerCase();
+      const realm = url.searchParams.get('realm') || '';
+      const name = url.searchParams.get('name') || '';
+      if (!realm || !name) return json({ ilvl: 0 });
+      const cacheKey = `riochar:${region}:${realm}:${name}`.toLowerCase();
+      try {
+        const cached = await env.ROSTERS.get(cacheKey, { type: 'json' });
+        if (cached && (Date.now() - (cached._t || 0)) < 60 * 60 * 1000) return json(cached);
+        const rio = new URL('https://raider.io/api/v1/characters/profile');
+        rio.searchParams.set('region', region);
+        rio.searchParams.set('realm', realm);
+        rio.searchParams.set('name', name);
+        rio.searchParams.set('fields', 'gear,mythic_plus_scores_by_season:current');
+        const res = await fetch(rio.toString());
+        if (!res.ok) return json({ ilvl: 0 });
+        const d = await res.json();
+        const gear = d.gear || {};
+        let mplus = 0;
+        try { const s = (d.mythic_plus_scores_by_season || [])[0]; mplus = (s && s.scores && Math.round(s.scores.all)) || 0; } catch (e) {}
+        const rec = { ilvl: gear.item_level_equipped || 0, ilvlTotal: gear.item_level_total || 0, spec: d.active_spec_name || '', mplus, _t: Date.now() };
+        await env.ROSTERS.put(cacheKey, JSON.stringify(rec), { expirationTtl: 60 * 60 * 3 });
+        return json(rec);
+      } catch (e) {
+        return json({ ilvl: 0, error: String(e && e.message || e) });
+      }
+    }
+
     /* ----- Blizzard item ID lookup (name -> id) for loot tooltips ----- */
     if (request.method === 'GET' && pathname === '/api/blizz/itemid') {
       const name = (url.searchParams.get('name') || '').trim();

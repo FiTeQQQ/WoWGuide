@@ -750,8 +750,8 @@ function buildPeopleFromFlat(flat){
   people=Object.keys(groups).map(mid=>{
     const m=byId[mid];
     const members=groups[mid].slice().sort((a,b)=>(a.id===mid?-1:b.id===mid?1:0));
-    const chars=members.map(pl=>({name:pl.name||'',h:+pl.h||0,m:+pl.m||0,cls:(pl.class||'').toLowerCase(),specIcon:pl.specIcon||'',prog:pl.prog||{},server:pl.server||'',_pid:pl.id,_role:pl.role||'',_spec:pl.spec||''}));
-    return {id:mid,_mainId:mid,name:m.name||'',rank:m.rank||'Core',note:m.note||'',cls:(m.class||'').toLowerCase(),spec:m.spec||'',specIcon:m.specIcon||'',prog:m.prog||{},custom:m.custom||{},chars};
+    const chars=members.map(pl=>({name:pl.name||'',h:+pl.h||0,m:+pl.m||0,cls:(pl.class||'').toLowerCase(),specIcon:pl.specIcon||'',prog:pl.prog||{},ilvl:+pl.ilvl||0,server:pl.server||'',_pid:pl.id,_role:pl.role||'',_spec:pl.spec||''}));
+    return {id:mid,_mainId:mid,name:m.name||'',rank:m.rank||'Core',note:m.note||'',cls:(m.class||'').toLowerCase(),spec:m.spec||'',specIcon:m.specIcon||'',prog:m.prog||{},ilvl:+m.ilvl||0,custom:m.custom||{},chars};
   });
 }
 // Vnořený model → plochý hlavní roster (zachová pole guide jako role/spec)
@@ -783,6 +783,7 @@ function buildFlatFromPeople(){
         base.prog=c.prog||{};
         delete base.rank; delete base.note; delete base.custom;
       }
+      base.ilvl=(isMain?(per.ilvl||0):(c.ilvl||0));
       out.push(base);
     });
   });
@@ -995,7 +996,7 @@ async function apAddWcl(){
         for(const z of zones){
           const pr=await wclCharProgress(token,nm,realm,region,z.id);
           if(!_capSpec && pr.spec) _capSpec=pr.spec;
-          const obj={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills};
+          const obj={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills,hParse:pr.hParse,mParse:pr.mParse};
           p.prog[z.id]=obj; if(p.chars&&p.chars[0]){ p.chars[0].prog=p.chars[0].prog||{}; p.chars[0].prog[z.id]=obj; }
         }
         if(_capSpec){ const s=(SPECS[(cls||'').toLowerCase()]||[]).find(x=>x.name===_capSpec); if(s){ p.spec=s.name; p.specIcon=WH_ICON(s.icon); if(p.chars&&p.chars[0]){ p.chars[0].specIcon=p.specIcon; p.chars[0]._spec=s.name; } } }
@@ -1307,7 +1308,8 @@ async function wclCharProgress(token,name,realm,region,zoneID){
   const ch=d&&d.characterData&&d.characterData.character;
   const kills=zr=>{ try{ return ((zr&&zr.rankings)||[]).filter(x=>x&&((x.totalKills||0)>0)).map(x=>x.encounter&&x.encounter.name).filter(Boolean); }catch(e){ return []; } };
   const specOf=zr=>{ try{ const rs=(zr&&zr.rankings)||[]; for(const x of rs){ if(x&&x.spec) return String(x.spec); } }catch(e){} return ''; };
-  return { hKills:kills(ch&&ch.h), mKills:kills(ch&&ch.m), spec:specOf(ch&&ch.m)||specOf(ch&&ch.h) };
+  const parseOf=zr=>{ try{ return (zr&&typeof zr.bestPerformanceAverage==='number')?Math.round(zr.bestPerformanceAverage):null; }catch(e){ return null; } };
+  return { hKills:kills(ch&&ch.h), mKills:kills(ch&&ch.m), spec:specOf(ch&&ch.m)||specOf(ch&&ch.h), hParse:parseOf(ch&&ch.h), mParse:parseOf(ch&&ch.m) };
 }
 // Seznam realmů guildy (hlavní + další z nastavení) — pro hráče bez známého serveru
 function _guildRealms(){
@@ -1336,6 +1338,18 @@ async function _resolveCharRealm(token,name,region,zoneIds,preferred){
 }
 // Vybrané raidy pro progress (z localStorage) — pole {id,name,total}
 function progZones(){ try{ return JSON.parse(localStorage.getItem('wcl_zones')||'[]'); }catch(e){ return []; } }
+async function fetchIlvlsFor(players){
+  const region=((document.getElementById('wclRegion')||{}).value||'EU').toLowerCase();
+  const mainRealm=_slugRealm((document.getElementById('wclRealm')||{}).value||localStorage.getItem('wcl_realm')||'drakthul');
+  for(const p of (players||[])){
+    if(!p||!p.name) continue;
+    const ch=(p.chars&&p.chars[0])||{};
+    const realm=ch.server||mainRealm;
+    try{ const r=await fetch(API_BASE+'/api/rio-char?region='+encodeURIComponent(region)+'&realm='+encodeURIComponent(realm)+'&name='+encodeURIComponent(p.name)); if(r.ok){ const j=await r.json(); if(j&&+j.ilvl>0) p.ilvl=+j.ilvl; } }catch(e){}
+    await new Promise(rs=>setTimeout(rs,80));
+  }
+  save(); render(); flushCloud();
+}
 // ── Sdílená WCL konfigurace (vybrané raidy + čas posledního progressu) ──
 const WCL_CFG_KEY='wcl-cfg';
 let _progUpdatedAt=0;
@@ -1381,20 +1395,21 @@ async function wclLoadProgress(){
       p.prog={};
       for(const ch of (p.chars||[])){ if(!ch.name)continue; try{ const _r=await _resolveCharRealm(token,ch.name,region,zones.map(z=>z.id),ch.server); if(_r) ch.server=_r; }catch(_e){} }
       for(const z of zones){
-        const hSet=new Set(), mSet=new Set();
+        const hSet=new Set(), mSet=new Set(); let hP=0,mP=0;
         for(const ch of (p.chars||[])){
           if(!ch.name) continue;
-          try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; if(pr.spec&&!ch.specIcon){ const _s=(SPECS[(ch.cls||'').toLowerCase()]||[]).find(x=>x.name===pr.spec); if(_s){ ch.specIcon=WH_ICON(_s.icon); ch._spec=_s.name; if(p.chars&&ch===p.chars[0]){ p.specIcon=ch.specIcon; p.spec=_s.name; } } } }
+          try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills,hParse:pr.hParse,mParse:pr.mParse}; if(pr.hParse!=null)hP=Math.max(hP,pr.hParse); if(pr.mParse!=null)mP=Math.max(mP,pr.mParse); if(pr.spec&&!ch.specIcon){ const _s=(SPECS[(ch.cls||'').toLowerCase()]||[]).find(x=>x.name===pr.spec); if(_s){ ch.specIcon=WH_ICON(_s.icon); ch._spec=_s.name; if(p.chars&&ch===p.chars[0]){ p.specIcon=ch.specIcon; p.spec=_s.name; } } } }
           catch(e){ wclLog(`✗ progress ${ch.name} (${z.name}): ${e.message}`,'err'); }
           await new Promise(r=>setTimeout(r,120));
         }
-        p.prog[z.id]={name:z.name,total:z.total,hKills:[...hSet],mKills:[...mSet]};
+        p.prog[z.id]={name:z.name,total:z.total,hKills:[...hSet],mKills:[...mSet],hParse:hP||null,mParse:mP||null};
       }
       wclLog(`✓ progress ${p.name}`);
     }
     save(); render(); _wclCfgTouch(); flushCloud();
     st.textContent='Progress hotov ✓';
     wclLog('Progress načten pro '+targets.length+' hráčů.','ok');
+    try{ wclLog('Načítám iLvl (Raider.IO)…'); await fetchIlvlsFor(targets); wclLog('iLvl hotovo.','ok'); }catch(e){}
   }catch(e){ st.textContent='Chyba'; wclLog('CHYBA progress: '+e.message,'err'); }
   finally{ if(btn) btn.disabled=false; }
 }
@@ -1449,14 +1464,14 @@ async function wclRun(){
           p.prog={};
           for(const ch of (p.chars||[])){ if(!ch.name)continue; try{ const _r=await _resolveCharRealm(token,ch.name,region,zones.map(z=>z.id),ch.server); if(_r) ch.server=_r; }catch(_e){} }
           for(const z of zones){
-            const hSet=new Set(), mSet=new Set();
+            const hSet=new Set(), mSet=new Set(); let hP=0,mP=0;
             for(const ch of (p.chars||[])){
               if(!ch.name) continue;
-              try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills}; if(pr.spec&&!ch.specIcon){ const _s=(SPECS[(ch.cls||'').toLowerCase()]||[]).find(x=>x.name===pr.spec); if(_s){ ch.specIcon=WH_ICON(_s.icon); ch._spec=_s.name; if(p.chars&&ch===p.chars[0]){ p.specIcon=ch.specIcon; p.spec=_s.name; } } } }
+              try{ const pr=await wclCharProgress(token,ch.name,(ch.server||realm),region,z.id); pr.hKills.forEach(n=>hSet.add(n)); pr.mKills.forEach(n=>mSet.add(n)); ch.prog=ch.prog||{}; ch.prog[z.id]={name:z.name,total:z.total,hKills:pr.hKills,mKills:pr.mKills,hParse:pr.hParse,mParse:pr.mParse}; if(pr.hParse!=null)hP=Math.max(hP,pr.hParse); if(pr.mParse!=null)mP=Math.max(mP,pr.mParse); if(pr.spec&&!ch.specIcon){ const _s=(SPECS[(ch.cls||'').toLowerCase()]||[]).find(x=>x.name===pr.spec); if(_s){ ch.specIcon=WH_ICON(_s.icon); ch._spec=_s.name; if(p.chars&&ch===p.chars[0]){ p.specIcon=ch.specIcon; p.spec=_s.name; } } } }
               catch(e){ wclLog(`✗ progress ${ch.name} (${z.name}): ${e.message}`,'err'); }
               await new Promise(r=>setTimeout(r,120));
             }
-            p.prog[z.id]={name:z.name,total:z.total,hKills:[...hSet],mKills:[...mSet]};
+            p.prog[z.id]={name:z.name,total:z.total,hKills:[...hSet],mKills:[...mSet],hParse:hP||null,mParse:mP||null};
           }
           wclLog(`✓ progress ${p.name}`);
         }
@@ -1465,6 +1480,7 @@ async function wclRun(){
     }
     st.textContent='Hotovo ✓';
     wclLog('Hotovo. Postav z logů: '+Object.keys(counts).length,'ok');
+    try{ wclLog('Načítám iLvl (Raider.IO)…'); await fetchIlvlsFor(people); wclLog('iLvl hotovo.','ok'); }catch(e){}
   }catch(e){ st.textContent='Chyba'; wclLog('CHYBA: '+e.message,'err'); }
   btn.disabled=false;
 }
@@ -1629,6 +1645,7 @@ function applySheetVisibility(){
 }
 
 /* ── generická tabulka listu ── */
+function _parseHTML(v){ if(v==null) return '<span style="color:var(--text-dim)">—</span>'; const c=v>=95?'#ff8000':v>=75?'#a335ee':v>=50?'#0070dd':v>=25?'#1eff00':'#9d9d9d'; return `<span style="color:${c};font-weight:800">${v}</span>`; }
 function _sheetBag(s,rowKey){
   if(s.kind==='players'){ s.data=s.data||{}; return (s.data[rowKey]=s.data[rowKey]||{}); }
   const r=(s.rows||[]).find(x=>x.id===rowKey); return r?(r.cells=r.cells||{}):{};
@@ -1636,8 +1653,8 @@ function _sheetBag(s,rowKey){
 function sheetHead(s,col){
   if(!editMode) return `<th>${esc(col.name)}</th>`;
   const to=(t,l)=>`<option value="${t}" ${col.type===t?'selected':''}>${l}</option>`;
-  const wcl=(s.kind==='players')?[['d-h','WCL: Účast H'],['d-m','WCL: Účast M'],['d-hc','WCL: Počet H'],['d-mc','WCL: Počet M'],['d-prog','WCL: Progress (raid)'],['d-rank','WCL: Guild rank'],['d-note','WCL: Poznámka']].map(([t,l])=>to(t,l)).join(''):'';
-  const zoneSel=(col.type==='d-prog')?`<select class="ctype" style="margin-top:3px" onchange="setSheetColZone('${col.id}',this.value)"><option value="">— raid —</option>${progZones().map(z=>`<option value="${z.id}" ${String(col.zone)===String(z.id)?'selected':''}>${esc(z.name)}</option>`).join('')}</select>`:'';
+  const wcl=(s.kind==='players')?[['d-h','WCL: Účast H'],['d-m','WCL: Účast M'],['d-hc','WCL: Počet H'],['d-mc','WCL: Počet M'],['d-prog','WCL: Progress (raid)'],['d-parse','WCL: Parse % (raid)'],['d-ilvl','WCL: iLvl'],['d-rank','WCL: Guild rank'],['d-note','WCL: Poznámka']].map(([t,l])=>to(t,l)).join(''):'';
+  const zoneSel=(col.type==='d-prog'||col.type==='d-parse')?`<select class="ctype" style="margin-top:3px" onchange="setSheetColZone('${col.id}',this.value)"><option value="">— raid —</option>${progZones().map(z=>`<option value="${z.id}" ${String(col.zone)===String(z.id)?'selected':''}>${esc(z.name)}</option>`).join('')}</select>`:'';
   return `<th class="cedit">
     <div class="cedit-top"><button class="cdel" onclick="delSheetCol('${col.id}')" title="Smazat sloupec">✕</button></div>
     <input class="cname" value="${esc(col.name)}" onchange="renameSheetCol('${col.id}',this.value)">
@@ -1656,6 +1673,8 @@ function sheetCell(s,rowKey,col){
     if(col.type==='d-hc') return `<td style="text-align:center">${t.h||0}</td>`;
     if(col.type==='d-mc') return `<td style="text-align:center">${t.m||0}</td>`;
     if(col.type==='d-prog') return progTd('',(p.prog||{})[col.zone]);
+    if(col.type==='d-parse'){ const pr=(p.prog||{})[col.zone]; const v=pr?(pr.mParse!=null?pr.mParse:pr.hParse):null; return `<td style="text-align:center">${_parseHTML(v)}</td>`; }
+    if(col.type==='d-ilvl') return `<td style="text-align:center">${+p.ilvl>0?('<b>'+Math.round(p.ilvl)+'</b>'):'<span style="color:var(--text-dim)">—</span>'}</td>`;
     if(col.type==='d-rank') return `<td>${rankChip(p.rank)||esc(p.rank||'')}</td>`;
     if(col.type==='d-note') return `<td style="color:var(--text-mid)">${esc(p.note||'')}</td>`;
     return '<td>—</td>';
@@ -1675,7 +1694,7 @@ function pickSheetStatus(rowKey,colId,v){ closeStatusMenu(); setSheetCell(rowKey
 function addSheetCol(){ const s=_curSheet(); if(!s)return; _sEnsure(s); s.columns.push({id:uidCol(),name:'Nový sloupec',type:'text',options:[]}); saveSheets(); render(); }
 function delSheetCol(colId){ const s=_curSheet(); if(!s)return; if(!confirm('Smazat sloupec i jeho data?'))return; s.columns=s.columns.filter(c=>c.id!==colId); Object.values(s.data||{}).forEach(b=>{ if(b) delete b[colId]; }); (s.rows||[]).forEach(r=>{ if(r.cells) delete r.cells[colId]; }); saveSheets(); render(); }
 function renameSheetCol(colId,v){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.name=(v||'').trim()||'Sloupec'; saveSheets(); } }
-function setSheetColType(colId,t){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.type=t; if(t==='select'&&!Array.isArray(c.options))c.options=[]; if(t==='d-prog'&&!c.zone){ const z=progZones()[0]; if(z)c.zone=String(z.id); } saveSheets(); render(); } }
+function setSheetColType(colId,t){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.type=t; if(t==='select'&&!Array.isArray(c.options))c.options=[]; if((t==='d-prog'||t==='d-parse')&&!c.zone){ const z=progZones()[0]; if(z)c.zone=String(z.id); } saveSheets(); render(); } }
 function setSheetColZone(colId,zid){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.zone=zid; saveSheets(); render(); } }
 function setSheetColOptions(colId,v){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.options=String(v||'').split(',').map(x=>x.trim()).filter(Boolean); saveSheets(); render(); } }
 function addSheetRow(){ const s=_curSheet(); if(!s||s.kind!=='free')return; s.rows.push({id:uid(),label:'',cells:{}}); saveSheets(); render(); }
