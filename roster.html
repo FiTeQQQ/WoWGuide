@@ -308,7 +308,6 @@
   <div class="toolbar">
     <button class="btn btn-accent" onclick="openAdd()">+ Přidat hráče</button>
     <button class="btn btn-ghost" onclick="wclToggle()" title="Načíst účast (S námi H/M) a progress (kolik bossů H/M) z WarcraftLogs. Pustíš typicky po raidu.">📊 Načíst z logů</button>
-    <button class="btn btn-ghost" onclick="importRoster()" title="Obnovit roster z cloudu — když ho upravil někdo jiný. Jinak se načítá sám při otevření.">↻ Obnovit</button>
     <button class="btn btn-ghost" id="editBtn" onclick="toggleEdit()" title="Upravit ranky, sloupce a vzhled">✏ Edit</button>
     <button class="btn btn-ghost" id="saveBtn" onclick="flushCloud()" title="Uložit změny do cloudu (jinak se uloží samo po 8 s nebo při zavření)">✓ Uloženo</button>
     <input class="search" id="search" placeholder="Hledat hráče / poznámku…" oninput="render()">
@@ -450,7 +449,10 @@ let customCols=[];          // vlastní sloupce [{id,name,type,options}]
 let colOrder=[];            // pořadí VŠECH sloupců (klíče: name/progress/h/m/note + custom id)
 let hiddenCols=[];          // skryté sloupce (klíče) — sdílené
 let colWidths={};           // šířky sloupců (px), klíč = klíč sloupce — lokální preference
-function _colW(key){ const d={name:180,progress:118,h:100,m:100,note:160}; return (colWidths&&colWidths[key])||d[key]||120; }
+let zoneNames={};           // vlastní názvy progress sloupců (raidů): {zoneId: název} — sdílené
+function _colW(key){ if(String(key).indexOf('z:')===0) return (colWidths&&colWidths[key])||118; const d={name:180,progress:118,h:100,m:100,note:160}; return (colWidths&&colWidths[key])||d[key]||120; }
+function _zoneLabel(key,z){ const zid=String(key).indexOf('z:')===0?String(key).slice(2):(z&&z.id); if(zoneNames&&zoneNames[zid]) return zoneNames[zid]; return (z&&z.name)||String(zid); }
+function renameZone(zid,v){ v=(v||'').trim(); zoneNames=zoneNames||{}; if(v) zoneNames[zid]=v; else delete zoneNames[zid]; save(); flushCloud(); render(); }
 function _thW(key){ return `data-colkey="${key}" style="width:${_colW(key)}px"`; }
 function _rzH(key){ return `<span class="colresize" draggable="false" onmousedown="colResizeStart(event,'${key}')" onclick="event.stopPropagation()" ondragstart="event.preventDefault();return false;"></span>`; }
 let _rz=null;
@@ -552,11 +554,19 @@ function applyLayout(){ const el=document.querySelector('.roster-layout'); if(el
 function setLayout(m){ layoutMode=(m==='top')?'top':'side'; try{localStorage.setItem('rosterLayout',layoutMode);}catch(e){} applyLayout(); save(); flushCloud(); }
 // Sjednocené pořadí všech sloupců (vestavěné + custom)
 function _ensureColOrder(){
-  const builtins=['name','progress','h','m','note'];
-  if(!Array.isArray(colOrder)) colOrder=[];
+  const builtins=['name','h','m','note'];
+  const zKeys=progZones().map(z=>'z:'+z.id);
   const validCustom=new Set(customCols.map(c=>c.id));
-  colOrder=colOrder.filter(k=>builtins.includes(k)||validCustom.has(k));
+  const validZ=new Set(zKeys);
+  if(!Array.isArray(colOrder)) colOrder=[];
+  // migrace: starý jeden sloupec 'progress' → samostatné sloupce na jeho místě
+  const expanded=[]; colOrder.forEach(k=>{ if(k==='progress'){ zKeys.forEach(z=>expanded.push(z)); } else expanded.push(k); });
+  colOrder=expanded;
+  // jen platné klíče + dedupe
+  const seen=new Set();
+  colOrder=colOrder.filter(k=>{ if(seen.has(k))return false; seen.add(k); return builtins.includes(k)||validCustom.has(k)||(String(k).indexOf('z:')===0&&validZ.has(k)); });
   builtins.forEach(b=>{ if(!colOrder.includes(b)) colOrder.push(b); });
+  zKeys.forEach(k=>{ if(!colOrder.includes(k)){ const ni=colOrder.indexOf('name'); colOrder.splice(ni>=0?ni+1:colOrder.length,0,k); } });
   customCols.forEach(c=>{ if(!colOrder.includes(c.id)) colOrder.push(c.id); });
 }
 function dragA(key){ return editMode?` draggable="true" ondragstart="colDragStart(event,'${key}')" ondragover="event.preventDefault()" ondrop="colDrop(event,'${key}')"`:''; }
@@ -565,7 +575,18 @@ function headFor(key,ctx){
   const arrow=ctx.arrow, zonesP=ctx.zonesP;
   const so=k=>editMode?'':`onclick="setSort('${k}')"`;
   if(key==='name') return `<th class="coldrag" ${_thW('name')}${dragA('name')} ${so('name')}>${_dh()}Hráč ${arrow('name')}${_rzH('name')}</th>`;
-  if(key==='progress'){ if(!zonesP.length) return `<th class="coldrag" ${_thW('progress')}${dragA('progress')}>${_dh()}Progress H/M${_rzH('progress')}</th>`; return zonesP.map((z,i)=>`<th class="coldrag" ${_thW('progress')}${dragA('progress')} title="Progress v ${esc(z.name)} (součet přes alty)">${i===0?_dh():''}${esc(_shortRaid(z.name))} ${(+z.total===1)?'M':'H/M'}${_rzH('progress')}</th>`).join(''); }
+  if(String(key).indexOf('z:')===0){
+    const zid=String(key).slice(2);
+    const z=(zonesP||[]).find(x=>String(x.id)===zid)||{id:zid,name:zid,total:0};
+    const label=_zoneLabel(key,z);
+    const diffTag=(+z.total===1)?'M':'H/M';
+    if(editMode){
+      return `<th class="ccol cedit coldrag" ${_thW(key)} draggable="true" ondragstart="colDragStart(event,'${key}')" ondragover="event.preventDefault()" ondrop="colDrop(event,'${key}')">${_rzH(key)}
+        <div class="cedit-top"><span class="cdrag" title="Přetáhni pro pořadí">⠿</span></div>
+        <input class="cname" value="${esc(label)}" title="Přejmenovat sloupec raidu" onchange="renameZone('${zid}',this.value)"></th>`;
+    }
+    return `<th class="coldrag" ${_thW(key)}${dragA(key)} title="Progress v ${esc(z.name)} (součet přes alty)">${_dh()}${esc(_shortRaid(label))} ${diffTag}${_rzH(key)}</th>`;
+  }
   if(key==='h') return `<th class="coldrag" ${_thW('h')}${dragA('h')} ${so('h')} title="Kolik raidů odehrál s námi (Heroic)">${_dh()}S námi H ${arrow('h')}${_rzH('h')}</th>`;
   if(key==='m') return `<th class="coldrag" ${_thW('m')}${dragA('m')} ${so('m')} title="Kolik raidů odehrál s námi (Mythic)">${_dh()}S námi M ${arrow('m')}${_rzH('m')}</th>`;
   if(key==='note') return `<th class="coldrag" ${_thW('note')}${dragA('note')}>${_dh()}Poznámka${_rzH('note')}</th>`;
@@ -575,7 +596,7 @@ function headFor(key,ctx){
 function cellFor(p,key,c){
   const zonesP=c.zonesP, naCore=c.naCore, t=c.t, bh=c.bh, bm=c.bm;
   if(key==='name'){ const clr=CC[(p.cls||'').toLowerCase()]||'var(--text)'; const ico=p.specIcon?`<img class="spec-ic" src="${esc(p.specIcon)}" onerror="this.style.display='none'">`:''; const altN=(p.chars||[]).length-1; return `<td style="white-space:nowrap">${ico}<span class="name" style="color:${clr}">${esc(p.name||'?')}</span>${rankChip(p.rank)}${altN>0?`<span class="altcnt">+${altN} alt</span>`:''}</td>`; }
-  if(key==='progress') return (zonesP.length?zonesP:[{id:'_',name:'',total:0}]).map(z=>progTd(z.name,(p.prog||{})[z.id])).join('');
+  if(String(key).indexOf('z:')===0){ const zid=String(key).slice(2); const z=(zonesP||[]).find(x=>String(x.id)===zid); return progTd(z?z.name:zid,(p.prog||{})[zid]); }
   if(key==='h') return `<td style="text-align:center">${naCore?'<span class="cnt na" title="U Core hráče se účast neřeší">—</span>':`<span class="att ${t.h>0?'yes':'no'}" title="${t.h>0?('S námi Heroic'+(bh?': '+esc(bh):'')):'Nebyl s námi na Heroicu'}">${t.h>0?'✓':'✕'}</span>`}</td>`;
   if(key==='m') return `<td style="text-align:center">${naCore?'<span class="cnt na">—</span>':`<span class="att ${t.m>0?'yes':'no'}" title="${t.m>0?('S námi Mythic'+(bm?': '+esc(bm):'')):'Nebyl s námi na Mythicu'}">${t.m>0?'✓':'✕'}</span>`}</td>`;
   if(key==='note') return `<td><input class="note-in" value="${esc(p.note||'')}" placeholder="…" onchange="setNote('${p.id}',this.value)"></td>`;
@@ -584,7 +605,7 @@ function cellFor(p,key,c){
 }
 function altCellFor(p,c,ci,key,zlist,naCore){
   if(key==='name'){ const icon=c.specIcon?`<img class="spec-ic" src="${esc(c.specIcon)}" onerror="this.style.display='none'">`:''; const cclr=CC[(c.cls||'').toLowerCase()]||'var(--text)'; return `<td><div class="altname">${icon}<span class="name" style="color:${cclr}">${esc(c.name||'?')}</span></div></td>`; }
-  if(key==='progress') return zlist.map(z=>progTd(z.name,(c.prog||{})[z.id])).join('');
+  if(String(key).indexOf('z:')===0){ const zid=String(key).slice(2); return progTd('',(c.prog||{})[zid]); }
   if(key==='h'){ const chh=+c.h||0; return naCore?'<td><span class="cnt na">—</span></td>':`<td style="text-align:center"><span class="att ${chh>0?'yes':'no'}">${chh>0?'✓':'✕'}</span></td>`; }
   if(key==='m'){ const chm=+c.m||0; return naCore?'<td><span class="cnt na">—</span></td>':`<td style="text-align:center"><span class="att ${chm>0?'yes':'no'}">${chm>0?'✓':'✕'}</span></td>`; }
   if(key==='note') return '<td></td>';
@@ -596,7 +617,7 @@ function delCol(id){ if(!confirm('Smazat sloupec i jeho data?'))return; customCo
 function renameCol(id,v){ const c=customCols.find(x=>x.id===id); if(c){ c.name=(v||'').trim()||'Sloupec'; save(); } }
 function setColType(id,t){ const c=customCols.find(x=>x.id===id); if(c){ c.type=t; if(t==='select'&&!Array.isArray(c.options))c.options=[]; save(); render(); } }
 function setColOptions(id,v){ const c=customCols.find(x=>x.id===id); if(c){ c.options=String(v||'').split(',').map(s=>s.trim()).filter(Boolean); save(); render(); } }
-function _colLabel(key){ if(key==='name')return 'Hráč'; if(key==='progress')return 'Progress (raidy)'; if(key==='h')return 'S námi H'; if(key==='m')return 'S námi M'; if(key==='note')return 'Poznámka'; const c=customCols.find(x=>x.id===key); return c?(c.name||'Sloupec'):key; }
+function _colLabel(key){ if(key==='name')return 'Hráč'; if(String(key).indexOf('z:')===0){ const zid=String(key).slice(2); const z=progZones().find(x=>String(x.id)===zid); return _zoneLabel(key,z||{id:zid,name:zid}); } if(key==='h')return 'S námi H'; if(key==='m')return 'S námi M'; if(key==='note')return 'Poznámka'; const c=customCols.find(x=>x.id===key); return c?(c.name||'Sloupec'):key; }
 function toggleColHidden(key){ if(hiddenCols.includes(key)) hiddenCols=hiddenCols.filter(k=>k!==key); else hiddenCols.push(key); save(); render(); }
 let _dragCol=null;
 function colDragStart(e,key){ _dragCol=key; if(e.dataTransfer)e.dataTransfer.effectAllowed='move'; }
@@ -671,7 +692,7 @@ async function load(){
   // seznam ranků (meta klíč — guide ho nepřepisuje)
   try{
     const rm=await fetch(API_BASE+'/api/roster/'+TRK_KEY,{cache:'no-cache'});
-    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.colOrder))colOrder=jm.colOrder;if(Array.isArray(jm.hiddenCols))hiddenCols=jm.hiddenCols;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;if(jm.rankColors&&typeof jm.rankColors==='object')rankColors=jm.rankColors;if(jm.colWidths&&typeof jm.colWidths==='object')colWidths=jm.colWidths;if(+jm.compMaxRows>0)compMaxRows=+jm.compMaxRows;if(jm.theme)themeMode=jm.theme;if(jm.layout)layoutMode=jm.layout;}
+    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.colOrder))colOrder=jm.colOrder;if(Array.isArray(jm.hiddenCols))hiddenCols=jm.hiddenCols;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;if(jm.rankColors&&typeof jm.rankColors==='object')rankColors=jm.rankColors;if(jm.colWidths&&typeof jm.colWidths==='object')colWidths=jm.colWidths;if(jm.zoneNames&&typeof jm.zoneNames==='object')zoneNames=jm.zoneNames;if(+jm.compMaxRows>0)compMaxRows=+jm.compMaxRows;if(jm.theme)themeMode=jm.theme;if(jm.layout)layoutMode=jm.layout;}
   }catch(e){
     try{const lr=JSON.parse(localStorage.getItem('trkRanks')||'null');if(Array.isArray(lr)&&lr.length)ranks=lr;}catch(_){}
   }
@@ -760,12 +781,12 @@ async function flushCloud(){
   _saving=true; _updateSaveBtn();
   try{
     await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()})});
-    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()})});
+    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,zoneNames,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()})});
     _dirty=false;
   }catch(e){ const st=document.getElementById('status'); if(st)st.textContent='⚠ Cloud offline (změny zatím jen lokálně)'; }
   _saving=false; _updateSaveBtn();
 }
-function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
+function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,zoneNames,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
 window.addEventListener('beforeunload',_flushBeacon);
 
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}render();}
@@ -820,7 +841,7 @@ function render(){
   const zonesP=progZones();
   _ensureColOrder();
   const visCols=colOrder.filter(k=>!hiddenCols.includes(k));
-  const colCount=visCols.reduce((a,k)=>a+(k==='progress'?(zonesP.length||1):1),0);
+  const colCount=visCols.length;
   const hctx={arrow,zonesP};
   let html=`<table><thead><tr>
     <th style="width:18px"></th>
