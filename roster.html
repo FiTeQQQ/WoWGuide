@@ -355,6 +355,7 @@
     <div class="wcl-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button class="btn btn-accent" onclick="wclRun()" id="wclRunBtn">↻ Načíst</button>
       <button class="btn btn-ghost" onclick="wclLoadProgress()" id="wclProgBtn" title="Načte jen progress (9/9 H/M) pro všechny hráče z jejich postav — nepotřebuje žádný log">↻ Načíst jen progress</button>
+      <button class="btn btn-ghost" onclick="wclLoadIlvls()" id="wclIlvlBtn" title="Načte jen iLvl z Raider.IO (nedotýká se progressu ani účasti)">↻ Načíst jen iLvl</button>
       <span class="status" id="wclStatus"></span>
     </div>
     <div id="wclUnassigned"></div>
@@ -1338,6 +1339,13 @@ async function _resolveCharRealm(token,name,region,zoneIds,preferred){
 }
 // Vybrané raidy pro progress (z localStorage) — pole {id,name,total}
 function progZones(){ try{ return JSON.parse(localStorage.getItem('wcl_zones')||'[]'); }catch(e){ return []; } }
+async function wclLoadIlvls(){
+  const st=document.getElementById('wclStatus'); const btn=document.getElementById('wclIlvlBtn');
+  if(btn) btn.disabled=true; if(st) st.textContent='Načítám iLvl…'; wclLog('Načítám iLvl (Raider.IO)…');
+  try{ await fetchIlvlsFor(people); if(st) st.textContent='iLvl hotovo ✓'; wclLog('iLvl hotovo.','ok'); }
+  catch(e){ if(st) st.textContent='Chyba'; wclLog('iLvl chyba: '+e.message,'err'); }
+  if(btn) btn.disabled=false;
+}
 async function fetchIlvlsFor(players){
   const region=((document.getElementById('wclRegion')||{}).value||'EU').toLowerCase();
   const mainRealm=_slugRealm((document.getElementById('wclRealm')||{}).value||localStorage.getItem('wcl_realm')||'drakthul');
