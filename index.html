@@ -110,7 +110,10 @@ table.roster tr:hover td{background:rgba(255,255,255,.03)}
 .rr-name{font-size:13px;font-weight:800;color:#fff;margin-bottom:8px}
 .rr-prog{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .rr-bar{flex:1;height:16px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
-.rr-fill{height:100%;border-radius:3px;background-image:linear-gradient(180deg, rgba(255,255,255,.25), rgba(0,0,0,.18)), linear-gradient(90deg, #a335ee 0%, #ff8000 100%)}
+.rr-fill{height:100%;border-radius:3px;background-image:linear-gradient(180deg, rgba(255,255,255,.25), rgba(0,0,0,.18)), var(--prog-grad, linear-gradient(90deg,#a335ee,#ff8000))}
+.gswatch{display:inline-block;width:42px;height:16px;border-radius:3px;cursor:pointer;border:2px solid transparent;vertical-align:middle;margin:0 2px}
+.gswatch:hover{border-color:rgba(255,255,255,.4)}
+.gswatch.on{border-color:#fff}
 .rr-sum{font-size:12px;font-weight:800;color:#ffb15c;min-width:58px;text-align:right}
 .rr-ranks{display:flex;justify-content:space-around;text-align:center;gap:8px;align-items:flex-end}
 .rr-rk .n{font-size:20px;font-weight:800;color:#eef2fb;line-height:1}
@@ -237,6 +240,9 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
   <div class="editbar" id="editBar">
     <span class="eb-label">Vzhled</span>
     <button class="btn btn-ghost" id="themeBtn" onclick="toggleTheme()">🪟 Glass</button>
+    <span class="eb-sep"></span>
+    <span class="eb-label">Progress gradient</span>
+    <span id="progSwatches"></span>
     <span class="eb-sep"></span>
     <span class="eb-label">Obsah</span>
     <button class="btn btn-ghost" onclick="openEditor()">⚙ Upravit raidy</button>
@@ -390,6 +396,26 @@ const GLASS_BG = GH_RAW + 'Images/Roster/Index_Background.jpg';
 let themeMode = 'classic';
 let _cfgLoaded = false;
 
+const PROG_GRADS = [
+  {id:'epic',    label:'Epic → Legendary',    from:'#a335ee', to:'#ff8000'},
+  {id:'blue',    label:'Blue → Legendary',    from:'#2f8fff', to:'#ff8000'},
+  {id:'green',   label:'Green → Legendary',   from:'#37d66a', to:'#ff8000'},
+  {id:'yellow',  label:'Yellow → Legendary',  from:'#ffd23f', to:'#ff8000'},
+  {id:'crimson', label:'Crimson → Legendary', from:'#e0322f', to:'#ff8000'},
+  {id:'teal',    label:'Teal → Legendary',    from:'#1fd1b6', to:'#ff8000'},
+  {id:'pink',    label:'Pink → Legendary',    from:'#ec4899', to:'#ff8000'},
+];
+let _progGrad = 'epic';
+function applyProgGradient(){
+  const g = PROG_GRADS.find(x=>x.id===_progGrad) || PROG_GRADS[0];
+  document.documentElement.style.setProperty('--prog-grad', `linear-gradient(90deg, ${g.from}, ${g.to})`);
+}
+function renderProgSwatches(){
+  const el = document.getElementById('progSwatches'); if(!el) return;
+  el.innerHTML = PROG_GRADS.map(g=>`<span class="gswatch ${_progGrad===g.id?'on':''}" title="${g.label}" onclick="setProgGrad('${g.id}')" style="background:linear-gradient(90deg,${g.from},${g.to})"></span>`).join('');
+}
+function setProgGrad(id){ _progGrad = id; try{ localStorage.setItem('indexProgGrad', id); }catch(e){} applyProgGradient(); renderProgSwatches(); saveCfg(); }
+
 function applyTheme(m){
   themeMode = (m === 'glass') ? 'glass' : 'classic';
   document.body.classList.toggle('glass-on', themeMode === 'glass');
@@ -403,21 +429,25 @@ function toggleTheme(){
   try{ localStorage.setItem('indexTheme', themeMode); }catch(e){}
   saveCfg();
 }
-function toggleEdit(){ document.getElementById('editBar').classList.toggle('open'); }
+function toggleEdit(){ document.getElementById('editBar').classList.toggle('open'); renderProgSwatches(); }
 
 // Načte VŠECHNO indexu (theme + raidy) z jeho vlastního cloud klíče
 async function loadCfg(){
   let pref = 'classic';
   try{ pref = localStorage.getItem('indexTheme') || 'classic'; }catch(e){}
   applyTheme(pref);
+  try{ _progGrad = localStorage.getItem('indexProgGrad') || 'epic'; }catch(e){}
+  applyProgGradient();
   try{
     const r = await fetch(API_BASE + '/api/roster/' + CFG_KEY + '?_=' + Date.now());
     if(r.ok){
       const m = await r.json();
       if(m && m.theme){ applyTheme(m.theme); try{ localStorage.setItem('indexTheme', m.theme); }catch(e){} }
+      if(m && m.progGrad){ _progGrad = m.progGrad; try{ localStorage.setItem('indexProgGrad', m.progGrad); }catch(e){} applyProgGradient(); }
       if(m && Array.isArray(m.raids) && m.raids.length){ _manifest = { raids: m.raids }; }
     }
   }catch(e){}
+  renderProgSwatches();
   _cfgLoaded = true;
   if(_manifest.raids && _manifest.raids.length){ renderRaids(); }
   else { await loadManifestFromGitHub(); }   // první spuštění: vezmi GitHub manifest jako základ
@@ -429,7 +459,7 @@ async function saveCfg(){
   try{
     await fetch(API_BASE + '/api/roster/' + CFG_KEY, {
       method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ theme: themeMode, raids: (_manifest.raids || []), updatedAt: new Date().toISOString() })
+      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, raids: (_manifest.raids || []), updatedAt: new Date().toISOString() })
     });
   }catch(e){}
 }
