@@ -1575,8 +1575,19 @@ function duplicateSheet(id){
 function closeSheetCtx(){ const m=document.getElementById('sheetCtx'); if(m)m.remove(); document.removeEventListener('mousedown',_sheetCtxClose); }
 function _sheetCtxClose(e){ const m=document.getElementById('sheetCtx'); if(m&&!m.contains(e.target)) closeSheetCtx(); }
 function duplicateMainRoster(){
+  _ensureColOrder();
   const id='sh'+Date.now().toString(36)+Math.floor(Math.random()*1e3).toString(36);
-  const cols=(customCols||[]).map(c=>({id:c.id,name:c.name,type:c.type,options:(c.options||[]).slice()}));
+  const cols=[];
+  colOrder.forEach(k=>{
+    if(k==='name') return; // jméno = vždy první sloupec listu
+    if(String(k).indexOf('z:')===0){ const zid=String(k).slice(2); cols.push({id:uidCol(),name:_zoneLabel(k,progZones().find(z=>String(z.id)===zid)),type:'d-prog',zone:zid,options:[]}); return; }
+    if(k==='h'){ cols.push({id:uidCol(),name:_builtinLabel('h'),type:'d-h',options:[]}); return; }
+    if(k==='m'){ cols.push({id:uidCol(),name:_builtinLabel('m'),type:'d-m',options:[]}); return; }
+    if(k==='hc'){ cols.push({id:uidCol(),name:_builtinLabel('hc'),type:'d-hc',options:[]}); return; }
+    if(k==='mc'){ cols.push({id:uidCol(),name:_builtinLabel('mc'),type:'d-mc',options:[]}); return; }
+    if(k==='note'){ cols.push({id:uidCol(),name:'Poznámka',type:'d-note',options:[]}); return; }
+    const cc=customCols.find(c=>c.id===k); if(cc){ cols.push({id:cc.id,name:cc.name,type:cc.type,options:(cc.options||[]).slice()}); }
+  });
   if(!cols.length) cols.push({id:uidCol(),name:'Poznámka',type:'text',options:[]});
   const data={};
   (people||[]).forEach(p=>{ if(p.custom){ data[p.id]=Object.assign({},p.custom); } });
@@ -1625,14 +1636,30 @@ function _sheetBag(s,rowKey){
 function sheetHead(s,col){
   if(!editMode) return `<th>${esc(col.name)}</th>`;
   const to=(t,l)=>`<option value="${t}" ${col.type===t?'selected':''}>${l}</option>`;
+  const wcl=(s.kind==='players')?[['d-h','WCL: Účast H'],['d-m','WCL: Účast M'],['d-hc','WCL: Počet H'],['d-mc','WCL: Počet M'],['d-prog','WCL: Progress (raid)'],['d-rank','WCL: Guild rank'],['d-note','WCL: Poznámka']].map(([t,l])=>to(t,l)).join(''):'';
+  const zoneSel=(col.type==='d-prog')?`<select class="ctype" style="margin-top:3px" onchange="setSheetColZone('${col.id}',this.value)"><option value="">— raid —</option>${progZones().map(z=>`<option value="${z.id}" ${String(col.zone)===String(z.id)?'selected':''}>${esc(z.name)}</option>`).join('')}</select>`:'';
   return `<th class="cedit">
     <div class="cedit-top"><button class="cdel" onclick="delSheetCol('${col.id}')" title="Smazat sloupec">✕</button></div>
     <input class="cname" value="${esc(col.name)}" onchange="renameSheetCol('${col.id}',this.value)">
-    <select class="ctype" onchange="setSheetColType('${col.id}',this.value)">${to('text','Text')}${to('number','Číslo')}${to('select','Dropdown')}${to('checkbox','Checkbox ✓/☐/?')}${to('status','Stav')}</select>
+    <select class="ctype" onchange="setSheetColType('${col.id}',this.value)"><optgroup label="Vlastní">${to('text','Text')}${to('number','Číslo')}${to('select','Dropdown')}${to('checkbox','Checkbox ✓/☐/?')}${to('status','Stav')}</optgroup>${wcl?`<optgroup label="WCL data">${wcl}</optgroup>`:''}</select>
+    ${zoneSel}
     ${col.type==='select'?`<input class="copts" value="${esc((col.options||[]).join(', '))}" placeholder="volby, čárkou" onchange="setSheetColOptions('${col.id}',this.value)">`:''}
   </th>`;
 }
 function sheetCell(s,rowKey,col){
+  if(String(col.type).indexOf('d-')===0){
+    if(s.kind!=='players') return '<td style="text-align:center;color:var(--text-dim)">—</td>';
+    const p=(people||[]).find(x=>x.id===rowKey); if(!p) return '<td>—</td>';
+    const t=totals(p);
+    if(col.type==='d-h') return `<td style="text-align:center"><span class="att ${t.h>0?'yes':'no'}">${t.h>0?'✓':'✕'}</span></td>`;
+    if(col.type==='d-m') return `<td style="text-align:center"><span class="att ${t.m>0?'yes':'no'}">${t.m>0?'✓':'✕'}</span></td>`;
+    if(col.type==='d-hc') return `<td style="text-align:center">${t.h||0}</td>`;
+    if(col.type==='d-mc') return `<td style="text-align:center">${t.m||0}</td>`;
+    if(col.type==='d-prog') return progTd('',(p.prog||{})[col.zone]);
+    if(col.type==='d-rank') return `<td>${rankChip(p.rank)||esc(p.rank||'')}</td>`;
+    if(col.type==='d-note') return `<td style="color:var(--text-mid)">${esc(p.note||'')}</td>`;
+    return '<td>—</td>';
+  }
   const bag=_sheetBag(s,rowKey); const v=bag[col.id];
   if(col.type==='checkbox'){ const yes=(v===true||v==='true');const no=(v==='no');const qm=(v==='?');const icon=yes?'✓':(no?'✕':(qm?'?':''));const color=yes?'#4ade80':(no?'#f87171':(qm?'#facc15':''));const ttl=yes?'Ano':(no?'Ne':(qm?'Možná':'—'));return `<td style="text-align:center"><button class="chkbox" style="${color?'color:'+color:''}" title="${ttl}" onclick="cycleSheetCheck('${rowKey}','${col.id}')">${icon}</button></td>`; }
   if(col.type==='number') return `<td><input class="mini-num" type="number" value="${(v!=null&&v!=='')?esc(v):''}" onchange="setSheetCell('${rowKey}','${col.id}',this.value)"></td>`;
@@ -1648,7 +1675,8 @@ function pickSheetStatus(rowKey,colId,v){ closeStatusMenu(); setSheetCell(rowKey
 function addSheetCol(){ const s=_curSheet(); if(!s)return; _sEnsure(s); s.columns.push({id:uidCol(),name:'Nový sloupec',type:'text',options:[]}); saveSheets(); render(); }
 function delSheetCol(colId){ const s=_curSheet(); if(!s)return; if(!confirm('Smazat sloupec i jeho data?'))return; s.columns=s.columns.filter(c=>c.id!==colId); Object.values(s.data||{}).forEach(b=>{ if(b) delete b[colId]; }); (s.rows||[]).forEach(r=>{ if(r.cells) delete r.cells[colId]; }); saveSheets(); render(); }
 function renameSheetCol(colId,v){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.name=(v||'').trim()||'Sloupec'; saveSheets(); } }
-function setSheetColType(colId,t){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.type=t; if(t==='select'&&!Array.isArray(c.options))c.options=[]; saveSheets(); render(); } }
+function setSheetColType(colId,t){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.type=t; if(t==='select'&&!Array.isArray(c.options))c.options=[]; if(t==='d-prog'&&!c.zone){ const z=progZones()[0]; if(z)c.zone=String(z.id); } saveSheets(); render(); } }
+function setSheetColZone(colId,zid){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.zone=zid; saveSheets(); render(); } }
 function setSheetColOptions(colId,v){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.options=String(v||'').split(',').map(x=>x.trim()).filter(Boolean); saveSheets(); render(); } }
 function addSheetRow(){ const s=_curSheet(); if(!s||s.kind!=='free')return; s.rows.push({id:uid(),label:'',cells:{}}); saveSheets(); render(); }
 function delSheetRow(rowId){ const s=_curSheet(); if(!s)return; s.rows=(s.rows||[]).filter(r=>r.id!==rowId); saveSheets(); render(); }
@@ -1668,7 +1696,8 @@ function renderSheet(){
     if(!people.length){ html+=`<tr><td colspan="${colSpan}" class="empty">Roster je prázdný — přidej hráče v Main Roster.</td></tr>`; }
     people.forEach(p=>{
       const cc=(typeof CC!=='undefined'&&CC[p.cls])?CC[p.cls]:'var(--text)';
-      html+=`<tr><td><span style="font-weight:700;color:${cc}">${esc(p.name)}</span></td>${cols.map(c=>sheetCell(s,p.id,c)).join('')}${addColHead?'<td></td>':''}</tr>`;
+      const ico=p.specIcon?`<img class="spec-ic" src="${esc(p.specIcon)}" onerror="this.style.display='none'">`:'';
+      html+=`<tr><td style="white-space:nowrap">${ico}<span style="font-weight:700;color:${cc}">${esc(p.name)}</span>${rankChip(p.rank)}</td>${cols.map(c=>sheetCell(s,p.id,c)).join('')}${addColHead?'<td></td>':''}</tr>`;
     });
   } else {
     if(!s.rows.length){ html+=`<tr><td colspan="${colSpan}" class="empty">Žádné řádky.${editMode?' Přidej přes „+ řádek" níž.':''}</td></tr>`; }
