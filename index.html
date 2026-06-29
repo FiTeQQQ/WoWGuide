@@ -110,13 +110,14 @@ table.roster tr:hover td{background:rgba(255,255,255,.03)}
 .rr-name{font-size:13px;font-weight:800;color:#fff;margin-bottom:8px}
 .rr-prog{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .rr-bar{flex:1;height:16px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
-.rr-fill{height:100%;border-radius:3px;background-image:linear-gradient(180deg, rgba(255,255,255,.28), rgba(0,0,0,.18)), linear-gradient(90deg, #6cb8ff 0%, #2f7fd6 55%, #1c4f96 100%)}
-.rr-sum{font-size:12px;font-weight:800;color:#ffd86b;min-width:58px;text-align:right}
-.rr-ranks{display:flex;justify-content:space-around;text-align:center;gap:8px}
-.rr-rk .n{font-size:20px;font-weight:800;color:#5bd66a;line-height:1}
-.rr-rk .n.region{color:#5bd66a}
-.rr-rk .n.realm{color:#f0a44a}
+.rr-fill{height:100%;border-radius:3px;background-image:linear-gradient(180deg, rgba(255,255,255,.25), rgba(0,0,0,.18)), linear-gradient(90deg, #a335ee 0%, #ff8000 100%)}
+.rr-sum{font-size:12px;font-weight:800;color:#ffb15c;min-width:58px;text-align:right}
+.rr-ranks{display:flex;justify-content:space-around;text-align:center;gap:8px;align-items:flex-end}
+.rr-rk .n{font-size:20px;font-weight:800;color:#eef2fb;line-height:1}
+.rr-rk .n.region{color:#eef2fb}
+.rr-rk .n.realm{color:#ff9d3c;font-size:23px}
 .rr-rk .l{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:3px}
+.rr-rk .l.realm{color:#ff9d3c}
 
 /* achievements */
 .ach{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line)}
@@ -628,7 +629,7 @@ function renderRankings(d){
       <div class="rr-ranks">
         <div class="rr-rk"><div class="n">${r.world?'#'+r.world.toLocaleString():'—'}</div><div class="l">World</div></div>
         <div class="rr-rk"><div class="n region">${r.region?'#'+r.region.toLocaleString():'—'}</div><div class="l">Region</div></div>
-        <div class="rr-rk"><div class="n realm">${r.realm?'#'+r.realm.toLocaleString():'—'}</div><div class="l">Realm</div></div>
+        <div class="rr-rk"><div class="n realm">${r.realm?'#'+r.realm.toLocaleString():'—'}</div><div class="l realm">Realm</div></div>
       </div>
     </div>`;
   }).join('');
