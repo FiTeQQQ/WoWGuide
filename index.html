@@ -110,7 +110,7 @@ table.roster tr:hover td{background:rgba(255,255,255,.03)}
 .rr-name{font-size:13px;font-weight:800;color:#fff;margin-bottom:8px}
 .rr-prog{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .rr-bar{flex:1;height:16px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
-.rr-fill{height:100%;border-radius:3px;background-image:linear-gradient(180deg, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 40%, rgba(0,0,0,.45) 100%)}
+.rr-fill{height:100%;border-radius:3px;background-image:linear-gradient(180deg, rgba(255,255,255,.28), rgba(0,0,0,.18)), linear-gradient(90deg, #6cb8ff 0%, #2f7fd6 55%, #1c4f96 100%)}
 .rr-sum{font-size:12px;font-weight:800;color:#ffd86b;min-width:58px;text-align:right}
 .rr-ranks{display:flex;justify-content:space-around;text-align:center;gap:8px}
 .rr-rk .n{font-size:20px;font-weight:800;color:#5bd66a;line-height:1}
@@ -373,7 +373,7 @@ function classIcon(name){ const k = CLASS_ICON_KEY[name]; return k ? `https://wo
 const ROLE_ICON = { tank:'Icons/tank.svg', healer:'Icons/healer.svg', dps:'Icons/dps.svg' };
 function roleIcon(role){ return ROLE_ICON[role] ? (GH_RAW + ROLE_ICON[role]) : ''; }
 const RAID_NAMES = {
-  'tier-mn-1':'Manaforge Omega','sporefall':'Sporefall','the-venomous-abyss':'The Venomous Abyss',
+  'tier-mn-1':'VS / DR / MQD','sporefall':'Sporefall','the-venomous-abyss':'The Venomous Abyss',
   'nerubar-palace':"Nerub-ar Palace",'liberation-of-undermine':'Liberation of Undermine'
 };
 
@@ -622,7 +622,7 @@ function renderRankings(d){
     return `<div class="rank-raid">
       <div class="rr-name">${escH(name)}</div>
       <div class="rr-prog">
-        <div class="rr-bar"><div class="rr-fill" style="width:${pct}%;background-color:${col}"></div></div>
+        <div class="rr-bar"><div class="rr-fill" style="width:${pct}%"></div></div>
         <span class="rr-sum">${escH(p.summary||'')}</span>
       </div>
       <div class="rr-ranks">
