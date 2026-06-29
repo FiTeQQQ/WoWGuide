@@ -307,11 +307,10 @@
 
   <div class="toolbar">
     <button class="btn btn-accent" onclick="openAdd()">+ Přidat hráče</button>
-    <button class="btn btn-ghost" onclick="addRank()">+ Rank</button>
-    <button class="btn btn-ghost" onclick="importRoster()" title="Načíst znovu z hlavního rosteru (sdíleno s guide)">↻ Načíst znovu</button>
-    <button class="btn btn-ghost" onclick="wclToggle()">↻ WCL</button>
+    <button class="btn btn-ghost" onclick="wclToggle()" title="Načíst účast (S námi H/M) a progress (kolik bossů H/M) z WarcraftLogs. Pustíš typicky po raidu.">📊 Načíst z logů</button>
+    <button class="btn btn-ghost" onclick="importRoster()" title="Obnovit roster z cloudu — když ho upravil někdo jiný. Jinak se načítá sám při otevření.">↻ Obnovit</button>
     <button class="btn btn-ghost" id="editBtn" onclick="toggleEdit()" title="Upravit ranky, sloupce a vzhled">✏ Edit</button>
-    <button class="btn btn-ghost" id="saveBtn" onclick="flushCloud()" title="Uložit změny do cloudu (jinak se uloží samo po 20 s nebo při zavření)">✓ Uloženo</button>
+    <button class="btn btn-ghost" id="saveBtn" onclick="flushCloud()" title="Uložit změny do cloudu (jinak se uloží samo po 8 s nebo při zavření)">✓ Uloženo</button>
     <input class="search" id="search" placeholder="Hledat hráče / poznámku…" oninput="render()">
     <span class="status" id="status"></span>
   </div>
