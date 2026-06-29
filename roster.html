@@ -1517,7 +1517,7 @@ function renderSheetTabs(){
   h+=`<button class="sheet-tab ${currentSheet==='loot'?'active':''}" onclick="switchSheet('loot')">Loot History</button>`;
   sheets.forEach(s=>{
     const del=editMode?` <span class="st-del" onclick="event.stopPropagation();deleteSheet('${s.id}')" title="Smazat list">✕</span>`:'';
-    h+=`<button class="sheet-tab ${currentSheet===s.id?'active':''}" onclick="switchSheet('${s.id}')" ondblclick="renameSheet('${s.id}')" title="Dvojklik = přejmenovat">${esc(s.name)}${del}</button>`;
+    h+=`<button class="sheet-tab ${currentSheet===s.id?'active':''}" onclick="switchSheet('${s.id}')" ondblclick="renameSheet('${s.id}')" oncontextmenu="sheetTabCtx(event,'${s.id}');return false;" title="Dvojklik = přejmenovat · pravý klik = menu">${esc(s.name)}${del}</button>`;
   });
   h+=`<button class="sheet-tab st-add" onclick="addSheet()" title="Vytvořit nový list">+ Nový list</button>`;
   el.innerHTML=h;
@@ -1534,6 +1534,29 @@ function addSheet(){
 }
 function renameSheet(id){ const s=_sheet(id); if(!s)return; const v=prompt('Přejmenovat list:',s.name); if(v===null)return; s.name=(v||'').trim()||s.name; saveSheets(); render(); }
 function deleteSheet(id){ const s=_sheet(id); if(!s)return; if(!confirm('Smazat list „'+s.name+'" i jeho data?'))return; sheets=sheets.filter(x=>x.id!==id); if(currentSheet===id)currentSheet='main'; saveSheets(); render(); }
+function duplicateSheet(id){
+  const s=_sheet(id); if(!s) return;
+  const copy=JSON.parse(JSON.stringify(s));
+  copy.id='sh'+Date.now().toString(36)+Math.floor(Math.random()*1e3).toString(36);
+  copy.name=(s.name||'List')+' (kopie)';
+  const i=sheets.findIndex(x=>x.id===id);
+  sheets.splice(i>=0?i+1:sheets.length,0,copy);
+  currentSheet=copy.id; try{localStorage.setItem('rosterSheet',copy.id);}catch(e){}
+  saveSheets(); render();
+}
+function closeSheetCtx(){ const m=document.getElementById('sheetCtx'); if(m)m.remove(); document.removeEventListener('mousedown',_sheetCtxClose); }
+function _sheetCtxClose(e){ const m=document.getElementById('sheetCtx'); if(m&&!m.contains(e.target)) closeSheetCtx(); }
+function sheetTabCtx(e,id){
+  e.preventDefault(); closeSheetCtx();
+  const m=document.createElement('div'); m.className='ctx-menu'; m.id='sheetCtx'; m.style.minWidth='160px';
+  m.innerHTML=`<button class="ctx-item" onclick="closeSheetCtx();duplicateSheet('${id}')">⧉ Duplikovat</button>`+
+    `<button class="ctx-item" onclick="closeSheetCtx();renameSheet('${id}')">✎ Přejmenovat</button>`+
+    `<button class="ctx-item" onclick="closeSheetCtx();deleteSheet('${id}')">✕ Smazat</button>`;
+  document.body.appendChild(m);
+  m.style.left=Math.min(e.clientX,window.innerWidth-(m.offsetWidth+12))+'px';
+  m.style.top=Math.min(e.clientY,Math.max(8,window.innerHeight-m.offsetHeight-10))+'px';
+  setTimeout(()=>document.addEventListener('mousedown',_sheetCtxClose),0);
+}
 
 function applySheetVisibility(){
   const isMain=currentSheet==='main';
