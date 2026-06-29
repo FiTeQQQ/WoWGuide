@@ -110,7 +110,7 @@ table.roster tr:hover td{background:rgba(255,255,255,.03)}
 .rr-name{font-size:13px;font-weight:800;color:#fff;margin-bottom:8px}
 .rr-prog{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .rr-bar{flex:1;height:16px;background:rgba(255,255,255,.06);border-radius:8px;overflow:hidden}
-.rr-fill{height:100%;border-radius:8px}
+.rr-fill{height:100%;border-radius:8px;background-image:linear-gradient(180deg, rgba(255,255,255,.45) 0%, rgba(255,255,255,.08) 45%, rgba(0,0,0,.40) 100%)}
 .rr-sum{font-size:12px;font-weight:800;color:#ffd86b;min-width:58px;text-align:right}
 .rr-ranks{display:flex;justify-content:space-around;text-align:center;gap:8px}
 .rr-rk .n{font-size:20px;font-weight:800;color:#5bd66a;line-height:1}
@@ -442,11 +442,14 @@ async function init(){
 
 async function loadGuild(){
   document.getElementById('heroBg').style.backgroundImage = `url('${HERO_BG}')`;
+  // klientská cache (10 min) — šetří KV operace ve workeru
+  try{ const c=JSON.parse(localStorage.getItem('guildCache')||'null'); if(c&&c.d&&Date.now()-c.t<600000){ _guild=c.d; renderHero(); buildClassFilter(); renderRoster(); renderCharts(); renderAchievements(); return; } }catch(e){}
   try{
-    const r = await fetch(API_BASE + '/api/blizz/guild?_=' + Date.now());
+    const r = await fetch(API_BASE + '/api/blizz/guild');
     const d = await r.json();
     if(!r.ok || d.error) throw new Error(d.error || ('HTTP '+r.status));
     _guild = d;
+    try{ localStorage.setItem('guildCache', JSON.stringify({t:Date.now(),d})); }catch(e){}
     renderHero(); buildClassFilter(); renderRoster(); renderCharts(); renderAchievements();
   }catch(e){
     const msg = `<div class="errbox">Nepodařilo se načíst data z Armory: <code>${escH(e.message)}</code><br><br>
@@ -457,10 +460,12 @@ async function loadGuild(){
 }
 
 async function loadRankings(){
+  try{ const c=JSON.parse(localStorage.getItem('rankCache')||'null'); if(c&&c.d&&Date.now()-c.t<1800000){ renderRankings(c.d); return; } }catch(e){}
   try{
-    const r = await fetch(API_BASE + '/api/rankings?_=' + Date.now());
+    const r = await fetch(API_BASE + '/api/rankings');
     const d = await r.json();
     if(!r.ok || d.error) throw new Error(d.error || ('HTTP '+r.status));
+    try{ localStorage.setItem('rankCache', JSON.stringify({t:Date.now(),d})); }catch(e){}
     renderRankings(d);
   }catch(e){
     document.getElementById('rankingsBody').innerHTML = `<div class="errbox">Progress se nepodařilo načíst: <code>${escH(e.message)}</code></div>`;
@@ -575,7 +580,7 @@ function renderCharts(){
     const w = Math.round(rc[k]/maxR*100);
     return `<div class="rolerow">
       <img class="ricon-img" src="${roleIcon(k)}" alt="${k}">
-      <div class="rbar-wrap"><div class="rbar" style="width:${Math.max(8,w)}%;background:${col}">${rc[k]}</div></div>
+      <div class="rbar-wrap"><div class="rbar" style="width:${Math.max(8,w)}%;background-color:${col}">${rc[k]}</div></div>
     </div>`;
   }).join('');
 }
@@ -617,7 +622,7 @@ function renderRankings(d){
     return `<div class="rank-raid">
       <div class="rr-name">${escH(name)}</div>
       <div class="rr-prog">
-        <div class="rr-bar"><div class="rr-fill" style="width:${pct}%;background:${col}"></div></div>
+        <div class="rr-bar"><div class="rr-fill" style="width:${pct}%;background-color:${col}"></div></div>
         <span class="rr-sum">${escH(p.summary||'')}</span>
       </div>
       <div class="rr-ranks">

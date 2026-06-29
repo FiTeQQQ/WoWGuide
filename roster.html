@@ -685,7 +685,6 @@ async function load(){
   await _wclCfgLoad();
   buildPeopleFromFlat(flat);
   await loadSheets();
-  await loadLoot();
   applyTheme(themeMode); applyLayout();
   st.textContent='';
   render();
@@ -1600,6 +1599,7 @@ let lootView='players';
 let lootFilter={ week:'', player:'', boss:'', guild:'', roll:'' };
 let _lootExpanded={};
 let _lootPage=1;
+let _lootLoaded=false;
 
 async function loadLoot(){
   try{ const r=await fetch(API_BASE+'/api/roster/'+LOOT_KEY,{cache:'no-cache'}); if(r.ok){ const j=await r.json(); if(Array.isArray(j.loot)) lootData=j.loot; } }
@@ -1655,8 +1655,7 @@ function doLootImport(){
       lootData.push(rec); n++;
     });
     lootData.sort((a,b)=>b.ts-a.ts);
-    saveLoot(); toast('Naimportováno '+n+' kusů'); ta.value=''; toggleLootImport(); render();
-    resolveLootItemIDs();
+    saveLoot(); toast('Naimportováno '+n+' kusů (tlačítko 🔍 dohledá tooltipy)'); ta.value=''; toggleLootImport(); render();
   }catch(err){ toast('Chyba JSON: '+err.message); }
 }
 async function resolveLootItemIDs(){
@@ -1702,6 +1701,7 @@ function _lootBars(){
 
 function renderLoot(){
   const wrap=document.getElementById('lootWrap'); if(!wrap) return;
+  if(!_lootLoaded){ wrap.innerHTML='<div class="empty" style="padding:30px">Načítám loot…</div>'; loadLoot().then(()=>{ _lootLoaded=true; renderLoot(); }); return; }
   _lootClsMap={}; (people||[]).forEach(p=>{ if(p.name) _lootClsMap[p.name.toLowerCase()]=(p.cls||'').toLowerCase(); });
   const all=_lootFiltered();
   const sumWeek=all.filter(e=>_lootWeekKey(e.ts)===_LOOT_CUR_WEEK).length;
