@@ -353,9 +353,11 @@
     <div class="wcl-row"><label style="display:block;margin-bottom:4px;font-size:11px;color:var(--text-dim)">Ruční reporty (URL nebo kódy, jeden na řádek) — i personal logy</label>
       <textarea id="wclReports" rows="3" placeholder="https://www.warcraftlogs.com/reports/aBcD1234...&#10;aBcD1234..."></textarea></div>
     <div class="wcl-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <button class="btn btn-accent" onclick="wclRun()" id="wclRunBtn">↻ Načíst</button>
-      <button class="btn btn-ghost" onclick="wclLoadProgress()" id="wclProgBtn" title="Načte jen progress (9/9 H/M) pro všechny hráče z jejich postav — nepotřebuje žádný log">↻ Načíst jen progress</button>
-      <button class="btn btn-ghost" onclick="wclLoadIlvls()" id="wclIlvlBtn" title="Načte jen iLvl z Raider.IO (nedotýká se progressu ani účasti)">↻ Načíst jen iLvl</button>
+      <span style="font-size:11px;color:var(--text-dim)">Aktualizovat:</span>
+      <label class="wcl-chk"><input type="checkbox" id="wclDoAtt" checked> Účast (H/M)</label>
+      <label class="wcl-chk"><input type="checkbox" id="wclDoProg" checked> Progress + Parse %</label>
+      <label class="wcl-chk"><input type="checkbox" id="wclDoIlvl" checked> iLvl + M+ score</label>
+      <button class="btn btn-accent" onclick="wclUpdate()" id="wclUpdateBtn">↻ Aktualizovat</button>
       <span class="status" id="wclStatus"></span>
     </div>
     <div id="wclUnassigned"></div>
@@ -735,6 +737,7 @@ async function load(){
   await loadSheets();
   applyTheme(themeMode); applyLayout();
   try{ const _ww=document.getElementById('wclWeeks'); if(_ww)_ww.value=String(attWeeks||6); }catch(e){}
+  try{ const u=JSON.parse(localStorage.getItem('wcl_upd')||'null'); if(u){ const _a=document.getElementById('wclDoAtt'),_p=document.getElementById('wclDoProg'),_i=document.getElementById('wclDoIlvl'); if(_a)_a.checked=u.a!==false; if(_p)_p.checked=u.p!==false; if(_i)_i.checked=u.i!==false; } }catch(e){}
   st.textContent='';
   render();
   _updateSaveBtn();
@@ -751,8 +754,8 @@ function buildPeopleFromFlat(flat){
   people=Object.keys(groups).map(mid=>{
     const m=byId[mid];
     const members=groups[mid].slice().sort((a,b)=>(a.id===mid?-1:b.id===mid?1:0));
-    const chars=members.map(pl=>({name:pl.name||'',h:+pl.h||0,m:+pl.m||0,cls:(pl.class||'').toLowerCase(),specIcon:pl.specIcon||'',prog:pl.prog||{},ilvl:+pl.ilvl||0,server:pl.server||'',_pid:pl.id,_role:pl.role||'',_spec:pl.spec||''}));
-    return {id:mid,_mainId:mid,name:m.name||'',rank:m.rank||'Core',note:m.note||'',cls:(m.class||'').toLowerCase(),spec:m.spec||'',specIcon:m.specIcon||'',prog:m.prog||{},ilvl:+m.ilvl||0,custom:m.custom||{},chars};
+    const chars=members.map(pl=>({name:pl.name||'',h:+pl.h||0,m:+pl.m||0,cls:(pl.class||'').toLowerCase(),specIcon:pl.specIcon||'',prog:pl.prog||{},ilvl:+pl.ilvl||0,mplus:+pl.mplus||0,server:pl.server||'',_pid:pl.id,_role:pl.role||'',_spec:pl.spec||''}));
+    return {id:mid,_mainId:mid,name:m.name||'',rank:m.rank||'Core',note:m.note||'',cls:(m.class||'').toLowerCase(),spec:m.spec||'',specIcon:m.specIcon||'',prog:m.prog||{},ilvl:+m.ilvl||0,mplus:+m.mplus||0,custom:m.custom||{},chars};
   });
 }
 // Vnořený model → plochý hlavní roster (zachová pole guide jako role/spec)
@@ -785,6 +788,7 @@ function buildFlatFromPeople(){
         delete base.rank; delete base.note; delete base.custom;
       }
       base.ilvl=(isMain?(per.ilvl||0):(c.ilvl||0));
+      base.mplus=(isMain?(per.mplus||0):(c.mplus||0));
       out.push(base);
     });
   });
@@ -1353,7 +1357,7 @@ async function fetchIlvlsFor(players){
     if(!p||!p.name) continue;
     const ch=(p.chars&&p.chars[0])||{};
     const realm=ch.server||mainRealm;
-    try{ const r=await fetch(API_BASE+'/api/rio-char?region='+encodeURIComponent(region)+'&realm='+encodeURIComponent(realm)+'&name='+encodeURIComponent(p.name)); if(r.ok){ const j=await r.json(); if(j&&+j.ilvl>0) p.ilvl=+j.ilvl; } }catch(e){}
+    try{ const r=await fetch(API_BASE+'/api/rio-char?region='+encodeURIComponent(region)+'&realm='+encodeURIComponent(realm)+'&name='+encodeURIComponent(p.name)); if(r.ok){ const j=await r.json(); if(j&&+j.ilvl>0) p.ilvl=+j.ilvl; if(j&&+j.mplus>0) p.mplus=+j.mplus; } }catch(e){}
     await new Promise(rs=>setTimeout(rs,80));
   }
   save(); render(); flushCloud();
@@ -1383,6 +1387,51 @@ function _autoRefreshProgress(){
   wclLoadProgress();
 }
 // Samostatné načtení progressu (9/9 H/M) — bez logů, jen z žebříčků postav. Jen Trial/Member.
+// Účast (H/M) z guild logu — samostatně
+async function wclLoadAttendance(){
+  _wclMeta={}; _wclIcon={}; _wclServer={};
+  const st=document.getElementById('wclStatus');
+  wclLog('Získávám token…'); const token=await wclToken(); wclLog('Token OK.','ok');
+  const sinceTs=Date.now()-(attWeeks||6)*7*24*3600*1000;
+  let codes=parseReportCodes(document.getElementById('wclReports').value);
+  wclLog('Ruční reporty: '+codes.length);
+  if(document.getElementById('wclGuildChk').checked){
+    const g=document.getElementById('wclGuild').value.trim();
+    const rl=document.getElementById('wclRealm').value.trim();
+    const rg=document.getElementById('wclRegion').value.trim();
+    localStorage.setItem('wcl_guild',g);localStorage.setItem('wcl_realm',rl);localStorage.setItem('wcl_region',rg);
+    if(g&&rl){ wclLog('Načítám guild reporty ('+(attWeeks||6)+' týdnů)…'); const gc=await wclGuildReportCodes(token,g,rl,rg,sinceTs); wclLog('Guild reportů: '+gc.length); codes=codes.concat(gc); }
+    else wclLog('Guild jméno/realm chybí — přeskakuji guild.','err');
+  }
+  codes=[...new Set(codes)];
+  if(!codes.length){ wclLog('Žádné reporty k načtení účasti.','err'); return; }
+  const counts={}; let i=0;
+  for(const code of codes){
+    i++; if(st)st.textContent=`Report ${i}/${codes.length}…`;
+    try{ const att=await wclReportAttendance(token,code); att.h.forEach(n=>{ (counts[n]=counts[n]||{h:0,m:0}).h++; }); att.m.forEach(n=>{ (counts[n]=counts[n]||{h:0,m:0}).m++; }); wclLog(`✓ ${code}: H ${att.h.size} · M ${att.m.size}`); }
+    catch(e){ wclLog(`✗ ${code}: ${e.message}`,'err'); }
+    await new Promise(r=>setTimeout(r,120));
+  }
+  applyWclCounts(counts);
+  wclLog('Účast hotová ('+Object.keys(counts).length+' postav).','ok');
+}
+// Hlavní orchestrátor — spustí jen zaškrtnuté kategorie
+async function wclUpdate(){
+  const doAtt=!!(document.getElementById('wclDoAtt')||{}).checked;
+  const doProg=!!(document.getElementById('wclDoProg')||{}).checked;
+  const doIlvl=!!(document.getElementById('wclDoIlvl')||{}).checked;
+  try{ localStorage.setItem('wcl_upd',JSON.stringify({a:doAtt,p:doProg,i:doIlvl})); }catch(e){}
+  if(!doAtt&&!doProg&&!doIlvl){ toast('Zaškrtni aspoň jednu věc k aktualizaci.'); return; }
+  const btn=document.getElementById('wclUpdateBtn'); if(btn) btn.disabled=true;
+  const st=document.getElementById('wclStatus'); const lg=document.getElementById('wclLog'); if(lg) lg.innerHTML='';
+  try{
+    if(doAtt){ wclLog('— Účast —'); await wclLoadAttendance(); }
+    if(doProg){ wclLog('— Progress + Parse —'); await wclLoadProgress(); }
+    if(doIlvl){ wclLog('— iLvl + M+ (Raider.IO) —'); await fetchIlvlsFor(people); wclLog('iLvl + M+ hotovo.','ok'); }
+    if(st) st.textContent='Hotovo ✓';
+  }catch(e){ if(st) st.textContent='Chyba'; wclLog('CHYBA: '+e.message,'err'); }
+  if(btn) btn.disabled=false;
+}
 async function wclLoadProgress(){
   const btn=document.getElementById('wclProgBtn'); if(btn) btn.disabled=true;
   const st=document.getElementById('wclStatus');
@@ -1416,8 +1465,7 @@ async function wclLoadProgress(){
     }
     save(); render(); _wclCfgTouch(); flushCloud();
     st.textContent='Progress hotov ✓';
-    wclLog('Progress načten pro '+targets.length+' hráčů.','ok');
-    try{ wclLog('Načítám iLvl (Raider.IO)…'); await fetchIlvlsFor(targets); wclLog('iLvl hotovo.','ok'); }catch(e){}
+    wclLog('Progress + Parse načten pro '+targets.length+' hráčů.','ok');
   }catch(e){ st.textContent='Chyba'; wclLog('CHYBA progress: '+e.message,'err'); }
   finally{ if(btn) btn.disabled=false; }
 }
@@ -1488,7 +1536,6 @@ async function wclRun(){
     }
     st.textContent='Hotovo ✓';
     wclLog('Hotovo. Postav z logů: '+Object.keys(counts).length,'ok');
-    try{ wclLog('Načítám iLvl (Raider.IO)…'); await fetchIlvlsFor(people); wclLog('iLvl hotovo.','ok'); }catch(e){}
   }catch(e){ st.textContent='Chyba'; wclLog('CHYBA: '+e.message,'err'); }
   btn.disabled=false;
 }
@@ -1661,7 +1708,7 @@ function _sheetBag(s,rowKey){
 function sheetHead(s,col){
   if(!editMode) return `<th>${esc(col.name)}</th>`;
   const to=(t,l)=>`<option value="${t}" ${col.type===t?'selected':''}>${l}</option>`;
-  const wcl=(s.kind==='players')?[['d-h','WCL: Účast H'],['d-m','WCL: Účast M'],['d-hc','WCL: Počet H'],['d-mc','WCL: Počet M'],['d-prog','WCL: Progress (raid)'],['d-parse','WCL: Parse % (raid)'],['d-ilvl','WCL: iLvl'],['d-rank','WCL: Guild rank'],['d-note','WCL: Poznámka']].map(([t,l])=>to(t,l)).join(''):'';
+  const wcl=(s.kind==='players')?[['d-h','WCL: Účast H'],['d-m','WCL: Účast M'],['d-hc','WCL: Počet H'],['d-mc','WCL: Počet M'],['d-prog','WCL: Progress (raid)'],['d-parse','WCL: Parse % (raid)'],['d-ilvl','WCL: iLvl'],['d-mplus','WCL: M+ score'],['d-rank','WCL: Guild rank'],['d-note','WCL: Poznámka']].map(([t,l])=>to(t,l)).join(''):'';
   const zoneSel=(col.type==='d-prog'||col.type==='d-parse')?`<select class="ctype" style="margin-top:3px" onchange="setSheetColZone('${col.id}',this.value)"><option value="">— raid —</option>${progZones().map(z=>`<option value="${z.id}" ${String(col.zone)===String(z.id)?'selected':''}>${esc(z.name)}</option>`).join('')}</select>`:'';
   return `<th class="cedit">
     <div class="cedit-top"><button class="cdel" onclick="delSheetCol('${col.id}')" title="Smazat sloupec">✕</button></div>
@@ -1683,6 +1730,7 @@ function sheetCell(s,rowKey,col){
     if(col.type==='d-prog') return progTd('',(p.prog||{})[col.zone]);
     if(col.type==='d-parse'){ const pr=(p.prog||{})[col.zone]; const v=pr?(pr.mParse!=null?pr.mParse:pr.hParse):null; return `<td style="text-align:center">${_parseHTML(v)}</td>`; }
     if(col.type==='d-ilvl') return `<td style="text-align:center">${+p.ilvl>0?('<b>'+Math.round(p.ilvl)+'</b>'):'<span style="color:var(--text-dim)">—</span>'}</td>`;
+    if(col.type==='d-mplus') return `<td style="text-align:center">${+p.mplus>0?('<b style="color:#ff8000">'+Math.round(p.mplus)+'</b>'):'<span style="color:var(--text-dim)">—</span>'}</td>`;
     if(col.type==='d-rank') return `<td>${rankChip(p.rank)||esc(p.rank||'')}</td>`;
     if(col.type==='d-note') return `<td style="color:var(--text-mid)">${esc(p.note||'')}</td>`;
     return '<td>—</td>';
