@@ -1,2 +1,2 @@
-/admin        /admin.html             200
-/raid/:slug   /raid.html?raid=:slug   200
+# Žádná přesměrování — Cloudflare Pages servíruje .html soubory napřímo.
+# (Pravidlo /admin -> /admin.html dělalo nekonečnou smyčku, proto pryč.)
