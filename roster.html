@@ -34,6 +34,11 @@
   th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);font-weight:700;padding:10px 12px;border-bottom:1px solid var(--border2);cursor:pointer;user-select:none;white-space:nowrap}
   th .arr{opacity:.5;font-size:9px}
   td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle}
+  /* roster tabulka: fixed layout → sloupce jdou zmenšit pod šířku obsahu (obsah se ořízne) */
+  #tableWrap table{table-layout:fixed}
+  #tableWrap th,#tableWrap td{overflow:hidden}
+  #tableWrap td{text-overflow:ellipsis;white-space:nowrap}
+  #tableWrap td .note-in,#tableWrap td input,#tableWrap td select{max-width:100%;box-sizing:border-box}
   tr.flag{background:rgba(220,60,60,.045)}
   tr.flag td:first-child{box-shadow:inset 2px 0 0 0 rgba(239,68,68,.45)}
   tbody tr.prow{cursor:pointer;transition:background .12s}
@@ -468,7 +473,7 @@ function colResizeStart(e,key){
 }
 function colResizeMove(e){
   if(!_rz) return;
-  const w=Math.max(46,Math.round(_rz.startW+(e.clientX-_rz.startX)));
+  const w=Math.max(26,Math.round(_rz.startW+(e.clientX-_rz.startX)));
   colWidths[_rz.key]=w;
   document.querySelectorAll('th[data-colkey="'+_rz.key+'"]').forEach(th=>th.style.width=w+'px');
 }
