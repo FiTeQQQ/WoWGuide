@@ -6148,6 +6148,7 @@ async function loadFromCloud(id, silent){
     applyTheme(_resolveTheme(data.theme));
     saveState(); renderAll(); applyImages(); renderAllCvOverlays();
     updateCloudButtons();
+    if(window.__IS_ADMIN){ setTimeout(function(){ try{ if(typeof editMode!=='undefined' && !editMode && typeof toggleEditMode==='function'){ if(typeof isLocked!=='undefined' && isLocked && typeof setLocked==='function') setLocked(false); toggleEditMode(); } }catch(e){} }, 300); }
     if(!silent) toast('☁️ Roster načten!');
   } catch(e) {
     console.error('Cloud load error',e);

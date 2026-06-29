@@ -799,6 +799,8 @@ function setCloud(si,ri,bi){ const b=_manifest.seasons[si].raids[ri].bosses[bi];
 function downloadManifest(){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(_manifest,null,2)],{type:'application/json'})); a.download='manifest.json';a.click(); }
 
 init();
+/* admin: rovnou otevři edit panel */
+if(window.__IS_ADMIN){ setTimeout(function(){ try{ const eb=document.getElementById('editBar'); if(eb && !eb.classList.contains('open') && typeof toggleEdit==='function') toggleEdit(); }catch(e){} }, 500); }
 </script>
 </body>
 </html>

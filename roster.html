@@ -2003,6 +2003,8 @@ function _lootLog(all){
 
 (function(){ let pref='classic'; try{ pref=localStorage.getItem('rosterTheme')||'classic'; }catch(e){} applyTheme(pref); try{ layoutMode=localStorage.getItem('rosterLayout')||'side'; }catch(e){} try{ const cr=parseInt(localStorage.getItem('compRows'),10); if(cr>0)compMaxRows=cr; }catch(e){} try{ const cw=JSON.parse(localStorage.getItem('colWidths')||'{}'); if(cw&&typeof cw==='object')colWidths=cw; }catch(e){} applyLayout(); })();
 load();
+/* admin: rovnou zapni edit režim */
+if(window.__IS_ADMIN){ setTimeout(function(){ try{ if(typeof editMode!=='undefined' && !editMode && typeof toggleEdit==='function') toggleEdit(); }catch(e){} }, 700); }
 </script>
 </body>
 </html>
