@@ -681,17 +681,24 @@
   body.is-locked .mk-btn,
   body.is-locked #markerBar { display: none !important; }
 
-  /* ══ Canvas Editor ══ */
+  /* ══ Sloučený plovoucí editor toolbar (TEXT + MALOVÁNÍ) ══ */
   #canvasBar {
-    display: none; position: fixed; right: 6px; top: 50%; transform: translateY(-50%);
-    z-index: 50; flex-direction: column; align-items: center; gap: 3px;
+    display: none; position: fixed; top: 64px; left: 50%; transform: translateX(-50%);
+    z-index: 50; flex-direction: column; align-items: stretch; gap: 6px;
     background: rgba(12,13,18,0.97); backdrop-filter: blur(12px);
     border: 1px solid var(--border2); border-radius: 10px;
-    padding: 6px 4px; box-shadow: 0 4px 24px rgba(0,0,0,0.5);
-    width: 44px; max-height: 90vh; overflow-y: auto;
+    padding: 7px 10px; box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    max-width: 96vw; max-height: 90vh; overflow: auto;
   }
   .edit-mode #canvasBar { display: flex; }
   body.is-locked #canvasBar { display: none !important; }
+  .et-top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .et-row { display:flex; align-items:center; flex-wrap:wrap; gap:6px; padding:5px 6px; border-radius:8px; background:rgba(255,255,255,.03); border:1px solid var(--border2); }
+  .et-row.et-draw { background:rgba(79,142,255,.06); border-color:rgba(79,142,255,.22); }
+  .et-rowlbl { font-size:9px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); min-width:62px; opacity:.85; }
+  .et-row.et-draw .et-rowlbl { color:var(--accent); }
+  .et-sublbl { font-size:10px; color:var(--text-dim); margin-left:2px; }
+  .et-vsep { width:1px; align-self:stretch; min-height:22px; background:var(--border2); margin:0 4px; }
   .cv-tool-btn {
     background: rgba(255,255,255,.06); border: 1px solid var(--border2);
     border-radius: 6px; color: var(--text-dim); font-size: 16px;
@@ -876,10 +883,12 @@
   .present-scaler > .slide-img .img-set-btn,
   .present-scaler > .slide-img .img-add-variant-btn,
   .present-scaler > .slide-img .img-dot-bar { display: none !important; }
-  .present-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 54px; height: 88px; border: none; border-radius: 10px; background: rgba(0,0,0,.4); color: #fff; font-size: 30px; cursor: pointer; opacity: .55; transition: opacity .15s, background .15s; z-index: 5; }
-  .present-nav:hover { opacity: 1; background: rgba(0,0,0,.65); }
+  .present-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 54px; height: 88px; border: none; border-radius: 10px; background: rgba(0,0,0,.5); color: #fff; font-size: 30px; cursor: pointer; opacity: .85; transition: opacity .15s, background .15s, right .2s; z-index: 11; }
+  .present-nav:hover { opacity: 1; background: rgba(0,0,0,.75); }
   .present-nav.prev { left: 14px; }
   .present-nav.next { right: 14px; }
+  /* Když jsou poznámky otevřené, posuň šipku „další" vlevo od panelu, ať zůstane viditelná */
+  #presentMode.notes-open .present-nav.next { right: 394px; }
   .present-vardots { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 7px; background: rgba(0,0,0,.5); padding: 6px 10px; border-radius: 20px; z-index: 6; }
   .present-vardot { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #cfd6e6; font-size: 12px; font-weight: 700; cursor: pointer; }
   .present-vardot:hover { border-color: var(--accent); color: #fff; }
@@ -1008,56 +1017,62 @@
 <!-- MAIN -->
 <div class="main">
 
-  <!-- Marker picker bar — sticky at top, only visible in Edit Mode -->
-  <div id="markerBar">
-    <span>Insert marker:</span>
-    <button class="mk-btn" title="Star" onclick="insertMarker('Markers/star.png',    'star')"><img src="Markers/star.png" alt="star"></button>
-    <button class="mk-btn" title="Circle" onclick="insertMarker('Markers/circle.png',  'circle')"><img src="Markers/circle.png" alt="circle"></button>
-    <button class="mk-btn" title="Diamond" onclick="insertMarker('Markers/diamond.png', 'diamond')"><img src="Markers/diamond.png" alt="diamond"></button>
-    <button class="mk-btn" title="Triangle" onclick="insertMarker('Markers/triangle.png','triangle')"><img src="Markers/triangle.png" alt="triangle"></button>
-    <button class="mk-btn" title="Moon" onclick="insertMarker('Markers/moon.png',    'moon')"><img src="Markers/moon.png" alt="moon"></button>
-    <button class="mk-btn" title="Square" onclick="insertMarker('Markers/square.png',  'square')"><img src="Markers/square.png" alt="square"></button>
-    <button class="mk-btn" title="Cross" onclick="insertMarker('Markers/cross.png',   'cross')"><img src="Markers/cross.png" alt="cross"></button>
-    <button class="mk-btn" title="Skull" onclick="insertMarker('Markers/skull.png',   'skull')"><img src="Markers/skull.png" alt="skull"></button>
-    <div style="width:1px;background:var(--border2);align-self:stretch;margin:0 4px"></div>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;height:28px;line-height:1" onclick="openSpellModal(this)" title="Vlož spell do textu">⚡ Spelly</button>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;height:28px;line-height:1" onclick="openSpellManageModal()" title="Spravovat spell databázi">⚙</button>
-    <div style="width:1px;background:var(--border2);align-self:stretch;margin:0 4px"></div>
-    <!-- Global font sizes -->
-    <span style="font-size:10px;color:var(--text-dim)">Nadpisy:</span>
-    <button class="mk-btn" onclick="setGlobalSize('title','11px')" id="tS" title="Malé nadpisy" style="width:auto;padding:0 6px;font-size:10px;font-weight:700">S</button>
-    <button class="mk-btn" onclick="setGlobalSize('title','13px')" id="tM" title="Střední nadpisy" style="width:auto;padding:0 6px;font-size:11px;font-weight:700">M</button>
-    <button class="mk-btn" onclick="setGlobalSize('title','16px')" id="tL" title="Velké nadpisy" style="width: auto; padding: 0px 6px; font-size: 13px; font-weight: 700; background: var(--accent-dim);">L</button>
-    <button class="mk-btn" onclick="setGlobalSize('title','20px')" id="tXL" title="XL nadpisy" style="width:auto;padding:0 6px;font-size:15px;font-weight:700">XL</button>
-    <div style="width:1px;background:var(--border2);align-self:stretch;margin:0 4px"></div>
-    <span style="font-size:10px;color:var(--text-dim)">Obsah:</span>
-    <button class="mk-btn" onclick="setGlobalSize('body','11px')" id="bS" title="Malý text" style="width:auto;padding:0 6px;font-size:10px">S</button>
-    <button class="mk-btn" onclick="setGlobalSize('body','13px')" id="bM" title="Střední text" style="width: auto; padding: 0px 6px; font-size: 11px; background: var(--accent-dim);">M</button>
-    <button class="mk-btn" onclick="setGlobalSize('body','15px')" id="bL" title="Velký text" style="width:auto;padding:0 6px;font-size:13px">L</button>
-    <button class="mk-btn" onclick="setGlobalSize('body','18px')" id="bXL" title="XL text" style="width:auto;padding:0 6px;font-size:15px">XL</button>
-    <div style="width:1px;background:var(--border2);align-self:stretch;margin:0 6px"></div>
-    <button class="btn btn-accent edit-active" style="font-size:11px;padding:4px 12px;height:28px;line-height:1" onclick="toggleEditMode()">✓ Done Editing</button>
-  </div>
+  <!-- prázdné — markerBar sloučen do #canvasBar níže -->
+  <div id="markerBar" style="display:none"></div>
 
-  <!-- Canvas / Drawing toolbar (edit mode only) -->
+  <!-- Sloučený plovoucí editor toolbar (Edit mode) — řádek TEXT + řádek MALOVÁNÍ -->
   <div id="canvasBar">
-    <!-- Drag handle -->
-    <div id="cvBarHandle" title="Přetáhni toolbar" style="cursor:grab;color:var(--text-dim);font-size:10px;padding:1px 0;opacity:.5;user-select:none;width:100%;text-align:center">⠿</div>
-    <div class="cv-sep" style="width:28px;height:1px;margin:1px 0"></div>
-    <button class="cv-tool-btn active" data-tool="select" onclick="setCvTool('select')" title="Výběr (S)">↖</button>
-    <button class="cv-tool-btn" data-tool="rect"   onclick="setCvTool('rect')"   title="Obdélník (R)">▭</button>
-    <button class="cv-tool-btn" data-tool="circle" onclick="setCvTool('circle')" title="Kruh (E)">◯</button>
-    <button class="cv-tool-btn" data-tool="arrow"    onclick="setCvTool('arrow')"    title="Šipka (A)">↗</button>
-    <button class="cv-tool-btn" data-tool="triangle" onclick="setCvTool('triangle')" title="Trojúhelník">▲</button>
-    <button class="cv-tool-btn" data-tool="text"   onclick="setCvTool('text')"   title="Text (T)">T</button>
-    <div class="cv-sep" style="width:28px;height:1px;margin:1px 0"></div>
-    <button class="cv-tool-btn" data-tool="player" onclick="openCvMiniPanel('player')" title="Hráč (P)">👤</button>
-    <button class="cv-tool-btn" data-tool="marker" onclick="openCvMiniPanel('marker')" title="Raid marker">★</button>
-    <button class="cv-tool-btn" data-tool="boss"   onclick="openCvMiniPanel('boss')"   title="Boss & Role">❖</button>
-    <button class="cv-tool-btn" data-tool="spell"  onclick="openCvMiniPanel('spell')"  title="Spelly">⚡</button>
-    <div class="cv-sep" style="width:28px;height:1px;margin:1px 0"></div>
-    <button class="cv-tool-btn" onclick="cvDeleteSelected()" title="Smaž (Del)">🗑</button>
-    <button class="cv-tool-btn" onclick="openBulkUpload()" title="Obrázky na slidy">⬆</button>
+    <div class="et-top">
+      <div id="cvBarHandle" title="Přetáhni toolbar" style="cursor:grab;color:var(--text-dim);font-size:11px;opacity:.6;user-select:none">⠿ Toolbar</div>
+      <button class="btn btn-accent edit-active" style="font-size:11px;padding:4px 12px;height:26px;line-height:1" onclick="toggleEditMode()">✓ Done Editing</button>
+    </div>
+
+    <!-- ŘÁDEK 1: TEXT -->
+    <div class="et-row">
+      <span class="et-rowlbl">Text</span>
+      <button class="mk-btn" title="Star" onclick="insertMarker('Markers/star.png',    'star')"><img src="Markers/star.png" alt="star"></button>
+      <button class="mk-btn" title="Circle" onclick="insertMarker('Markers/circle.png',  'circle')"><img src="Markers/circle.png" alt="circle"></button>
+      <button class="mk-btn" title="Diamond" onclick="insertMarker('Markers/diamond.png', 'diamond')"><img src="Markers/diamond.png" alt="diamond"></button>
+      <button class="mk-btn" title="Triangle" onclick="insertMarker('Markers/triangle.png','triangle')"><img src="Markers/triangle.png" alt="triangle"></button>
+      <button class="mk-btn" title="Moon" onclick="insertMarker('Markers/moon.png',    'moon')"><img src="Markers/moon.png" alt="moon"></button>
+      <button class="mk-btn" title="Square" onclick="insertMarker('Markers/square.png',  'square')"><img src="Markers/square.png" alt="square"></button>
+      <button class="mk-btn" title="Cross" onclick="insertMarker('Markers/cross.png',   'cross')"><img src="Markers/cross.png" alt="cross"></button>
+      <button class="mk-btn" title="Skull" onclick="insertMarker('Markers/skull.png',   'skull')"><img src="Markers/skull.png" alt="skull"></button>
+      <span class="et-vsep"></span>
+      <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;height:28px;line-height:1" onclick="openSpellModal(this)" title="Vlož spell do textu">⚡ Spelly</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;height:28px;line-height:1" onclick="openSpellManageModal()" title="Spravovat spell databázi">⚙</button>
+      <span class="et-vsep"></span>
+      <span class="et-sublbl">Nadpisy:</span>
+      <button class="mk-btn" onclick="setGlobalSize('title','11px')" id="tS" title="Malé nadpisy" style="width:auto;padding:0 6px;font-size:10px;font-weight:700">S</button>
+      <button class="mk-btn" onclick="setGlobalSize('title','13px')" id="tM" title="Střední nadpisy" style="width:auto;padding:0 6px;font-size:11px;font-weight:700">M</button>
+      <button class="mk-btn" onclick="setGlobalSize('title','16px')" id="tL" title="Velké nadpisy" style="width: auto; padding: 0px 6px; font-size: 13px; font-weight: 700; background: var(--accent-dim);">L</button>
+      <button class="mk-btn" onclick="setGlobalSize('title','20px')" id="tXL" title="XL nadpisy" style="width:auto;padding:0 6px;font-size:15px;font-weight:700">XL</button>
+      <span class="et-vsep"></span>
+      <span class="et-sublbl">Obsah:</span>
+      <button class="mk-btn" onclick="setGlobalSize('body','11px')" id="bS" title="Malý text" style="width:auto;padding:0 6px;font-size:10px">S</button>
+      <button class="mk-btn" onclick="setGlobalSize('body','13px')" id="bM" title="Střední text" style="width: auto; padding: 0px 6px; font-size: 11px; background: var(--accent-dim);">M</button>
+      <button class="mk-btn" onclick="setGlobalSize('body','15px')" id="bL" title="Velký text" style="width:auto;padding:0 6px;font-size:13px">L</button>
+      <button class="mk-btn" onclick="setGlobalSize('body','18px')" id="bXL" title="XL text" style="width:auto;padding:0 6px;font-size:15px">XL</button>
+    </div>
+
+    <!-- ŘÁDEK 2: MALOVÁNÍ -->
+    <div class="et-row et-draw">
+      <span class="et-rowlbl">Malování</span>
+      <button class="cv-tool-btn active" data-tool="select" onclick="setCvTool('select')" title="Výběr">↖</button>
+      <button class="cv-tool-btn" data-tool="rect"   onclick="setCvTool('rect')"   title="Obdélník">▭</button>
+      <button class="cv-tool-btn" data-tool="circle" onclick="setCvTool('circle')" title="Kruh">◯</button>
+      <button class="cv-tool-btn" data-tool="arrow"    onclick="setCvTool('arrow')"    title="Šipka">↗</button>
+      <button class="cv-tool-btn" data-tool="triangle" onclick="setCvTool('triangle')" title="Trojúhelník">▲</button>
+      <button class="cv-tool-btn" data-tool="text"   onclick="setCvTool('text')"   title="Text element">T</button>
+      <span class="et-vsep"></span>
+      <button class="cv-tool-btn" data-tool="player" onclick="openCvMiniPanel('player')" title="Hráč">👤</button>
+      <button class="cv-tool-btn" data-tool="marker" onclick="openCvMiniPanel('marker')" title="Raid marker">★</button>
+      <button class="cv-tool-btn" data-tool="boss"   onclick="openCvMiniPanel('boss')"   title="Boss & Role">❖</button>
+      <button class="cv-tool-btn" data-tool="spell"  onclick="openCvMiniPanel('spell')"  title="Spelly">⚡</button>
+      <span class="et-vsep"></span>
+      <button class="cv-tool-btn" onclick="cvDeleteSelected()" title="Smaž">🗑</button>
+      <button class="cv-tool-btn" onclick="openBulkUpload()" title="Obrázky na slidy">⬆</button>
+    </div>
   </div>
 
   <!-- Canvas properties flyout (shown when object selected) -->
@@ -1363,12 +1378,6 @@
     <button class="btn btn-ghost" id="makeCopyBtn" onclick="cloudFork()" title="Vytvoří novou kopii s vlastním linkem">Make Copy</button>
     <button class="btn btn-ghost" id="timelineBtn" onclick="showTimeline()" title="Boss timeline – tabulka &amp; osa">⏱ Timeline</button>
     <button class="btn btn-ghost" id="presentBtn" onclick="presentOpen()" title="Fullscreen prezentace slidů (obrázky + canvas)">▶ Prezentace</button>
-    <div style="width:1px;background:var(--border2);margin:0 2px"></div>
-    <!-- Lock -->
-    <div class="lock-toggle-wrap" id="lockToggle" onclick="toggleShareLock()" title="Zamknout — po uložení nebude možné editovat">
-      <div class="toggle-track"><div class="toggle-thumb"></div></div>
-      <span class="toggle-label" id="lockToggleLabel">🔓</span>
-    </div>
     <div style="width:1px;background:var(--border2);margin:0 2px"></div>
     <!-- Edit + roster export -->
     <button class="btn btn-ghost" id="editBtn" onclick="guideEdit()" title="Edituj texty v průvodci (hlavní guide vyžaduje heslo)">✏ Edit Mode</button>
@@ -2659,6 +2668,11 @@ let assignmentExtras = [
 let showGroups  = true;
 let groupsLabel = 'Execution Sentence Groups';
 let groupsColor = '#F48CBA';
+// Počet group (flex mythic až 25–30 lidí → 4 výchozí, lze 1–6)
+let groupCount  = 4;
+const MAX_GROUPS = 6;
+function groupKeys(){ const k=[]; for(let g=1;g<=groupCount;g++) k.push('exec'+g); return k; }
+function isGroupKey(k){ return /^exec\d+$/.test(k); }
 // ── BENCH (lidé navíc) — přepínatelná sekce ──
 let showBench   = false;
 let benchLabel  = 'Bench';
@@ -2698,7 +2712,7 @@ let _cvFontStroke='#000000';
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 
 function initSlots(){
-  ['exec1','exec2','exec3','exec4'].forEach(k=>{ if(!slots[k]) slots[k]=Array(5).fill(null); });
+  groupKeys().forEach(k=>{ if(!slots[k]) slots[k]=Array(5).fill(null); });
   assignmentExtras.forEach(ex=>{
     if(!slots[ex.id]) slots[ex.id]=Array(ex.size).fill(null);
     else if(slots[ex.id].length!==ex.size){
@@ -2714,7 +2728,8 @@ function initSlots(){
     for(let i=0;i<Math.min(old.length,benchSize);i++) slots.bench[i]=old[i];
   }
   Object.keys(slots).forEach(k=>{
-    if(!['exec1','exec2','exec3','exec4','bench'].includes(k)&&!assignmentExtras.find(e=>e.id===k)) delete slots[k];
+    const keep = isGroupKey(k) ? (parseInt(k.slice(4),10)<=groupCount) : (k==='bench' || !!assignmentExtras.find(e=>e.id===k));
+    if(!keep) delete slots[k];
   });
 }
 
@@ -2787,6 +2802,7 @@ function loadState(){
     if(d.showGroups!==undefined) showGroups=d.showGroups;
     if(d.groupsLabel) groupsLabel=d.groupsLabel;
     if(d.groupsColor) groupsColor=d.groupsColor;
+    if(d.groupCount) groupCount=Math.max(1,Math.min(MAX_GROUPS,d.groupCount));
     if(d.showBench!==undefined) showBench=d.showBench;
     if(d.benchLabel) benchLabel=d.benchLabel;
     if(d.benchColor) benchColor=d.benchColor;
@@ -2837,7 +2853,7 @@ function saveState(){
       const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title');
       _slideBarsSnap[sl.id]={num:num?num.textContent:'',title:ttl?ttl.innerHTML:''};
     });
-    localStorage.setItem(_lsKey(),JSON.stringify({roster,slots,images,assignmentExtras,showGroups,groupsLabel,groupsColor,showBench,benchLabel,benchColor,benchSize,canvasData,variantCanvasData,cvPresets,cvTypeDefaults,slideNotes:_slideNotesSnap,slideBars:_slideBarsSnap,deletedSlides,slidesHTML:serializeSlides(),theme:savedTheme}));
+    localStorage.setItem(_lsKey(),JSON.stringify({roster,slots,images,assignmentExtras,showGroups,groupsLabel,groupsColor,groupCount,showBench,benchLabel,benchColor,benchSize,canvasData,variantCanvasData,cvPresets,cvTypeDefaults,slideNotes:_slideNotesSnap,slideBars:_slideBarsSnap,deletedSlides,slidesHTML:serializeSlides(),theme:savedTheme}));
   }catch(e){ console.warn('saveState localStorage error:',e); }
   syncRosterCloud();
   _autoCloudSync();
@@ -3116,10 +3132,10 @@ function renderRoster(){
     // Assignment filter — check ALL slots
     if(activeAssigns.size>0){
       const allSlots=getAllSlots(p.id);
-      const isInGroup=allSlots.some(s=>['exec1','exec2','exec3','exec4'].includes(s.group));
-      const isUnassigned=!isInGroup;  // Unassigned = NOT in group (but can be in assignments)
+      const isInGroup=allSlots.some(s=>isGroupKey(s.group));
       let matches=false;
-      if(activeAssigns.has('unassigned') && isUnassigned)matches=true;
+      if(activeAssigns.has('ingroup') && isInGroup)matches=true;
+      if((activeAssigns.has('nogroup')||activeAssigns.has('unassigned')) && !isInGroup)matches=true;
       // Check for all assignmentExtras dynamically
       for(const extra of assignmentExtras){
         if(activeAssigns.has(extra.id) && allSlots.some(s=>s.group===extra.id))matches=true;
@@ -3179,11 +3195,15 @@ function rebuildRosterFilters(){
   assignCol.innerHTML='<div style="color:var(--text-mid);margin-bottom:4px;font-weight:600">Assignment</div>';
   const ul=document.createElement('div');
 
-  // Unassigned
-  const ulab=document.createElement('label');ulab.style.cssText='display:block;margin:3px 0';
-  const uchk=document.createElement('input');uchk.type='checkbox';uchk.className='roster-filter-assign';uchk.value='unassigned';uchk.checked=activeAssigns.has('unassigned');uchk.onchange=()=>renderAll();
-  ulab.appendChild(uchk);ulab.appendChild(document.createTextNode(' Unassigned'));
-  ul.appendChild(ulab);
+  // In group / No group
+  const igLab=document.createElement('label');igLab.style.cssText='display:block;margin:3px 0';
+  const igChk=document.createElement('input');igChk.type='checkbox';igChk.className='roster-filter-assign';igChk.value='ingroup';igChk.checked=activeAssigns.has('ingroup');igChk.onchange=()=>renderAll();
+  igLab.appendChild(igChk);igLab.appendChild(document.createTextNode(' In group'));
+  ul.appendChild(igLab);
+  const ngLab=document.createElement('label');ngLab.style.cssText='display:block;margin:3px 0';
+  const ngChk=document.createElement('input');ngChk.type='checkbox';ngChk.className='roster-filter-assign';ngChk.value='nogroup';ngChk.checked=activeAssigns.has('nogroup');ngChk.onchange=()=>renderAll();
+  ngLab.appendChild(ngChk);ngLab.appendChild(document.createTextNode(' No group'));
+  ul.appendChild(ngLab);
 
   // Dynamic assignmentExtras only
   assignmentExtras.forEach(extra=>{
@@ -3348,6 +3368,17 @@ function renderAssignments(){
   gLbl.ondblclick=e=>{if(!isEdit)return;e.stopPropagation();startRenameAssign(gLbl,'groups');};
   gLabelRow.appendChild(gLbl);
   if(isEdit){
+    // Počet group (4 výchozí, flex mythic až 6)
+    const gMinus=document.createElement('button');gMinus.className='asgn-size-btn edit-only';gMinus.textContent='−';gMinus.title='Ubrat group';
+    gMinus.onclick=()=>{
+      if(groupCount<=1)return;
+      (slots['exec'+groupCount]||[]).forEach(pid=>{if(pid)unassignPlayer(pid);}); // uvolni hráče z poslední groupy
+      groupCount--;initSlots();saveState();renderAll();
+    };
+    const gNum=document.createElement('span');gNum.className='asgn-size-num';gNum.textContent=groupCount+'×G';gNum.title='Počet group';
+    const gPlus=document.createElement('button');gPlus.className='asgn-size-btn edit-only';gPlus.textContent='+';gPlus.title='Přidat group (flex mythic, max '+MAX_GROUPS+')';
+    gPlus.onclick=()=>{ if(groupCount>=MAX_GROUPS)return; groupCount++;initSlots();saveState();renderAll(); };
+    gLabelRow.appendChild(gMinus);gLabelRow.appendChild(gNum);gLabelRow.appendChild(gPlus);
     const tpl=document.createElement('button');tpl.className='btn btn-ghost edit-only';
     tpl.style.cssText='font-size:10px;padding:1px 8px;';
     tpl.textContent='▦ Šablony';tpl.title='Uložit / načíst pre-groupy';
@@ -3362,7 +3393,9 @@ function renderAssignments(){
   groupsWrap.appendChild(gLabelRow);
   if(showGroups){
     const grid=document.createElement('div');grid.className='assign-grid';grid.id='exec-groups';
-    for(let g=1;g<=4;g++){
+    const cols=groupCount>4?Math.ceil(groupCount/2):groupCount; // 5→3, 6→3, jinak přesný počet
+    grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+    for(let g=1;g<=groupCount;g++){
       const col=document.createElement('div');col.className='group-card';
       const t=document.createElement('div');t.className='group-title';t.textContent=`Group ${g}`;col.appendChild(t);
       for(let i=0;i<5;i++) col.appendChild(makeSlotRow(i+1,`exec${g}`,i));
@@ -3373,6 +3406,39 @@ function renderAssignments(){
     // Hidden & not edit mode — skip entirely
   }
   panel.appendChild(groupsWrap);
+
+  // ── Bench (lidé navíc) — pevně PRVNÍ kategorie hned pod Groups, jen když zapnuto ──
+  if(showBench){
+    const bwrap=document.createElement('div');bwrap.style.marginTop='14px';
+    const bRow=document.createElement('div');bRow.className='asgn-label-row';bRow.style.marginBottom='6px';
+    const bLbl=document.createElement('div');
+    bLbl.id='assign-label-bench';
+    bLbl.style.cssText=`font-size:11px;font-weight:700;color:${benchColor};cursor:pointer;flex:1;`;
+    bLbl.textContent=benchLabel;
+    bLbl.title='Edit Mode: klik = barva, dblklik = přejmenovat';
+    bLbl.onclick=e=>openAssignColorPicker(bLbl,'bench',e);
+    bLbl.ondblclick=e=>{if(!isEdit)return;e.stopPropagation();startRenameAssign(bLbl,'bench');};
+    bRow.appendChild(bLbl);
+    if(isEdit){
+      const minus=document.createElement('button');minus.className='asgn-size-btn edit-only';minus.textContent='−';minus.title='Ubrat slot';
+      minus.onclick=()=>{if(benchSize<=1)return;benchSize--;initSlots();saveState();renderAll();};
+      const sNum=document.createElement('span');sNum.className='asgn-size-num';sNum.textContent=benchSize;
+      const plus=document.createElement('button');plus.className='asgn-size-btn edit-only';plus.textContent='+';plus.title='Přidat slot';
+      plus.onclick=()=>{if(benchSize>=30)return;benchSize++;initSlots();saveState();renderAll();};
+      const off=document.createElement('button');off.className='asgn-del-btn edit-only';off.textContent='×';off.title='Vypnout Bench';
+      off.onclick=()=>{
+        if(!confirm('Vypnout Bench? Přiřazení v bench se uvolní.')) return;
+        (slots.bench||[]).forEach(pid=>{if(pid)unassignPlayer(pid);});
+        showBench=false;saveState();renderAll();
+      };
+      bRow.appendChild(minus);bRow.appendChild(sNum);bRow.appendChild(plus);bRow.appendChild(off);
+    }
+    bwrap.appendChild(bRow);
+    const bchips=document.createElement('div');bchips.style.cssText='display:flex;flex-wrap:wrap;gap:6px;';
+    for(let i=0;i<benchSize;i++) bchips.appendChild(makeSlotChip('bench',i));
+    bwrap.appendChild(bchips);
+    panel.appendChild(bwrap);
+  }
 
   // ── Dynamic extras ──
   assignmentExtras.forEach((ex,exIdx)=>{
@@ -3414,39 +3480,6 @@ function renderAssignments(){
     panel.appendChild(wrap);
   });
 
-  // ── Bench (lidé navíc) — jen když zapnuto ──
-  if(showBench){
-    const bwrap=document.createElement('div');bwrap.style.marginTop='14px';
-    const bRow=document.createElement('div');bRow.className='asgn-label-row';bRow.style.marginBottom='6px';
-    const bLbl=document.createElement('div');
-    bLbl.id='assign-label-bench';
-    bLbl.style.cssText=`font-size:11px;font-weight:700;color:${benchColor};cursor:pointer;flex:1;`;
-    bLbl.textContent=benchLabel;
-    bLbl.title='Edit Mode: klik = barva, dblklik = přejmenovat';
-    bLbl.onclick=e=>openAssignColorPicker(bLbl,'bench',e);
-    bLbl.ondblclick=e=>{if(!isEdit)return;e.stopPropagation();startRenameAssign(bLbl,'bench');};
-    bRow.appendChild(bLbl);
-    if(isEdit){
-      const minus=document.createElement('button');minus.className='asgn-size-btn edit-only';minus.textContent='−';minus.title='Ubrat slot';
-      minus.onclick=()=>{if(benchSize<=1)return;benchSize--;initSlots();saveState();renderAll();};
-      const sNum=document.createElement('span');sNum.className='asgn-size-num';sNum.textContent=benchSize;
-      const plus=document.createElement('button');plus.className='asgn-size-btn edit-only';plus.textContent='+';plus.title='Přidat slot';
-      plus.onclick=()=>{if(benchSize>=30)return;benchSize++;initSlots();saveState();renderAll();};
-      const off=document.createElement('button');off.className='asgn-del-btn edit-only';off.textContent='×';off.title='Vypnout Bench';
-      off.onclick=()=>{
-        if(!confirm('Vypnout Bench? Přiřazení v bench se uvolní.')) return;
-        (slots.bench||[]).forEach(pid=>{if(pid)unassignPlayer(pid);});
-        showBench=false;saveState();renderAll();
-      };
-      bRow.appendChild(minus);bRow.appendChild(sNum);bRow.appendChild(plus);bRow.appendChild(off);
-    }
-    bwrap.appendChild(bRow);
-    const bchips=document.createElement('div');bchips.style.cssText='display:flex;flex-wrap:wrap;gap:6px;';
-    for(let i=0;i<benchSize;i++) bchips.appendChild(makeSlotChip('bench',i));
-    bwrap.appendChild(bchips);
-    panel.appendChild(bwrap);
-  }
-
   // ── Add new category / Bench toggle (edit mode) ──
   if(isEdit){
     const addRow=document.createElement('div');addRow.style.cssText='display:flex;gap:8px;flex-wrap:wrap;align-items:center;';
@@ -3480,7 +3513,7 @@ function renderBulkAssignBtns(){
   const clearBtn=cont.querySelector('.btn-danger');
   cont.innerHTML='';
   if(showGroups){
-    ['exec1','exec2','exec3','exec4'].forEach((g,i)=>{
+    groupKeys().forEach((g,i)=>{
       const b=document.createElement('button');b.className='btn btn-ghost';b.style.cssText='font-size:10px;padding:2px 7px;';
       b.textContent=`Group ${i+1}`;b.onclick=()=>bulkAssign(g);cont.appendChild(b);
     });
@@ -3512,21 +3545,24 @@ async function saveCurrentGroupsAsTemplate(){
   const name=await promptModal('Nová šablona group','Název šablony','např. Main comp');
   if(!name)return;
   const groups=[];
-  for(let g=1;g<=4;g++){
+  for(let g=1;g<=groupCount;g++){
     groups.push((slots[`exec${g}`]||[]).map(pid=>{ const p=pid?playerById(pid):null; return p?p.name:null; }));
   }
-  groupTemplates.push({id:'tpl_'+uid(),name,groups});
+  groupTemplates.push({id:'tpl_'+uid(),name,groups,groupCount});
   await _saveGroupTemplatesCloud();
   toast('💾 Šablona „'+name+'" uložena.');
 }
 function applyGroupTemplate(id){
   const tpl=groupTemplates.find(t=>t.id===id); if(!tpl)return;
   showGroups=true;
-  // vyčisti všechny 4 groupy
-  for(let g=1;g<=4;g++){ if(slots[`exec${g}`]) slots[`exec${g}`].fill(null); }
+  // nastav počet group dle šablony (zpětně: počet polí v groups)
+  const tplCount=Math.max(1,Math.min(MAX_GROUPS, tpl.groupCount || (tpl.groups?tpl.groups.length:4)));
+  groupCount=tplCount; initSlots();
+  // vyčisti všechny groupy
+  for(let g=1;g<=groupCount;g++){ if(slots[`exec${g}`]) slots[`exec${g}`].fill(null); }
   const byName={}; roster.forEach(p=>{ byName[(p.name||'').toLowerCase()]=p.id; });
   let placed=0, missing=0;
-  for(let g=0;g<4;g++){
+  for(let g=0;g<groupCount;g++){
     const arr=tpl.groups[g]||[];
     for(let i=0;i<arr.length && i<5;i++){
       const nm=arr[i]; if(!nm) continue;
@@ -3709,7 +3745,7 @@ function openAssignPicker(pid,anchorEl,opts={}){
   const ti=document.createElement('div');ti.style.cssText=`font-size:12px;font-weight:700;color:${CC[p.class]||'#9ca3af'};margin-bottom:8px;display:flex;align-items:center;gap:6px;`;
   ti.innerHTML=`<img src="${p.specIcon||CLS_ICON(p.class)}" style="width:16px;height:16px;border-radius:3px" onerror="this.style.display='none'"> ${p.name} <span style="font-size:10px;color:var(--text-dim);font-weight:400">${p.spec||''}</span>`;pk.appendChild(ti);
   const pickerGroups = [];
-  if(showGroups) ['exec1','exec2','exec3','exec4'].forEach((g,i)=>pickerGroups.push({label:`Group ${i+1}`,group:g}));
+  if(showGroups) groupKeys().forEach((g,i)=>pickerGroups.push({label:`Group ${i+1}`,group:g}));
   assignmentExtras.forEach(ex=>pickerGroups.push({label:ex.label,group:ex.id}));
   if(showBench) pickerGroups.push({label:benchLabel,group:'bench'});
   pickerGroups.forEach(({label,group})=>{
@@ -4931,7 +4967,7 @@ function renderAssignRef(el,groupId){
 
   if(groupId==='groups'){
     lbl.textContent='Groups';
-    for(let g=1;g<=4;g++){
+    for(let g=1;g<=groupCount;g++){
       const ref=document.createElement('div');
       ref.appendChild(miniRef(g));el.appendChild(ref);
     }
@@ -5916,16 +5952,14 @@ function cvMiniPlaceSpell(spell){
 }
 
 // ── URL ENCODING ──
-function getSlotOrder(extrasOverride){
+function getSlotOrder(extrasOverride, gcOverride){
   const extras=extrasOverride||assignmentExtras;
-  const order=[
-    ...Array.from({length:5},(_,i)=>`exec1.${i}`),
-    ...Array.from({length:5},(_,i)=>`exec2.${i}`),
-    ...Array.from({length:5},(_,i)=>`exec3.${i}`),
-    ...Array.from({length:5},(_,i)=>`exec4.${i}`),
-  ];
+  const gc=gcOverride||groupCount;
+  const order=[];
+  for(let g=1;g<=gc;g++) for(let i=0;i<5;i++) order.push(`exec${g}.${i}`);
   extras.forEach(ex=>{ for(let i=0;i<ex.size;i++) order.push(`${ex.id}.${i}`); });
-  if(showBench) for(let i=0;i<benchSize;i++) order.push(`bench.${i}`);
+  // bench jen při encode (vlastní stav); při decode je bench součástí předaného manifestu
+  if(showBench && !extrasOverride) for(let i=0;i<benchSize;i++) order.push(`bench.${i}`);
   return order;
 }
 
@@ -5956,7 +5990,7 @@ function encodeShare(locked){
   const manifestArr=assignmentExtras.map(e=>({id:e.id,label:e.label,color:e.color,size:e.size}));
   if(showBench) manifestArr.push({id:'bench',label:benchLabel,color:benchColor,size:benchSize});
   const manifest=JSON.stringify(manifestArr);
-  const payload = (locked?'1':'0') + manifest + '|' + flat.join(',');
+  const payload = (locked?'1':'0') + 'G'+groupCount + manifest + '|' + flat.join(',');
   // LZString → URL-safe compressed string
   return LZString?.compressToEncodedURIComponent
     ? LZString.compressToEncodedURIComponent(payload)
@@ -5970,6 +6004,9 @@ function decodeShare(str){
   if(!raw) return null;
   const locked = raw[0] === '1';
   let rest = raw.slice(1);
+  // Volitelný groupCount prefix 'G<n>' (zpětně kompatibilní: staré linky default 4)
+  let gc = 4;
+  if(rest[0]==='G'){ gc = parseInt(rest[1],10)||4; rest = rest.slice(2); }
   let sharedExtras = null;
   // New format: manifest JSON before '|'
   if(rest.startsWith('[')){
@@ -5977,7 +6014,7 @@ function decodeShare(str){
     if(sep>0){ try{ sharedExtras=JSON.parse(rest.slice(0,sep)); }catch(e){} rest=rest.slice(sep+1); }
   }
   const extrasForDecode = sharedExtras || assignmentExtras;
-  const SLOT_ORDER = getSlotOrder(extrasForDecode);
+  const SLOT_ORDER = getSlotOrder(extrasForDecode, gc);
   const entries = rest.split(',');
   const namedSlots = {};
   SLOT_ORDER.forEach((key,i)=>{
@@ -5991,7 +6028,7 @@ function decodeShare(str){
       namedSlots[g][+idx] = null;
     }
   });
-  return {locked, s: namedSlots, extras: sharedExtras};
+  return {locked, s: namedSlots, extras: sharedExtras, groupCount: gc};
 }
 
 // Legacy base64 fallback
@@ -6222,7 +6259,7 @@ function buildPayload(lock=false){
     const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title');
     slideBars[sl.id]={num:num?num.textContent:'',title:ttl?ttl.innerHTML:''};
   });
-  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, showBench, benchLabel, benchColor, benchSize, canvasData, variantCanvasData, cvTypeDefaults, locked: lock, slideNotes, slideBars, deletedSlides, slidesHTML: serializeSlides(), theme: savedTheme, tlEdits: _tlEdits, tlBosses: _tlBosses, tlBossCats: _tlBossCats, tlHighlightMode: _tlHighlightMode };
+  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, groupCount, showBench, benchLabel, benchColor, benchSize, canvasData, variantCanvasData, cvTypeDefaults, locked: lock, slideNotes, slideBars, deletedSlides, slidesHTML: serializeSlides(), theme: savedTheme, tlEdits: _tlEdits, tlBosses: _tlBosses, tlBossCats: _tlBossCats, tlHighlightMode: _tlHighlightMode };
 }
 
 async function _postRoster(payload){
@@ -6328,6 +6365,7 @@ async function loadFromCloud(id, silent){
     if(data.showGroups!=null) showGroups=data.showGroups;
     if(data.groupsLabel) groupsLabel=data.groupsLabel;
     if(data.groupsColor) groupsColor=data.groupsColor;
+    if(data.groupCount) groupCount=Math.max(1,Math.min(MAX_GROUPS,data.groupCount));
     if(data.showBench!=null) showBench=data.showBench;
     if(data.benchLabel) benchLabel=data.benchLabel;
     if(data.benchColor) benchColor=data.benchColor;
@@ -6377,7 +6415,9 @@ function loadFromURL(){
   try{
     const data=decodeShare(hash.slice(3));
     if(!data?.s)return;
-    if(data.extras){ assignmentExtras=data.extras; initSlots(); }
+    if(data.groupCount) groupCount=Math.max(1,Math.min(MAX_GROUPS,data.groupCount));
+    if(data.extras){ assignmentExtras=data.extras; }
+    initSlots();
     Object.keys(slots).forEach(g=>slots[g].fill(null));
     roster=roster.filter(p=>!p.ghost);
     namesToSlots(data.s);
@@ -6541,11 +6581,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
     if(e.key==='Delete'||e.key==='Backspace'){ if(_cvSelId) cvDeleteSelected(); }
     if(e.ctrlKey && e.key.toLowerCase()==='c'){ if(_cvSelId) cvCopySelected(); }
     if(e.ctrlKey && e.key.toLowerCase()==='v'){ cvPaste(); }
-    if(e.key.toLowerCase()==='s' && !e.ctrlKey){ setCvTool('select'); }
-    if(e.key.toLowerCase()==='r' && !e.ctrlKey){ setCvTool('rect'); }
-    if(e.key.toLowerCase()==='c' && !e.ctrlKey && editMode){ setCvTool('circle'); }
-    if(e.key.toLowerCase()==='a' && !e.ctrlKey && editMode){ setCvTool('arrow'); }
-    if(e.key.toLowerCase()==='t' && !e.ctrlKey && editMode){ setCvTool('text'); }
+    // Klávesové zkratky pro výběr nástrojů toolbaru odstraněny (vybírá se myší).
     if(e.key==='Escape'){ setCvTool('select'); cvDeselect(); }
   });
   updateNav();
@@ -8266,7 +8302,7 @@ function presentRenderStage(){
     stage.appendChild(db);
   }
 }
-function presentToggleNotes(){ document.getElementById('presentNotes')?.classList.toggle('open'); presentRenderStage(); }
+function presentToggleNotes(){ const n=document.getElementById('presentNotes'); const open=n?.classList.toggle('open'); document.getElementById('presentMode')?.classList.toggle('notes-open',!!open); presentRenderStage(); }
 function presentFs(){
   const pm=document.getElementById('presentMode'); if(!pm) return;
   if(!document.fullscreenElement){ pm.requestFullscreen?.().catch(()=>{}); }
@@ -8894,33 +8930,14 @@ function cvMiniPlaceBossCustom(){
 function positionCanvasBar(){
   const bar = document.getElementById('canvasBar');
   if(!bar) return;
-  // Pokud uživatel toolbar ručně přetáhl (má left nastavený), neposouvat
-  if(bar.style.left && bar.style.left !== 'auto') return;
-  // Najdi slide container
-  const slides = document.querySelector('.slides-col, #slidesCol, .slides-wrap, [class*="slide"]');
-  let rightEdge = 0;
-  if(slides){
-    const allSlides = document.querySelectorAll('.slide-wrap, .slide-item, .slide');
-    if(allSlides.length > 0){
-      allSlides.forEach(s => {
-        const r = s.getBoundingClientRect();
-        if(r.right > rightEdge) rightEdge = r.right;
-      });
-    } else {
-      rightEdge = slides.getBoundingClientRect().right;
-    }
-  }
-  if(rightEdge > 0 && rightEdge < window.innerWidth - 50){
-    // Toolbar těsně vpravo od slidů, 8px mezera
-    const newRight = window.innerWidth - rightEdge - 8;
-    bar.style.right = Math.max(6, newRight) + 'px';
-  } else {
-    bar.style.right = '6px';
-  }
-  bar.style.top = '50%';
-  bar.style.transform = 'translateY(-50%)';
-  bar.style.left = 'auto';
+  // Pokud uživatel toolbar ručně přetáhl (dataset.dragged), neposouvat
+  if(bar.dataset.dragged==='1') return;
+  // Výchozí pozice: nahoře na střed (široký dvouřádkový toolbar)
+  bar.style.left = '50%';
+  bar.style.top = '64px';
+  bar.style.right = 'auto';
   bar.style.bottom = 'auto';
+  bar.style.transform = 'translateX(-50%)';
 }
 window.addEventListener('resize', ()=>{ 
   const bar = document.getElementById('canvasBar');
@@ -8935,6 +8952,7 @@ window.addEventListener('resize', ()=>{
   let dragging=false,ox=0,oy=0;
   handle.addEventListener('mousedown',e=>{
     dragging=true; e.preventDefault();
+    bar.dataset.dragged='1'; // přestat auto-pozicovat na střed
     // Čti vizuální pozici PRVNÍ (před odstraněním transform)
     const r=bar.getBoundingClientRect();
     // Teprve pak odstraň transform/right a nastav přesnou pozici
