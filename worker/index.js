@@ -17,8 +17,46 @@
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Edit-Pass',
 };
+
+/* ---------------- Edit lock (soft) ----------------
+ * Zápis do "chráněných" klíčů vyžaduje hlavičku X-Edit-Pass == secret EDIT_PASSWORD.
+ * Chráněné = statická konfigurace + HLAVNÍ guidy (cloud/slug bossů z index-cfg) + spells.
+ * Vlastní sdílené kopie (náhodné / pojmenované přes Share) zůstávají volně zapisovatelné.
+ * Dokud není EDIT_PASSWORD nastaven, je zámek vypnutý (nic se nerozbije). */
+const PROTECTED_STATIC = new Set([
+  'main', 'index-cfg', 'trial-roster', 'roster-sheets', 'loot-archive',
+  'wcl-cfg', 'wcl-creds', 'blizz-specs', 'blizz-ach', 'blizz-token',
+]);
+
+async function guideMainKeys(env) {
+  try {
+    const cfg = await env.ROSTERS.get('index-cfg', { type: 'json' });
+    if (!cfg) return new Set();
+    const out = new Set();
+    const seasons = Array.isArray(cfg.seasons) ? cfg.seasons
+      : (Array.isArray(cfg.raids) ? [{ raids: cfg.raids }] : []);
+    for (const se of seasons)
+      for (const raid of (se.raids || []))
+        for (const b of (raid.bosses || [])) {
+          if (b && b.cloud) out.add(String(b.cloud));
+          if (b && b.slug) out.add(String(b.slug));
+        }
+    return out;
+  } catch (e) { return new Set(); }
+}
+
+async function isProtectedKey(env, id) {
+  if (PROTECTED_STATIC.has(id)) return true;
+  const mk = await guideMainKeys(env);
+  return mk.has(id);
+}
+
+function editAuthOK(request, env) {
+  if (!env.EDIT_PASSWORD) return true;                 // zámek vypnutý dokud secret není
+  return (request.headers.get('X-Edit-Pass') || '') === env.EDIT_PASSWORD;
+}
 
 // Default guild identity (overridable via ?realm=&name=&region= query params)
 const GUILD_DEFAULT = { realm: 'drakthul', nameSlug: 'rapid-evolution-eu', region: 'eu' };
@@ -385,6 +423,9 @@ export default {
     const matchPut = pathname.match(/^\/api\/roster\/([a-z0-9-]+)$/);
     if (request.method === 'PUT' && matchPut) {
       const id = matchPut[1];
+      if (await isProtectedKey(env, id) && !editAuthOK(request, env)) {
+        return json({ error: 'locked', locked: true }, 403);
+      }
       const existing = await env.ROSTERS.get(id);
       let body;
       try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
@@ -405,6 +446,7 @@ export default {
     // PUT /api/spells/:slug
     const matchSpellPut = pathname.match(/^\/api\/spells\/([a-z0-9-]+)$/);
     if (request.method === 'PUT' && matchSpellPut) {
+      if (!editAuthOK(request, env)) return json({ error: 'locked', locked: true }, 403);
       let body;
       try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
       const payload = { ...body, updatedAt: new Date().toISOString() };

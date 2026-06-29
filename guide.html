@@ -3,6 +3,32 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lightblinded Vanguard – Mythic Guide</title>
+<script>
+/* ── Admin edit-lock gate (sdílené napříč stránkami) ── */
+(function(){
+  var IS_ADMIN = /(^|\/)admin\/?$/.test(location.pathname);
+  var P = ''; try{ P = sessionStorage.getItem('editPass') || ''; }catch(e){}
+  window.__IS_ADMIN = IS_ADMIN;
+  window.__getEditPass = function(){ return P; };
+  window.__setEditPass = function(v){ P = v||''; try{ sessionStorage.setItem('editPass', P); }catch(e){} };
+  var of = window.fetch.bind(window);
+  window.fetch = function(input, init){
+    init = init || {};
+    var m = (init.method || (input && input.method) || 'GET').toUpperCase();
+    var u = typeof input === 'string' ? input : (input && input.url) || '';
+    if(P && (m==='PUT'||m==='POST') && u.indexOf('/api/')!==-1){
+      var h = init.headers;
+      if(typeof Headers!=='undefined' && h instanceof Headers){ h.set('X-Edit-Pass', P); }
+      else { init.headers = Object.assign({}, h||{}, {'X-Edit-Pass': P}); }
+    }
+    return of(input, init);
+  };
+  if(IS_ADMIN){
+    var go=function(){ if(!P){ setTimeout(function(){ var p = prompt('🔒 Admin režim — zadej edit heslo:'); if(p){ window.__setEditPass(p); } }, 300); } };
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', go); else go();
+  }
+})();
+</script>
 
 <!-- LZString compression for short share URLs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
@@ -5945,6 +5971,35 @@ const API_BASE = 'https://raidguide-api.filip-tesarik1.workers.dev';
 function getCloudId(){
   return new URLSearchParams(location.search).get('r') || _getBossSlug() || null;
 }
+
+// ── Edit-lock: HLAVNÍ guide (klíč z manifestu) je mimo /guide/admin read-only;
+//    vlastní kopie (?r=tvuj-nazev) zůstávají volně editovatelné bez hesla. ──
+async function _applyGuideLock(){
+  if(window.__IS_ADMIN) return;                 // admin = plný edit
+  let id=''; try{ id=String(getCloudId()||''); }catch(e){}
+  if(!id) return;
+  let isMain=false;
+  try{
+    const r=await fetch(API_BASE+'/api/roster/index-cfg');
+    if(r.ok){
+      const cfg=await r.json();
+      const seasons=Array.isArray(cfg.seasons)?cfg.seasons:(Array.isArray(cfg.raids)?[{raids:cfg.raids}]:[]);
+      const keys=new Set();
+      seasons.forEach(se=>(se.raids||[]).forEach(raid=>(raid.bosses||[]).forEach(b=>{ if(b&&b.cloud)keys.add(String(b.cloud)); if(b&&b.slug)keys.add(String(b.slug)); })));
+      isMain=keys.has(id);
+    }
+  }catch(e){}
+  if(!isMain) return;                           // kopie → necháme být
+  window.__guideMain=true;
+  function lockDown(){
+    try{ if(typeof editMode!=='undefined' && editMode && typeof toggleEditMode==='function') toggleEditMode(); }catch(e){}
+    ['editBtn','mainSaveBtn'].forEach(function(eid){ var el=document.getElementById(eid); if(el) el.style.display='none'; });
+    document.querySelectorAll('[contenteditable]').forEach(function(el){ el.setAttribute('contenteditable','false'); });
+  }
+  lockDown();
+  setTimeout(lockDown, 1600);                    // znovu po dotažení slidů z cloudu
+}
+document.addEventListener('DOMContentLoaded', function(){ setTimeout(_applyGuideLock, 500); });
 
 function updateCloudButtons(){
   const hasR = !!getCloudId();

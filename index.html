@@ -4,6 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rapid Evolution EU — Guild Hub</title>
+<script>
+/* ── Admin edit-lock gate (sdílené napříč stránkami) ── */
+(function(){
+  var IS_ADMIN = /(^|\/)admin\/?$/.test(location.pathname);
+  var P = ''; try{ P = sessionStorage.getItem('editPass') || ''; }catch(e){}
+  window.__IS_ADMIN = IS_ADMIN;
+  window.__getEditPass = function(){ return P; };
+  window.__setEditPass = function(v){ P = v||''; try{ sessionStorage.setItem('editPass', P); }catch(e){} };
+  var of = window.fetch.bind(window);
+  window.fetch = function(input, init){
+    init = init || {};
+    var m = (init.method || (input && input.method) || 'GET').toUpperCase();
+    var u = typeof input === 'string' ? input : (input && input.url) || '';
+    if(P && (m==='PUT'||m==='POST') && u.indexOf('/api/')!==-1){
+      var h = init.headers;
+      if(typeof Headers!=='undefined' && h instanceof Headers){ h.set('X-Edit-Pass', P); }
+      else { init.headers = Object.assign({}, h||{}, {'X-Edit-Pass': P}); }
+    }
+    return of(input, init);
+  };
+  function apply(){
+    document.body.classList.add(IS_ADMIN ? 'is-admin' : 'not-admin');
+    if(!IS_ADMIN){
+      document.querySelectorAll('.admin-only').forEach(function(el){ el.style.display='none'; });
+    } else if(!P){
+      setTimeout(function(){ var p = prompt('🔒 Admin režim — zadej edit heslo:'); if(p){ window.__setEditPass(p); } }, 300);
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', apply);
+  else apply();
+})();
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -245,7 +277,7 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
 
 <header class="site-header">
   <div class="site-logo">Rapid<span>Evolution</span></div>
-  <button class="btn btn-ghost" id="editToggle" onclick="toggleEdit()">✏ Upravit</button>
+  <button class="btn btn-ghost admin-only" id="editToggle" onclick="toggleEdit()">✏ Upravit</button>
 </header>
 
 <div class="wrap">
@@ -705,11 +737,11 @@ function renderRaids(){
   const seasons=_manifest.seasons;
   if(_curSeason>=seasons.length) _curSeason=0;
   const tabs = seasons.map((se,i)=>`<button class="season-tab ${i===_curSeason?'active':''}" onclick="setSeason(${i})">${escH(se.name||('Season '+(i+1)))}</button>`).join('')
-    + `<button class="season-tab st-add" onclick="openEditor()">+ Sezóna / raid</button>`;
+    + (window.__IS_ADMIN ? `<button class="season-tab st-add" onclick="openEditor()">+ Sezóna / raid</button>` : '');
   const se=seasons[_curSeason];
   let body;
   if(!se || !(se.raids||[]).length){
-    body=`<div class="loading">Žádné raidy v této sezóně. <button class="btn btn-primary" onclick="openEditor()">+ Přidat</button></div>`;
+    body=`<div class="loading">Žádné raidy v této sezóně.${window.__IS_ADMIN?' <button class="btn btn-primary" onclick="openEditor()">+ Přidat</button>':''}</div>`;
   } else {
     body=`<div class="raid-cards">`+ se.raids.map(raid=>{
       const bg=_raidBg(raid); const n=(raid.bosses||[]).length;

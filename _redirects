@@ -1,1 +1,4 @@
-/raid/:slug   /raid.html?raid=:slug   200
+/admin          /index.html    200
+/roster/admin   /roster.html   200
+/guide/admin    /guide.html    200
+/raid/:slug     /raid.html?raid=:slug   200
