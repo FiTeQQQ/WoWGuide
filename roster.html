@@ -334,7 +334,7 @@
         <div class="wcl-field"><label>Client Secret</label><input id="wclSec" type="password" placeholder="secret"></div>
         <button class="btn btn-ghost" onclick="wclSaveCreds()" style="align-self:end">Uložit klíče</button>
       </div>
-      <div class="wcl-row"><label class="wcl-chk"><input type="checkbox" id="wclGuildChk"> <span>Načíst i <b>guild log</b> (posledních 6 týdnů)</span></label></div>
+      <div class="wcl-row" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><label class="wcl-chk"><input type="checkbox" id="wclGuildChk"> <span>Načíst i <b>guild log</b></span></label><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-dim)">Účast za <select id="wclWeeks" onchange="setAttWeeks(this.value)" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:3px 6px"><option value="1">1 týden</option><option value="2">2 týdny</option><option value="4">4 týdny</option><option value="6">6 týdnů</option><option value="8">8 týdnů</option></select></label></div>
       <div class="wcl-grid" id="wclGuildFields">
         <div class="wcl-field"><label>Guild (jen pro guild log)</label><input id="wclGuild" placeholder="Název guildy"></div>
         <div class="wcl-field"><label>Realm (EU) — nutné i pro progress</label><input id="wclRealm" list="euRealms" value="drakthul" placeholder="vyber / napiš realm" autocomplete="off"></div>
@@ -457,10 +457,12 @@ let colWidths={};           // šířky sloupců (px), klíč = klíč sloupce �
 let zoneNames={};           // vlastní názvy progress sloupců (raidů): {zoneId: název} — sdílené
 let builtinNames={};        // přejmenování předdef. sloupců {h,m,note: název} — sdílené
 let removedCols={};         // ručně odebrané předdef./raid sloupce {key:true} — sdílené
-function _builtinLabel(key){ const d={h:'S námi H',m:'S námi M',note:'Poznámka'}; return (builtinNames&&builtinNames[key]!=null&&builtinNames[key]!=='')?builtinNames[key]:(d[key]||key); }
+let attWeeks=6;             // okno účasti (kolik týdnů guild logu se tahá) — sdílené
+function _builtinLabel(key){ const d={h:'S námi H',m:'S námi M',note:'Poznámka',hc:'Heroic raidů',mc:'Mythic raidů'}; return (builtinNames&&builtinNames[key]!=null&&builtinNames[key]!=='')?builtinNames[key]:(d[key]||key); }
 function renameBuiltin(key,v){ v=(v||'').trim(); builtinNames=builtinNames||{}; if(v) builtinNames[key]=v; else delete builtinNames[key]; save(); flushCloud(); render(); }
 function delPredef(key){ removedCols=removedCols||{}; removedCols[key]=true; colOrder=colOrder.filter(k=>k!==key); save(); flushCloud(); render(); }
 function addPredef(key){ removedCols=removedCols||{}; delete removedCols[key]; if(!colOrder.includes(key)){ const ni=colOrder.indexOf('name'); colOrder.splice(ni>=0?ni+1:colOrder.length,0,key); } save(); flushCloud(); render(); }
+function setAttWeeks(v){ attWeeks=Math.max(1,+v||6); try{localStorage.setItem('wcl_att_weeks',String(attWeeks));}catch(e){} save(); flushCloud(); render(); }
 function _colW(key){ if(String(key).indexOf('z:')===0) return (colWidths&&colWidths[key])||118; const d={name:180,progress:118,h:100,m:100,note:160}; return (colWidths&&colWidths[key])||d[key]||120; }
 function _zoneDefaultLabel(z){ const tag=(+((z&&z.total)||0)===1)?'M':'H/M'; return (_shortRaid((z&&z.name)||'')+' '+tag).trim(); }
 function _zoneLabel(key,z){ const zid=String(key).indexOf('z:')===0?String(key).slice(2):(z&&z.id); if(zoneNames&&zoneNames[zid]!=null&&zoneNames[zid]!=='') return zoneNames[zid]; return _zoneDefaultLabel(z||{id:zid,name:String(zid)}); }
@@ -566,7 +568,7 @@ function applyLayout(){ const el=document.querySelector('.roster-layout'); if(el
 function setLayout(m){ layoutMode=(m==='top')?'top':'side'; try{localStorage.setItem('rosterLayout',layoutMode);}catch(e){} applyLayout(); save(); flushCloud(); }
 // Sjednocené pořadí všech sloupců (vestavěné + custom)
 function _ensureColOrder(){
-  const optional=['h','m','note'];
+  const optional=['h','m','note','hc','mc'];
   const zKeys=progZones().map(z=>'z:'+z.id);
   const validCustom=new Set(customCols.map(c=>c.id));
   const validZ=new Set(zKeys);
@@ -601,11 +603,13 @@ function headFor(key,ctx){
     }
     return `<th class="coldrag" ${_thW(key)}${dragA(key)} title="Progress v ${esc(z.name)} (součet přes alty)">${_dh()}${esc(label)}${_rzH(key)}</th>`;
   }
-  if(key==='h'||key==='m'||key==='note'){
+  if(key==='h'||key==='m'||key==='note'||key==='hc'||key==='mc'){
     if(editMode) return `<th class="ccol cedit coldrag" ${_thW(key)} draggable="true" ondragstart="colDragStart(event,'${key}')" ondragover="event.preventDefault()" ondrop="colDrop(event,'${key}')">${_rzH(key)}<div class="cedit-top"><span class="cdrag" title="Pořadí">⠿</span><button class="cdel" title="Odebrat sloupec" onclick="delPredef('${key}')">✕</button></div><input class="cname" value="${esc(_builtinLabel(key))}" onchange="renameBuiltin('${key}',this.value)"></th>`;
-    const tip=key==='h'?'Kolik raidů odehrál s námi (Heroic)':key==='m'?'Kolik raidů odehrál s námi (Mythic)':'';
-    const srt=(key==='note')?'':`${so(key)} `;
-    return `<th class="coldrag" ${_thW(key)}${dragA(key)} ${srt}title="${tip}">${_dh()}${esc(_builtinLabel(key))} ${key!=='note'?arrow(key):''}${_rzH(key)}</th>`;
+    const W='za posledních '+(attWeeks||6)+' týdnů';
+    const tip=key==='h'?('Byl s námi na Heroicu ('+W+')'):key==='m'?('Byl s námi na Mythicu ('+W+')'):key==='hc'?('Počet Heroic raidů s námi ('+W+')'):key==='mc'?('Počet Mythic raidů s námi ('+W+')'):'';
+    const sortable=(key==='h'||key==='m');
+    const srt=sortable?`${so(key)} `:'';
+    return `<th class="coldrag" ${_thW(key)}${dragA(key)} ${srt}title="${tip}">${_dh()}${esc(_builtinLabel(key))} ${sortable?arrow(key):''}${_rzH(key)}</th>`;
   }
   const col=customCols.find(c=>c.id===key); if(col) return colHead(col);
   return '';
@@ -616,6 +620,8 @@ function cellFor(p,key,c){
   if(String(key).indexOf('z:')===0){ const zid=String(key).slice(2); const z=(zonesP||[]).find(x=>String(x.id)===zid); return progTd(z?z.name:zid,(p.prog||{})[zid]); }
   if(key==='h') return `<td style="text-align:center">${naCore?'<span class="cnt na" title="U Core hráče se účast neřeší">—</span>':`<span class="att ${t.h>0?'yes':'no'}" title="${t.h>0?('S námi Heroic'+(bh?': '+esc(bh):'')):'Nebyl s námi na Heroicu'}">${t.h>0?'✓':'✕'}</span>`}</td>`;
   if(key==='m') return `<td style="text-align:center">${naCore?'<span class="cnt na">—</span>':`<span class="att ${t.m>0?'yes':'no'}" title="${t.m>0?('S námi Mythic'+(bm?': '+esc(bm):'')):'Nebyl s námi na Mythicu'}">${t.m>0?'✓':'✕'}</span>`}</td>`;
+  if(key==='hc') return `<td style="text-align:center"><span class="cnt" title="${bh?esc(bh):''}">${t.h||0}</span></td>`;
+  if(key==='mc') return `<td style="text-align:center"><span class="cnt" title="${bm?esc(bm):''}">${t.m||0}</span></td>`;
   if(key==='note') return `<td><input class="note-in" value="${esc(p.note||'')}" placeholder="…" onchange="setNote('${p.id}',this.value)"></td>`;
   const col=customCols.find(x=>x.id===key); if(col) return colCell(p,col);
   return '';
@@ -625,6 +631,8 @@ function altCellFor(p,c,ci,key,zlist,naCore){
   if(String(key).indexOf('z:')===0){ const zid=String(key).slice(2); return progTd('',(c.prog||{})[zid]); }
   if(key==='h'){ const chh=+c.h||0; return naCore?'<td><span class="cnt na">—</span></td>':`<td style="text-align:center"><span class="att ${chh>0?'yes':'no'}">${chh>0?'✓':'✕'}</span></td>`; }
   if(key==='m'){ const chm=+c.m||0; return naCore?'<td><span class="cnt na">—</span></td>':`<td style="text-align:center"><span class="att ${chm>0?'yes':'no'}">${chm>0?'✓':'✕'}</span></td>`; }
+  if(key==='hc') return `<td style="text-align:center"><span class="cnt">${+c.h||0}</span></td>`;
+  if(key==='mc') return `<td style="text-align:center"><span class="cnt">${+c.m||0}</span></td>`;
   if(key==='note') return '<td></td>';
   if(customCols.find(x=>x.id===key)) return '<td></td>';
   return '';
@@ -634,7 +642,7 @@ function delCol(id){ if(!confirm('Smazat sloupec i jeho data?'))return; customCo
 function renameCol(id,v){ const c=customCols.find(x=>x.id===id); if(c){ c.name=(v||'').trim()||'Sloupec'; save(); } }
 function setColType(id,t){ const c=customCols.find(x=>x.id===id); if(c){ c.type=t; if(t==='select'&&!Array.isArray(c.options))c.options=[]; save(); render(); } }
 function setColOptions(id,v){ const c=customCols.find(x=>x.id===id); if(c){ c.options=String(v||'').split(',').map(s=>s.trim()).filter(Boolean); save(); render(); } }
-function _colLabel(key){ if(key==='name')return 'Hráč'; if(String(key).indexOf('z:')===0){ const zid=String(key).slice(2); const z=progZones().find(x=>String(x.id)===zid); return _zoneLabel(key,z||{id:zid,name:zid}); } if(key==='h'||key==='m'||key==='note')return _builtinLabel(key); const c=customCols.find(x=>x.id===key); return c?(c.name||'Sloupec'):key; }
+function _colLabel(key){ if(key==='name')return 'Hráč'; if(String(key).indexOf('z:')===0){ const zid=String(key).slice(2); const z=progZones().find(x=>String(x.id)===zid); return _zoneLabel(key,z||{id:zid,name:zid}); } if(key==='h'||key==='m'||key==='note'||key==='hc'||key==='mc')return _builtinLabel(key); const c=customCols.find(x=>x.id===key); return c?(c.name||'Sloupec'):key; }
 function toggleColHidden(key){ if(hiddenCols.includes(key)) hiddenCols=hiddenCols.filter(k=>k!==key); else hiddenCols.push(key); save(); render(); }
 let _dragCol=null;
 function colDragStart(e,key){ _dragCol=key; if(e.dataTransfer)e.dataTransfer.effectAllowed='move'; }
@@ -651,7 +659,7 @@ function renderEditBar(){
   const rankRows=ranks.map(r=>`<div class="eb-rank"><input class="eb-rankname" value="${esc(r)}" onchange="renameRank('${q(r)}',this.value)"><input type="color" value="${_rankColor(r)||'#5b6070'}" onchange="setRankColor('${q(r)}',this.value)" title="Barva štítku ranku" style="width:30px;height:26px;padding:0;border:1px solid var(--border2);border-radius:6px;background:none;cursor:pointer;flex:0 0 auto"><label class="eb-hidechk"><input type="checkbox" ${hiddenDefault.includes(r)?'checked':''} onchange="toggleRankDefaultHidden('${q(r)}')"> skrýt</label><button class="iconbtn del" title="Smazat rank" onclick="delRank('${q(r)}')">✕</button></div>`).join('');
   _ensureColOrder();
   const visList=colOrder.filter(k=>k!=='name').map(k=>`<label class="eb-hidechk" style="display:block;margin:3px 0"><input type="checkbox" ${!hiddenCols.includes(k)?'checked':''} onchange="toggleColHidden('${k}')"> ${esc(_colLabel(k))}</label>`).join('');
-  const _avail=[]; ['h','m','note'].forEach(k=>{ if(!colOrder.includes(k)) _avail.push({key:k,label:_builtinLabel(k)}); }); progZones().forEach(z=>{ const k='z:'+z.id; if(!colOrder.includes(k)) _avail.push({key:k,label:_zoneLabel(k,z)}); });
+  const _avail=[]; ['h','m','hc','mc','note'].forEach(k=>{ if(!colOrder.includes(k)) _avail.push({key:k,label:_builtinLabel(k)}); }); progZones().forEach(z=>{ const k='z:'+z.id; if(!colOrder.includes(k)) _avail.push({key:k,label:_zoneLabel(k,z)}); });
   const predefBtns=_avail.length?('<div class="eb-hint" style="margin-top:8px;margin-bottom:3px">Přidat předdefinovaný (WCL):</div>'+_avail.map(p=>`<button class="btn btn-ghost" style="margin:2px 4px 2px 0;font-size:11px" onclick="addPredef('${p.key}')">+ ${esc(p.label)}</button>`).join('')):'';
   el.innerHTML=`<div class="eb-grid">
     <div class="eb-sec"><div class="eb-title">Ranky — přejmenování / výchozí skrytí</div>${rankRows}<button class="btn btn-ghost" style="margin-top:6px" onclick="addRank()">+ Rank</button></div>
@@ -711,7 +719,7 @@ async function load(){
   // seznam ranků (meta klíč — guide ho nepřepisuje)
   try{
     const rm=await fetch(API_BASE+'/api/roster/'+TRK_KEY,{cache:'no-cache'});
-    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.colOrder))colOrder=jm.colOrder;if(Array.isArray(jm.hiddenCols))hiddenCols=jm.hiddenCols;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;if(jm.rankColors&&typeof jm.rankColors==='object')rankColors=jm.rankColors;if(jm.colWidths&&typeof jm.colWidths==='object')colWidths=jm.colWidths;if(jm.zoneNames&&typeof jm.zoneNames==='object')zoneNames=jm.zoneNames;if(jm.builtinNames&&typeof jm.builtinNames==='object')builtinNames=jm.builtinNames;if(jm.removedCols&&typeof jm.removedCols==='object')removedCols=jm.removedCols;if(+jm.compMaxRows>0)compMaxRows=+jm.compMaxRows;if(jm.theme)themeMode=jm.theme;if(jm.layout)layoutMode=jm.layout;}
+    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.colOrder))colOrder=jm.colOrder;if(Array.isArray(jm.hiddenCols))hiddenCols=jm.hiddenCols;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;if(jm.rankColors&&typeof jm.rankColors==='object')rankColors=jm.rankColors;if(jm.colWidths&&typeof jm.colWidths==='object')colWidths=jm.colWidths;if(jm.zoneNames&&typeof jm.zoneNames==='object')zoneNames=jm.zoneNames;if(jm.builtinNames&&typeof jm.builtinNames==='object')builtinNames=jm.builtinNames;if(jm.removedCols&&typeof jm.removedCols==='object')removedCols=jm.removedCols;if(+jm.attWeeks>0)attWeeks=+jm.attWeeks;if(+jm.compMaxRows>0)compMaxRows=+jm.compMaxRows;if(jm.theme)themeMode=jm.theme;if(jm.layout)layoutMode=jm.layout;}
   }catch(e){
     try{const lr=JSON.parse(localStorage.getItem('trkRanks')||'null');if(Array.isArray(lr)&&lr.length)ranks=lr;}catch(_){}
   }
@@ -725,6 +733,7 @@ async function load(){
   buildPeopleFromFlat(flat);
   await loadSheets();
   applyTheme(themeMode); applyLayout();
+  try{ const _ww=document.getElementById('wclWeeks'); if(_ww)_ww.value=String(attWeeks||6); }catch(e){}
   st.textContent='';
   render();
   _updateSaveBtn();
@@ -800,12 +809,12 @@ async function flushCloud(){
   _saving=true; _updateSaveBtn();
   try{
     await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()})});
-    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,zoneNames,builtinNames,removedCols,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()})});
+    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,zoneNames,builtinNames,removedCols,attWeeks,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()})});
     _dirty=false;
   }catch(e){ const st=document.getElementById('status'); if(st)st.textContent='⚠ Cloud offline (změny zatím jen lokálně)'; }
   _saving=false; _updateSaveBtn();
 }
-function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,zoneNames,builtinNames,removedCols,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
+function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,zoneNames,builtinNames,removedCols,attWeeks,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
 window.addEventListener('beforeunload',_flushBeacon);
 
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}render();}
@@ -1397,7 +1406,7 @@ async function wclRun(){
   try{
     wclLog('Získávám token…');
     const token=await wclToken(); wclLog('Token OK.','ok');
-    const sinceTs=Date.now()-42*24*3600*1000;
+    const sinceTs=Date.now()-(attWeeks||6)*7*24*3600*1000;
     let codes=parseReportCodes(document.getElementById('wclReports').value);
     wclLog('Ruční reporty: '+codes.length);
     if(document.getElementById('wclGuildChk').checked){
@@ -1405,7 +1414,7 @@ async function wclRun(){
       const rl=document.getElementById('wclRealm').value.trim();
       const rg=document.getElementById('wclRegion').value.trim();
       localStorage.setItem('wcl_guild',g);localStorage.setItem('wcl_realm',rl);localStorage.setItem('wcl_region',rg);
-      if(g&&rl){ wclLog('Načítám guild reporty (6 týdnů)…'); const gc=await wclGuildReportCodes(token,g,rl,rg,sinceTs); wclLog('Guild reportů: '+gc.length); codes=codes.concat(gc); }
+      if(g&&rl){ wclLog('Načítám guild reporty ('+(attWeeks||6)+' týdnů)…'); const gc=await wclGuildReportCodes(token,g,rl,rg,sinceTs); wclLog('Guild reportů: '+gc.length); codes=codes.concat(gc); }
       else wclLog('Guild jméno/realm chybí — přeskakuji guild.','err');
     }
     codes=[...new Set(codes)];
