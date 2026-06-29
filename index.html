@@ -135,6 +135,20 @@ table.roster tr:hover td{background:rgba(255,255,255,.03)}
 .viewall{font-size:11px;font-weight:700;color:var(--accent)}
 .viewall:hover{text-decoration:underline}
 
+/* guides hub: seasons + raid cards */
+.season-tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;border-bottom:1px solid var(--line)}
+.season-tab{background:rgba(255,255,255,.04);border:1px solid var(--line);border-bottom:none;color:var(--dim);border-radius:9px 9px 0 0;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer;position:relative;bottom:-1px}
+.season-tab:hover{color:#fff}
+.season-tab.active{background:var(--panel);color:#fff}
+.season-tab.st-add{border-style:dashed;color:var(--accent);font-weight:600}
+.raid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.raid-card{position:relative;height:150px;border-radius:12px;overflow:hidden;cursor:pointer;border:1px solid var(--line);display:block;transition:border-color .2s,transform .15s}
+.raid-card:hover{border-color:rgba(79,142,255,.55);transform:translateY(-2px)}
+.raid-card img{width:100%;height:100%;object-fit:cover;display:block;filter:brightness(.5);transition:filter .2s}
+.raid-card:hover img{filter:brightness(.72)}
+.raid-card-label{position:absolute;bottom:0;left:0;right:0;padding:14px 16px;background:linear-gradient(transparent,rgba(0,0,0,.9))}
+.raid-card-name{font-size:18px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#fff}
+.raid-card-sub{font-size:12px;color:#bcd0ee;margin-top:3px;font-weight:600}
 /* boss grid (raids) */
 .raid-section{margin-bottom:30px}
 .raid-title{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
@@ -217,7 +231,7 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
 .ed-add{background:rgba(79,142,255,.05);border:1px dashed rgba(79,142,255,.2);border-radius:6px;padding:12px;margin-top:10px}
 .ed-add-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
 .ed-row{display:flex;gap:8px;margin-bottom:4px}
-.ed-row input{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:5px;color:var(--txt);font-size:12px;padding:6px 10px;outline:none;min-width:0}
+.ed-row input,.ed-rowin{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:5px;color:var(--txt);font-size:12px;padding:6px 10px;outline:none;min-width:0}
 .ed-row input:focus{border-color:rgba(79,142,255,.5)}
 .ed-hint{font-size:10px;color:#3a3d4a;margin-top:2px}
 .ed-new-raid{background:rgba(255,255,255,.02);border:1px dashed var(--line);border-radius:8px;padding:14px}
@@ -384,7 +398,8 @@ const RAID_NAMES = {
   'nerubar-palace':"Nerub-ar Palace",'liberation-of-undermine':'Liberation of Undermine'
 };
 
-let _guild = null, _manifest = { raids: [] };
+let _guild = null, _manifest = { seasons: [] };
+let _curSeason = 0;
 
 function escH(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function toSlug(s){ return s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
@@ -444,12 +459,14 @@ async function loadCfg(){
       const m = await r.json();
       if(m && m.theme){ applyTheme(m.theme); try{ localStorage.setItem('indexTheme', m.theme); }catch(e){} }
       if(m && m.progGrad){ _progGrad = m.progGrad; try{ localStorage.setItem('indexProgGrad', m.progGrad); }catch(e){} applyProgGradient(); }
-      if(m && Array.isArray(m.raids) && m.raids.length){ _manifest = { raids: m.raids }; }
+      if(m && Array.isArray(m.seasons) && m.seasons.length){ _manifest = { seasons: m.seasons }; }
+      else if(m && Array.isArray(m.raids) && m.raids.length){ _manifest = { seasons:[{name:'Season 1',raids:m.raids}] }; }
     }
   }catch(e){}
   renderProgSwatches();
   _cfgLoaded = true;
-  if(_manifest.raids && _manifest.raids.length){ renderRaids(); }
+  _ensureSeasons();
+  if(_manifest.seasons && _manifest.seasons.length){ renderRaids(); }
   else { await loadManifestFromGitHub(); }   // první spuštění: vezmi GitHub manifest jako základ
 }
 
@@ -459,7 +476,7 @@ async function saveCfg(){
   try{
     await fetch(API_BASE + '/api/roster/' + CFG_KEY, {
       method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, raids: (_manifest.raids || []), updatedAt: new Date().toISOString() })
+      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
     });
   }catch(e){}
 }
@@ -665,79 +682,88 @@ function renderRankings(d){
   }).join('');
 }
 
-/* ---------- raids / boss grid ---------- */
-async function loadManifestFromGitHub(){
-  try{
-    const r = await fetch(GH_RAW + 'Images/manifest.json?_=' + Date.now());
-    if(r.ok) _manifest = await r.json();
-  }catch(e){}
-  renderRaids();
+/* ---------- guides hub: seasons → raids → bosses ---------- */
+function _cap(s){ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); }
+function _raidBg(raid){ return raid.background || (raid.slug?`Images/${_cap(raid.slug)}/${_cap(raid.slug)}_Background.jpg`:''); }
+function _ensureSeasons(){
+  if(!_manifest || typeof _manifest!=='object') _manifest={seasons:[]};
+  if(!Array.isArray(_manifest.seasons)){
+    if(Array.isArray(_manifest.raids)) _manifest.seasons=[{name:'Season 1',raids:_manifest.raids}];
+    else _manifest.seasons=[];
+  }
+  delete _manifest.raids;
+  _manifest.seasons.forEach(se=>{ if(!Array.isArray(se.raids))se.raids=[]; se.raids.forEach(r=>{ if(!Array.isArray(r.bosses))r.bosses=[]; }); });
 }
+async function loadManifestFromGitHub(){
+  try{ const r = await fetch(GH_RAW + 'Images/manifest.json?_=' + Date.now()); if(r.ok){ const j=await r.json(); if(Array.isArray(j.seasons))_manifest={seasons:j.seasons}; else if(Array.isArray(j.raids))_manifest={seasons:[{name:'Season 1',raids:j.raids}]}; } }catch(e){}
+  _ensureSeasons(); renderRaids();
+}
+function setSeason(i){ _curSeason=i; renderRaids(); }
 function renderRaids(){
+  _ensureSeasons();
   const root = document.getElementById('raidsRoot');
-  const raids = _manifest.raids || [];
-  if(!raids.length){ root.innerHTML = '<div class="raid-section"><div class="raid-title">Raidy & Guides</div><div class="loading">Žádné raidy. <button class="btn btn-primary" onclick="openEditor()">+ Přidat</button></div></div>'; return; }
-  root.innerHTML = raids.map(raid=>`
-    <section class="raid-section">
-      <div class="raid-title">${escH(raid.name)} — Guides</div>
-      <div class="boss-grid">
-        ${(raid.bosses||[]).map(boss=>{
-          const href = 'guide.html?boss=' + encodeURIComponent(boss.slug) + (boss.cloud ? '&r=' + encodeURIComponent(boss.cloud) : '');
-          return `
-          <a class="boss-card" href="${href}">
-            <img src="${GH_RAW}${escH(boss.thumbnail||boss.image)}" alt="${escH(boss.name)}" onerror="this.style.opacity='0'">
-            <div class="boss-card-label"><div class="boss-card-name">${escH(boss.name)}</div></div>
-          </a>`;}).join('')}
-        <div class="empty-card" onclick="openEditor()">+ Přidat bosse</div>
-      </div>
-    </section>`).join('');
+  const seasons=_manifest.seasons;
+  if(_curSeason>=seasons.length) _curSeason=0;
+  const tabs = seasons.map((se,i)=>`<button class="season-tab ${i===_curSeason?'active':''}" onclick="setSeason(${i})">${escH(se.name||('Season '+(i+1)))}</button>`).join('')
+    + `<button class="season-tab st-add" onclick="openEditor()">+ Sezóna / raid</button>`;
+  const se=seasons[_curSeason];
+  let body;
+  if(!se || !(se.raids||[]).length){
+    body=`<div class="loading">Žádné raidy v této sezóně. <button class="btn btn-primary" onclick="openEditor()">+ Přidat</button></div>`;
+  } else {
+    body=`<div class="raid-cards">`+ se.raids.map(raid=>{
+      const bg=_raidBg(raid); const n=(raid.bosses||[]).length;
+      return `<a class="raid-card" href="raid.html?raid=${encodeURIComponent(raid.slug)}">
+        <img src="${GH_RAW}${escH(bg)}" alt="${escH(raid.name)}" onerror="this.style.opacity='0'">
+        <div class="raid-card-label"><div class="raid-card-name">${escH(raid.name)}</div><div class="raid-card-sub">${n} boss${n===1?'':'ů'} →</div></div>
+      </a>`;
+    }).join('') + `</div>`;
+  }
+  root.innerHTML = `<div class="season-tabs">${tabs}</div>${body}`;
 }
 
-/* ---------- manifest editor ---------- */
+/* ---------- editor: seasons / raids / bosses ---------- */
 function openEditor(){ renderEditor(); document.getElementById('editorModal').classList.add('open'); }
 function closeEditor(){ document.getElementById('editorModal').classList.remove('open'); }
 function renderEditor(){
-  const raids = _manifest.raids || [];
-  document.getElementById('editorBody').innerHTML = raids.map((raid,ri)=>`
-    <div class="ed-raid">
-      <div class="ed-raid-head"><span class="ed-raid-name">${escH(raid.name)}</span>
-        <button class="btn btn-danger" onclick="removeRaid(${ri})" style="padding:3px 10px;font-size:11px">Smazat raid</button></div>
-      ${(raid.bosses||[]).map((boss,bi)=>`
-        <div class="ed-boss-row"><span class="ed-boss-name">${escH(boss.name)}</span>
-          <span class="ed-boss-path" title="${escH(boss.image)}">${escH(boss.image)}</span>
-          <button class="btn btn-ghost" onclick="setCloud(${ri},${bi})" style="padding:2px 8px;font-size:11px" title="Cloud share id (?r=)">🔗${boss.cloud?(' '+escH(boss.cloud)):''}</button>
-          <button class="btn btn-danger" onclick="removeBoss(${ri},${bi})" style="padding:2px 8px;font-size:11px">×</button></div>`).join('')}
-      <div class="ed-add"><div class="ed-add-title">Přidat bosse do ${escH(raid.name)}</div>
-        <div class="ed-row"><input type="text" id="bossName_${ri}" placeholder="Název bosse">
-          <input type="text" id="bossImg_${ri}" placeholder="Images/${escH(raid.slug)}/NazevBosse.png"></div>
-        <div class="ed-row"><input type="text" id="bossCloud_${ri}" placeholder="Cloud id (?r=), nepovinné — např. v1"></div>
-        <div class="ed-hint">Slug se vygeneruje z názvu. Cloud id = sdílecí ?r= odkaz guide (nech prázdné, pokud boss používá jen slug).</div>
-        <button class="btn btn-primary" style="margin-top:8px;font-size:11px" onclick="addBoss(${ri})">+ Přidat bosse</button></div>
-    </div>`).join('') + `
-    <div class="ed-new-raid"><div class="ed-new-raid-title">Přidat nový raid</div>
-      <div class="ed-row"><input type="text" id="newRaidName" placeholder="Název raidu">
-        <button class="btn btn-primary" style="font-size:11px" onclick="addRaid()">+ Vytvořit</button></div></div>`;
+  _ensureSeasons();
+  const seasons=_manifest.seasons;
+  let h=seasons.map((se,si)=>`
+    <div class="ed-raid" style="border-color:rgba(79,142,255,.3)">
+      <div class="ed-raid-head">
+        <input class="ed-rowin" style="flex:1;font-weight:700" value="${escH(se.name||'')}" onchange="renameSeason(${si},this.value)">
+        <button class="btn btn-danger" onclick="removeSeason(${si})" style="padding:3px 10px;font-size:11px">Smazat sezónu</button></div>
+      ${(se.raids||[]).map((raid,ri)=>`
+        <div class="ed-raid" style="margin:8px 0">
+          <div class="ed-raid-head"><span class="ed-raid-name">${escH(raid.name)}</span>
+            <button class="btn btn-danger" onclick="removeRaid(${si},${ri})" style="padding:2px 8px;font-size:11px">Smazat raid</button></div>
+          <div class="ed-row"><input type="text" class="ed-rowin" value="${escH(raid.background||'')}" placeholder="Pozadí: Images/${escH(_cap(raid.slug))}/${escH(_cap(raid.slug))}_Background.jpg" onchange="setRaidBg(${si},${ri},this.value)"></div>
+          ${(raid.bosses||[]).map((boss,bi)=>`
+            <div class="ed-boss-row"><span class="ed-boss-name">${escH(boss.name)}</span>
+              <span class="ed-boss-path" title="${escH(boss.image)}">${escH(boss.image)}</span>
+              <button class="btn btn-ghost" onclick="setCloud(${si},${ri},${bi})" style="padding:2px 8px;font-size:11px" title="Cloud share id (?r=)">🔗${boss.cloud?(' '+escH(boss.cloud)):''}</button>
+              <button class="btn btn-danger" onclick="removeBoss(${si},${ri},${bi})" style="padding:2px 8px;font-size:11px">×</button></div>`).join('')}
+          <div class="ed-add"><div class="ed-add-title">Přidat bosse</div>
+            <div class="ed-row"><input type="text" id="bn_${si}_${ri}" placeholder="Název bosse"><input type="text" id="bi_${si}_${ri}" placeholder="Images/.../Boss.png"></div>
+            <div class="ed-row"><input type="text" id="bc_${si}_${ri}" placeholder="Cloud id (?r=), nepovinné"></div>
+            <button class="btn btn-primary" style="margin-top:8px;font-size:11px" onclick="addBoss(${si},${ri})">+ Přidat bosse</button></div>
+        </div>`).join('')}
+      <div class="ed-add"><div class="ed-add-title">Přidat raid do „${escH(se.name||'')}"</div>
+        <div class="ed-row"><input type="text" id="rn_${si}" placeholder="Název raidu"><button class="btn btn-primary" style="font-size:11px" onclick="addRaid(${si})">+ Raid</button></div></div>
+    </div>`).join('');
+  h+=`<div class="ed-new-raid"><div class="ed-new-raid-title">Přidat sezónu</div>
+    <div class="ed-row"><input type="text" id="newSeasonName" placeholder="Název sezóny (např. Season 2)"><button class="btn btn-primary" style="font-size:11px" onclick="addSeason()">+ Sezóna</button></div></div>`;
+  document.getElementById('editorBody').innerHTML=h;
 }
-function addBoss(ri){
-  const name=(document.getElementById('bossName_'+ri).value||'').trim();
-  const img=(document.getElementById('bossImg_'+ri).value||'').trim();
-  const cloud=(document.getElementById('bossCloud_'+ri).value||'').trim();
-  if(!name||!img){alert('Vyplň název i cestu k obrázku');return;}
-  const b={slug:toSlug(name),name,thumbnail:img,image:img};
-  if(cloud) b.cloud=cloud;
-  (_manifest.raids[ri].bosses=_manifest.raids[ri].bosses||[]).push(b);
-  renderEditor();renderRaids();saveCfg();
-}
-function setCloud(ri,bi){
-  const b=_manifest.raids[ri].bosses[bi];
-  const v=prompt('Cloud share id (?r=) pro „'+b.name+'". Prázdné = jen slug.', b.cloud||'');
-  if(v===null) return;
-  if(v.trim()) b.cloud=v.trim(); else delete b.cloud;
-  renderEditor();renderRaids();saveCfg();
-}
-function removeBoss(ri,bi){ if(!confirm('Smazat bosse?'))return; _manifest.raids[ri].bosses.splice(bi,1); renderEditor();renderRaids();saveCfg(); }
-function addRaid(){ const name=(document.getElementById('newRaidName').value||'').trim(); if(!name){alert('Vyplň název raidu');return;} _manifest.raids.push({slug:toSlug(name),name,bosses:[]}); renderEditor();renderRaids();saveCfg(); }
-function removeRaid(ri){ if(!confirm('Smazat celý raid?'))return; _manifest.raids.splice(ri,1); renderEditor();renderRaids();saveCfg(); }
+function renameSeason(si,v){ _manifest.seasons[si].name=(v||'').trim()||('Season '+(si+1)); renderRaids(); saveCfg(); }
+function removeSeason(si){ if(!confirm('Smazat celou sezónu i její raidy?'))return; _manifest.seasons.splice(si,1); if(_curSeason>=_manifest.seasons.length)_curSeason=Math.max(0,_manifest.seasons.length-1); renderEditor();renderRaids();saveCfg(); }
+function addSeason(){ const n=(document.getElementById('newSeasonName').value||'').trim(); if(!n){alert('Vyplň název sezóny');return;} _manifest.seasons.push({name:n,raids:[]}); renderEditor();renderRaids();saveCfg(); }
+function setRaidBg(si,ri,v){ _manifest.seasons[si].raids[ri].background=(v||'').trim(); renderRaids(); saveCfg(); }
+function addRaid(si){ const n=(document.getElementById('rn_'+si).value||'').trim(); if(!n){alert('Vyplň název raidu');return;} _manifest.seasons[si].raids.push({slug:toSlug(n),name:n,background:'',bosses:[]}); renderEditor();renderRaids();saveCfg(); }
+function removeRaid(si,ri){ if(!confirm('Smazat celý raid?'))return; _manifest.seasons[si].raids.splice(ri,1); renderEditor();renderRaids();saveCfg(); }
+function addBoss(si,ri){ const name=(document.getElementById('bn_'+si+'_'+ri).value||'').trim(); const img=(document.getElementById('bi_'+si+'_'+ri).value||'').trim(); const cloud=(document.getElementById('bc_'+si+'_'+ri).value||'').trim(); if(!name||!img){alert('Vyplň název i cestu k obrázku');return;} const b={slug:toSlug(name),name,thumbnail:img,image:img}; if(cloud)b.cloud=cloud; (_manifest.seasons[si].raids[ri].bosses=_manifest.seasons[si].raids[ri].bosses||[]).push(b); renderEditor();renderRaids();saveCfg(); }
+function removeBoss(si,ri,bi){ if(!confirm('Smazat bosse?'))return; _manifest.seasons[si].raids[ri].bosses.splice(bi,1); renderEditor();renderRaids();saveCfg(); }
+function setCloud(si,ri,bi){ const b=_manifest.seasons[si].raids[ri].bosses[bi]; const v=prompt('Cloud share id (?r=) pro „'+b.name+'". Prázdné = jen slug.', b.cloud||''); if(v===null)return; if(v.trim())b.cloud=v.trim(); else delete b.cloud; renderEditor();renderRaids();saveCfg(); }
 function downloadManifest(){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(_manifest,null,2)],{type:'application/json'})); a.download='manifest.json';a.click(); }
 
 init();

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raid — rozcestník</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--txt:#e6e9f2;--dim:#8b92a6;--line:rgba(255,255,255,.1);--accent:#4f8eff}
+body{background:#080a10;color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+.bg{position:fixed;inset:0;z-index:-3;background:#0b1020 center/cover no-repeat;filter:brightness(.55) saturate(1.05)}
+.bg::after{content:'';position:absolute;inset:0;background:radial-gradient(135% 115% at 50% 28%,transparent 0%,transparent 30%,rgba(2,3,8,.6) 80%,rgba(1,2,6,.88) 100%),linear-gradient(180deg,rgba(4,6,14,.45),rgba(2,3,8,.78))}
+.wrap{max-width:1180px;margin:0 auto;padding:26px 24px 70px}
+.top{display:flex;align-items:center;gap:14px;margin-bottom:26px}
+.back{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:#dfe5f3;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(8px)}
+.back:hover{background:rgba(255,255,255,.14)}
+.hero{padding:14px 0 4px}
+.hero h1{font-size:34px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;text-shadow:0 2px 14px rgba(0,0,0,.7)}
+.hero .sub{font-size:13px;color:var(--dim);margin-top:4px;font-weight:600}
+.boss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:24px}
+.boss-card{position:relative;height:130px;border-radius:11px;overflow:hidden;cursor:pointer;border:1px solid var(--line);display:block;transition:border-color .2s,transform .15s;background:rgba(12,16,28,.4);backdrop-filter:blur(8px)}
+.boss-card:hover{border-color:rgba(79,142,255,.55);transform:translateY(-2px)}
+.boss-card img{width:100%;height:100%;object-fit:cover;display:block;filter:brightness(.6);transition:filter .2s}
+.boss-card:hover img{filter:brightness(.82)}
+.boss-card-label{position:absolute;bottom:0;left:0;right:0;padding:11px 14px;background:linear-gradient(transparent,rgba(0,0,0,.88))}
+.boss-card-name{font-size:14px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fff}
+.loading,.empty{text-align:center;padding:60px 20px;color:var(--dim);font-size:14px}
+a{text-decoration:none;color:inherit}
+</style>
+</head>
+<body>
+<div class="bg" id="bg"></div>
+<div class="wrap">
+  <div class="top"><a class="back" href="index.html">← Zpět na guildu</a></div>
+  <div id="root"><div class="loading">Načítám raid…</div></div>
+</div>
+<script>
+const API_BASE='https://raidguide-api.filip-tesarik1.workers.dev';
+const GH_RAW='https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/';
+const CFG_KEY='index-cfg';
+function escH(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function cap(s){s=String(s||'');return s.charAt(0).toUpperCase()+s.slice(1);}
+function raidBg(r){return r.background||(r.slug?`Images/${cap(r.slug)}/${cap(r.slug)}_Background.jpg`:'');}
+function qp(k){return new URLSearchParams(location.search).get(k)||'';}
+function allRaids(cfg){
+  if(cfg&&Array.isArray(cfg.seasons)) return cfg.seasons.reduce((a,se)=>a.concat(se.raids||[]),[]);
+  if(cfg&&Array.isArray(cfg.raids)) return cfg.raids;
+  return [];
+}
+async function loadCfg(){
+  try{ const r=await fetch(API_BASE+'/api/roster/'+CFG_KEY+'?_='+Date.now()); if(r.ok){ const j=await r.json(); if(j&&(j.seasons||j.raids)) return j; } }catch(e){}
+  try{ const r=await fetch(GH_RAW+'Images/manifest.json?_='+Date.now()); if(r.ok) return await r.json(); }catch(e){}
+  return {seasons:[]};
+}
+async function init(){
+  const slug=qp('raid');
+  const cfg=await loadCfg();
+  const raid=allRaids(cfg).find(r=>String(r.slug)===slug);
+  const root=document.getElementById('root');
+  if(!raid){ root.innerHTML='<div class="empty">Raid nenalezen.</div>'; document.title='Raid nenalezen'; return; }
+  document.title=raid.name+' — rozcestník';
+  const bg=raidBg(raid);
+  if(bg) document.getElementById('bg').style.backgroundImage=`url('${GH_RAW}${bg}')`;
+  const bosses=raid.bosses||[];
+  let h=`<div class="hero"><h1>${escH(raid.name)}</h1><div class="sub">${bosses.length} boss${bosses.length===1?'':'ů'} · klikni na bosse pro guide</div></div>`;
+  if(!bosses.length){ h+='<div class="empty">Zatím žádní bossové.</div>'; }
+  else{
+    h+='<div class="boss-grid">'+bosses.map(b=>{
+      const href='guide.html?boss='+encodeURIComponent(b.slug)+(b.cloud?('&r='+encodeURIComponent(b.cloud)):'');
+      return `<a class="boss-card" href="${href}"><img src="${GH_RAW}${escH(b.thumbnail||b.image||'')}" alt="${escH(b.name)}" onerror="this.style.opacity='0'"><div class="boss-card-label"><div class="boss-card-name">${escH(b.name)}</div></div></a>`;
+    }).join('')+'</div>';
+  }
+  root.innerHTML=h;
+}
+init();
+</script>
+</body>
+</html>
