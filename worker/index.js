@@ -21,10 +21,11 @@ const CORS_HEADERS = {
 };
 
 /* ---------------- Edit lock (soft) ----------------
- * Zápis do "chráněných" klíčů vyžaduje hlavičku X-Edit-Pass == secret EDIT_PASSWORD.
+ * Zápis do "chráněných" klíčů vyžaduje hlavičku X-Edit-Pass == aktuální heslo.
+ * Heslo je uložené v KV ('edit-pass') a dá se měnit z webu (POST /api/editpass).
+ * Fallback: secret EDIT_PASSWORD (pokud KV prázdné). Když není ani jedno → zámek vypnutý.
  * Chráněné = statická konfigurace + HLAVNÍ guidy (cloud/slug bossů z index-cfg) + spells.
- * Vlastní sdílené kopie (náhodné / pojmenované přes Share) zůstávají volně zapisovatelné.
- * Dokud není EDIT_PASSWORD nastaven, je zámek vypnutý (nic se nerozbije). */
+ * Vlastní sdílené kopie zůstávají volně zapisovatelné. */
 const PROTECTED_STATIC = new Set([
   'main', 'index-cfg', 'trial-roster', 'roster-sheets', 'loot-archive',
   'wcl-cfg', 'wcl-creds', 'blizz-specs', 'blizz-ach', 'blizz-token',
@@ -53,9 +54,18 @@ async function isProtectedKey(env, id) {
   return mk.has(id);
 }
 
-function editAuthOK(request, env) {
-  if (!env.EDIT_PASSWORD) return true;                 // zámek vypnutý dokud secret není
-  return (request.headers.get('X-Edit-Pass') || '') === env.EDIT_PASSWORD;
+async function getConfiguredPass(env) {
+  try {
+    const kv = await env.ROSTERS.get('edit-pass');
+    if (kv != null && kv !== '') return kv;
+  } catch (e) {}
+  return (env.EDIT_PASSWORD || '');
+}
+
+async function editAuthOK(request, env) {
+  const pass = await getConfiguredPass(env);
+  if (!pass) return true;                               // zámek vypnutý dokud heslo není
+  return (request.headers.get('X-Edit-Pass') || '') === pass;
 }
 
 // Default guild identity (overridable via ?realm=&name=&region= query params)
@@ -288,6 +298,30 @@ export default {
       return new Response(null, { headers: CORS_HEADERS });
     }
 
+    /* ----- Edit heslo: stav ----- */
+    if (request.method === 'GET' && pathname === '/api/haspass') {
+      const pass = await getConfiguredPass(env);
+      return json({ configured: !!pass });
+    }
+
+    /* ----- Edit heslo: nastavení / změna ----- */
+    if (request.method === 'POST' && pathname === '/api/editpass') {
+      let body;
+      try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+      const current = await getConfiguredPass(env);
+      const supplied = (body.current != null ? body.current : (request.headers.get('X-Edit-Pass') || ''));
+      if (current && supplied !== current) {
+        return json({ error: 'bad-current' }, 403);
+      }
+      const next = (body.next == null ? '' : String(body.next));
+      if (!next) {
+        await env.ROSTERS.delete('edit-pass');          // prázdné = vypnout zámek
+        return json({ ok: true, configured: false });
+      }
+      await env.ROSTERS.put('edit-pass', next);
+      return json({ ok: true, configured: true });
+    }
+
     /* ----- Blizzard guild ----- */
     if (request.method === 'GET' && pathname === '/api/blizz/guild') {
       const guild = {
@@ -423,7 +457,7 @@ export default {
     const matchPut = pathname.match(/^\/api\/roster\/([a-z0-9-]+)$/);
     if (request.method === 'PUT' && matchPut) {
       const id = matchPut[1];
-      if (await isProtectedKey(env, id) && !editAuthOK(request, env)) {
+      if (await isProtectedKey(env, id) && !(await editAuthOK(request, env))) {
         return json({ error: 'locked', locked: true }, 403);
       }
       const existing = await env.ROSTERS.get(id);
@@ -446,7 +480,7 @@ export default {
     // PUT /api/spells/:slug
     const matchSpellPut = pathname.match(/^\/api\/spells\/([a-z0-9-]+)$/);
     if (request.method === 'PUT' && matchSpellPut) {
-      if (!editAuthOK(request, env)) return json({ error: 'locked', locked: true }, 403);
+      if (!(await editAuthOK(request, env))) return json({ error: 'locked', locked: true }, 403);
       let body;
       try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
       const payload = { ...body, updatedAt: new Date().toISOString() };

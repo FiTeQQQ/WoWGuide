@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Správa edit hesla</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0b0f;color:#e6e9f2;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{width:100%;max-width:420px;background:#13151f;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:26px}
+h1{font-size:20px;margin-bottom:4px}
+.sub{font-size:13px;color:#8b92a6;margin-bottom:20px}
+label{display:block;font-size:12px;color:#aab1c4;margin:14px 0 5px}
+input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:#0e1018;color:#e6e9f2;font-size:14px;outline:none}
+input:focus{border-color:#4f8eff}
+button{width:100%;margin-top:18px;padding:11px;border:none;border-radius:8px;background:#1f6feb;color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+button:hover{background:#2a7bff}
+button.ghost{background:transparent;border:1px solid rgba(255,255,255,.16);color:#cbd2e0;margin-top:10px}
+.msg{margin-top:16px;font-size:13px;padding:10px 12px;border-radius:8px;display:none}
+.msg.ok{display:block;background:rgba(46,160,67,.16);color:#7ee49a;border:1px solid rgba(46,160,67,.4)}
+.msg.err{display:block;background:rgba(248,81,73,.14);color:#ff9b95;border:1px solid rgba(248,81,73,.4)}
+.hint{font-size:11px;color:#6b7280;margin-top:6px}
+.row-link{margin-top:18px;text-align:center;font-size:12px}
+.row-link a{color:#4f8eff;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🔒 Správa edit hesla</h1>
+  <div class="sub" id="state">Načítám…</div>
+
+  <div id="form">
+    <div id="curWrap" style="display:none">
+      <label>Současné heslo</label>
+      <input type="password" id="cur" autocomplete="off" placeholder="zadej současné heslo">
+    </div>
+    <label>Nové heslo</label>
+    <input type="password" id="next" autocomplete="off" placeholder="nové heslo">
+    <label>Nové heslo znovu</label>
+    <input type="password" id="next2" autocomplete="off" placeholder="zopakuj nové heslo">
+    <button onclick="save()">Uložit heslo</button>
+    <button class="ghost" onclick="disableLock()">Vypnout zámek (smazat heslo)</button>
+    <div class="hint">Heslo platí pro úpravy webu (index, roster, hlavní guidy). Funguje z jakéhokoli počítače.</div>
+  </div>
+
+  <div class="msg" id="msg"></div>
+  <div class="row-link"><a href="index.html">← Zpět na guildu</a></div>
+</div>
+
+<script>
+const API_BASE = 'https://raidguide-api.filip-tesarik1.workers.dev';
+let CONFIGURED = false;
+
+function show(type, text){ const m=document.getElementById('msg'); m.className='msg '+type; m.textContent=text; }
+
+async function init(){
+  try{
+    const r = await fetch(API_BASE+'/api/haspass');
+    const j = await r.json();
+    CONFIGURED = !!j.configured;
+  }catch(e){ CONFIGURED=false; }
+  document.getElementById('curWrap').style.display = CONFIGURED ? '' : 'none';
+  document.getElementById('state').textContent = CONFIGURED
+    ? 'Heslo je nastavené. Pro změnu zadej současné a nové heslo.'
+    : 'Heslo zatím není nastavené — zadej první heslo a zámek se aktivuje.';
+}
+
+async function save(){
+  const cur = document.getElementById('cur').value;
+  const next = document.getElementById('next').value;
+  const next2 = document.getElementById('next2').value;
+  if(!next){ show('err','Zadej nové heslo.'); return; }
+  if(next !== next2){ show('err','Hesla se neshodují.'); return; }
+  try{
+    const r = await fetch(API_BASE+'/api/editpass', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ current: cur, next: next })
+    });
+    if(r.status===403){ show('err','Současné heslo nesedí.'); return; }
+    if(!r.ok){ show('err','Uložení selhalo ('+r.status+').'); return; }
+    try{ sessionStorage.setItem('editPass', next); }catch(e){}
+    show('ok','✅ Heslo uloženo. Na tomto zařízení už jsi přihlášený k editaci.');
+    CONFIGURED = true;
+    document.getElementById('curWrap').style.display='';
+    document.getElementById('cur').value=''; document.getElementById('next').value=''; document.getElementById('next2').value='';
+  }catch(e){ show('err','Chyba spojení.'); }
+}
+
+async function disableLock(){
+  if(!confirm('Opravdu vypnout zámek? Pak bude moct editovat kdokoli.')) return;
+  const cur = document.getElementById('cur').value;
+  try{
+    const r = await fetch(API_BASE+'/api/editpass', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ current: cur, next: '' })
+    });
+    if(r.status===403){ show('err','Současné heslo nesedí.'); return; }
+    if(!r.ok){ show('err','Selhalo ('+r.status+').'); return; }
+    try{ sessionStorage.removeItem('editPass'); }catch(e){}
+    show('ok','Zámek vypnut.');
+    CONFIGURED=false; document.getElementById('curWrap').style.display='none';
+  }catch(e){ show('err','Chyba spojení.'); }
+}
+
+init();
+</script>
+</body>
+</html>
