@@ -6,7 +6,8 @@
 <script>
 /* ── Admin edit-lock gate (sdílené napříč stránkami) ── */
 (function(){
-  var IS_ADMIN = /(^|\/)admin\/?$/.test(location.pathname);
+  var sp = new URLSearchParams(location.search);
+  var IS_ADMIN = /(^|\/)admin(\/|$)/.test(location.pathname) || sp.get('admin')==='1' || sp.get('edit')==='1';
   var P = ''; try{ P = sessionStorage.getItem('editPass') || ''; }catch(e){}
   window.__IS_ADMIN = IS_ADMIN;
   window.__getEditPass = function(){ return P; };
@@ -24,7 +25,16 @@
     return of(input, init);
   };
   if(IS_ADMIN){
-    var go=function(){ if(!P){ setTimeout(function(){ var p = prompt('🔒 Admin režim — zadej edit heslo:'); if(p){ window.__setEditPass(p); } }, 300); } };
+    var go=function(){
+      if(!P){ setTimeout(function(){ var p = prompt('🔒 Admin režim — zadej edit heslo:'); if(p){ window.__setEditPass(p); } }, 300); }
+      if(document.body && !document.getElementById('__adminBadge')){
+        var b=document.createElement('div'); b.id='__adminBadge'; b.textContent='🔓 ADMIN — edit povolen';
+        b.style.cssText='position:fixed;right:10px;bottom:10px;z-index:99999;background:#1f6feb;color:#fff;font:600 12px system-ui;padding:6px 11px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.4);cursor:pointer;opacity:.92';
+        b.title='Klikni pro změnu / odhlášení hesla';
+        b.onclick=function(){ var p=prompt('Edit heslo (prázdné = odhlásit):', P); if(p!==null){ window.__setEditPass(p); location.reload(); } };
+        document.body.appendChild(b);
+      }
+    };
     if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', go); else go();
   }
 })();
