@@ -2659,6 +2659,13 @@ let assignmentExtras = [
 let showGroups  = true;
 let groupsLabel = 'Execution Sentence Groups';
 let groupsColor = '#F48CBA';
+// ── BENCH (lidé navíc) — přepínatelná sekce ──
+let showBench   = false;
+let benchLabel  = 'Bench';
+let benchColor  = '#94a3b8';
+let benchSize   = 5;
+// ── GROUP ŠABLONY (globální, cloud-synced; jen rozdělení do Group 1–4) ──
+let groupTemplates = []; // [{id,name,groups:[[name|null ×5] ×4]}]
 let canvasData  = {};    // { slideId: [canvasObj, ...] }
 let cvTypeDefaults = {}; // { player:25, group:36, marker:36, boss:40, spell:40 } — per-type default icon size (cloud-synced)
 const CV_SIZE_FALLBACK = { player:25, group:36, marker:36, boss:40, spell:40, text:16 };
@@ -2700,8 +2707,14 @@ function initSlots(){
       for(let i=0;i<Math.min(old.length,ex.size);i++) slots[ex.id][i]=old[i];
     }
   });
+  // bench (vždy drž pole o velikosti benchSize, i když je sekce skrytá → data se neztratí)
+  if(!slots.bench) slots.bench=Array(benchSize).fill(null);
+  else if(slots.bench.length!==benchSize){
+    const old=slots.bench; slots.bench=Array(benchSize).fill(null);
+    for(let i=0;i<Math.min(old.length,benchSize);i++) slots.bench[i]=old[i];
+  }
   Object.keys(slots).forEach(k=>{
-    if(!['exec1','exec2','exec3','exec4'].includes(k)&&!assignmentExtras.find(e=>e.id===k)) delete slots[k];
+    if(!['exec1','exec2','exec3','exec4','bench'].includes(k)&&!assignmentExtras.find(e=>e.id===k)) delete slots[k];
   });
 }
 
@@ -2774,6 +2787,10 @@ function loadState(){
     if(d.showGroups!==undefined) showGroups=d.showGroups;
     if(d.groupsLabel) groupsLabel=d.groupsLabel;
     if(d.groupsColor) groupsColor=d.groupsColor;
+    if(d.showBench!==undefined) showBench=d.showBench;
+    if(d.benchLabel) benchLabel=d.benchLabel;
+    if(d.benchColor) benchColor=d.benchColor;
+    if(d.benchSize) benchSize=d.benchSize;
     initSlots();
     if(d.slots) Object.entries(d.slots).forEach(([k,v])=>{ if(slots[k]) for(let i=0;i<Math.min(v.length,slots[k].length);i++) slots[k][i]=v[i]; });
     images=d.images||{};
@@ -2820,7 +2837,7 @@ function saveState(){
       const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title');
       _slideBarsSnap[sl.id]={num:num?num.textContent:'',title:ttl?ttl.innerHTML:''};
     });
-    localStorage.setItem(_lsKey(),JSON.stringify({roster,slots,images,assignmentExtras,showGroups,groupsLabel,groupsColor,canvasData,variantCanvasData,cvPresets,cvTypeDefaults,slideNotes:_slideNotesSnap,slideBars:_slideBarsSnap,deletedSlides,slidesHTML:serializeSlides(),theme:savedTheme}));
+    localStorage.setItem(_lsKey(),JSON.stringify({roster,slots,images,assignmentExtras,showGroups,groupsLabel,groupsColor,showBench,benchLabel,benchColor,benchSize,canvasData,variantCanvasData,cvPresets,cvTypeDefaults,slideNotes:_slideNotesSnap,slideBars:_slideBarsSnap,deletedSlides,slidesHTML:serializeSlides(),theme:savedTheme}));
   }catch(e){ console.warn('saveState localStorage error:',e); }
   syncRosterCloud();
   _autoCloudSync();
@@ -3057,6 +3074,14 @@ function assignPlayer(pid,group,idx){
 }
 function unassignPlayer(pid){for(const arr of Object.values(slots)){const i=arr.indexOf(pid);if(i>=0){arr[i]=null;return;}}}
 function playerById(pid){return roster.find(p=>p.id===pid);}
+function renamePlayer(pid){
+  const p=playerById(pid);if(!p)return;
+  const nn=(window.prompt('Nové jméno hráče (např. po změně nicku ve hře):',p.name)||'').trim();
+  if(!nn||nn===p.name)return;
+  p.name=nn;
+  saveState();renderAll();
+  toast('Přejmenováno na '+nn+'.');
+}
 function getAltsOfMain(mainId){return roster.filter(p=>p.altOf===mainId).sort((a,b)=>a.name.localeCompare(b.name));}
 function getMainOfAlt(altId){const p=playerById(altId);if(!p||!p.altOf)return null;return playerById(p.altOf);}
 function bulkAssign(group){const arr=slots[group];const sel=[...selected];let si=0;for(let i=0;i<arr.length&&si<sel.length;i++){if(arr[i]===null)assignPlayer(sel[si++],group,i);}selected.clear();saveState();renderAll();}
@@ -3099,6 +3124,7 @@ function renderRoster(){
       for(const extra of assignmentExtras){
         if(activeAssigns.has(extra.id) && allSlots.some(s=>s.group===extra.id))matches=true;
       }
+      if(activeAssigns.has('bench') && allSlots.some(s=>s.group==='bench'))matches=true;
       if(!matches)return false;
     }
     return true;
@@ -3166,6 +3192,12 @@ function rebuildRosterFilters(){
     lab.appendChild(chk);lab.appendChild(document.createTextNode(' '+extra.label));
     ul.appendChild(lab);
   });
+  if(showBench){
+    const lab=document.createElement('label');lab.style.cssText='display:block;margin:3px 0';
+    const chk=document.createElement('input');chk.type='checkbox';chk.className='roster-filter-assign';chk.value='bench';chk.checked=activeAssigns.has('bench');chk.onchange=()=>renderAll();
+    lab.appendChild(chk);lab.appendChild(document.createTextNode(' '+benchLabel));
+    ul.appendChild(lab);
+  }
   assignCol.appendChild(ul);
 }
 function toggleRosterFilter(){
@@ -3316,6 +3348,11 @@ function renderAssignments(){
   gLbl.ondblclick=e=>{if(!isEdit)return;e.stopPropagation();startRenameAssign(gLbl,'groups');};
   gLabelRow.appendChild(gLbl);
   if(isEdit){
+    const tpl=document.createElement('button');tpl.className='btn btn-ghost edit-only';
+    tpl.style.cssText='font-size:10px;padding:1px 8px;';
+    tpl.textContent='▦ Šablony';tpl.title='Uložit / načíst pre-groupy';
+    tpl.onclick=(e)=>{e.stopPropagation();openGroupTemplatesMenu(tpl);};
+    gLabelRow.appendChild(tpl);
     const vis=document.createElement('button');vis.className='btn btn-ghost edit-only';
     vis.style.cssText='font-size:10px;padding:1px 8px;';
     vis.textContent=showGroups?'Skrýt':'Zobrazit';
@@ -3350,6 +3387,13 @@ function renderAssignments(){
     lbl.ondblclick=e=>{if(!isEdit)return;e.stopPropagation();startRenameAssign(lbl,ex.id);};
     labelRow.appendChild(lbl);
     if(isEdit){
+      const up=document.createElement('button');up.className='asgn-size-btn edit-only';up.textContent='▲';up.title='Posunout nahoru';
+      up.disabled=(exIdx===0);if(up.disabled)up.style.opacity='.3';
+      up.onclick=()=>{if(exIdx<=0)return;const a=assignmentExtras;[a[exIdx-1],a[exIdx]]=[a[exIdx],a[exIdx-1]];saveState();renderAll();};
+      const down=document.createElement('button');down.className='asgn-size-btn edit-only';down.textContent='▼';down.title='Posunout dolů';
+      down.disabled=(exIdx===assignmentExtras.length-1);if(down.disabled)down.style.opacity='.3';
+      down.onclick=()=>{const a=assignmentExtras;if(exIdx>=a.length-1)return;[a[exIdx+1],a[exIdx]]=[a[exIdx],a[exIdx+1]];saveState();renderAll();};
+      labelRow.appendChild(up);labelRow.appendChild(down);
       const minus=document.createElement('button');minus.className='asgn-size-btn edit-only';minus.textContent='−';minus.title='Ubrat slot';
       minus.onclick=()=>{if(ex.size<=1)return;ex.size--;initSlots();saveState();renderAll();};
       const sNum=document.createElement('span');sNum.className='asgn-size-num';sNum.textContent=ex.size;
@@ -3370,9 +3414,44 @@ function renderAssignments(){
     panel.appendChild(wrap);
   });
 
-  // ── Add new category (edit mode) ──
+  // ── Bench (lidé navíc) — jen když zapnuto ──
+  if(showBench){
+    const bwrap=document.createElement('div');bwrap.style.marginTop='14px';
+    const bRow=document.createElement('div');bRow.className='asgn-label-row';bRow.style.marginBottom='6px';
+    const bLbl=document.createElement('div');
+    bLbl.id='assign-label-bench';
+    bLbl.style.cssText=`font-size:11px;font-weight:700;color:${benchColor};cursor:pointer;flex:1;`;
+    bLbl.textContent=benchLabel;
+    bLbl.title='Edit Mode: klik = barva, dblklik = přejmenovat';
+    bLbl.onclick=e=>openAssignColorPicker(bLbl,'bench',e);
+    bLbl.ondblclick=e=>{if(!isEdit)return;e.stopPropagation();startRenameAssign(bLbl,'bench');};
+    bRow.appendChild(bLbl);
+    if(isEdit){
+      const minus=document.createElement('button');minus.className='asgn-size-btn edit-only';minus.textContent='−';minus.title='Ubrat slot';
+      minus.onclick=()=>{if(benchSize<=1)return;benchSize--;initSlots();saveState();renderAll();};
+      const sNum=document.createElement('span');sNum.className='asgn-size-num';sNum.textContent=benchSize;
+      const plus=document.createElement('button');plus.className='asgn-size-btn edit-only';plus.textContent='+';plus.title='Přidat slot';
+      plus.onclick=()=>{if(benchSize>=30)return;benchSize++;initSlots();saveState();renderAll();};
+      const off=document.createElement('button');off.className='asgn-del-btn edit-only';off.textContent='×';off.title='Vypnout Bench';
+      off.onclick=()=>{
+        if(!confirm('Vypnout Bench? Přiřazení v bench se uvolní.')) return;
+        (slots.bench||[]).forEach(pid=>{if(pid)unassignPlayer(pid);});
+        showBench=false;saveState();renderAll();
+      };
+      bRow.appendChild(minus);bRow.appendChild(sNum);bRow.appendChild(plus);bRow.appendChild(off);
+    }
+    bwrap.appendChild(bRow);
+    const bchips=document.createElement('div');bchips.style.cssText='display:flex;flex-wrap:wrap;gap:6px;';
+    for(let i=0;i<benchSize;i++) bchips.appendChild(makeSlotChip('bench',i));
+    bwrap.appendChild(bchips);
+    panel.appendChild(bwrap);
+  }
+
+  // ── Add new category / Bench toggle (edit mode) ──
   if(isEdit){
+    const addRow=document.createElement('div');addRow.style.cssText='display:flex;gap:8px;flex-wrap:wrap;align-items:center;';
     const addBtn=document.createElement('button');addBtn.className='asgn-add-btn edit-only';
+    addBtn.style.flex='1';
     addBtn.textContent='+ Přidat kategorii';
     addBtn.onclick=async()=>{
       const name=await promptModal('Nová kategorie','Název kategorie','např. Soak skupina');
@@ -3380,7 +3459,14 @@ function renderAssignments(){
       assignmentExtras.push({id:'asgn_'+uid(),label:name,color:'#a78bfa',size:3});
       initSlots();saveState();renderAll();
     };
-    panel.appendChild(addBtn);
+    addRow.appendChild(addBtn);
+    if(!showBench){
+      const benchBtn=document.createElement('button');benchBtn.className='asgn-add-btn edit-only';
+      benchBtn.textContent='+ Bench';benchBtn.title='Zapnout sekci pro lidi navíc';
+      benchBtn.onclick=()=>{showBench=true;initSlots();saveState();renderAll();};
+      addRow.appendChild(benchBtn);
+    }
+    panel.appendChild(addRow);
   }
 
   renderBulkAssignBtns();
@@ -3403,9 +3489,94 @@ function renderBulkAssignBtns(){
     const b=document.createElement('button');b.className='btn btn-ghost';b.style.cssText='font-size:10px;padding:2px 7px;';
     b.textContent=ex.label.length>10?ex.label.slice(0,9)+'…':ex.label;b.onclick=()=>bulkAssign(ex.id);cont.appendChild(b);
   });
+  if(showBench){
+    const b=document.createElement('button');b.className='btn btn-ghost';b.style.cssText='font-size:10px;padding:2px 7px;';
+    b.textContent=benchLabel.length>10?benchLabel.slice(0,9)+'…':benchLabel;b.onclick=()=>bulkAssign('bench');cont.appendChild(b);
+  }
   const clr=document.createElement('button');clr.className='btn btn-danger';clr.style.cssText='font-size:10px;padding:2px 7px;';
   clr.textContent='✕ Clear';clr.onclick=clearSelected;cont.appendChild(clr);
 }
+
+/* ════════ GROUP ŠABLONY (pre-groupy) — globální, cloud-synced ════════ */
+async function loadGroupTemplatesCloud(){
+  try{
+    const r=await fetch(`${API_BASE}/api/roster/group-templates`,{cache:'no-cache'});
+    if(r.ok){ const j=await r.json(); if(Array.isArray(j.templates)) groupTemplates=j.templates; }
+  }catch(e){ console.warn('loadGroupTemplatesCloud',e); }
+}
+async function _saveGroupTemplatesCloud(){
+  try{ await _putRoster('group-templates',{templates:groupTemplates}); }
+  catch(e){ console.warn('saveGroupTemplatesCloud',e); toast('❌ Uložení šablony selhalo (heslo?).'); }
+}
+async function saveCurrentGroupsAsTemplate(){
+  const name=await promptModal('Nová šablona group','Název šablony','např. Main comp');
+  if(!name)return;
+  const groups=[];
+  for(let g=1;g<=4;g++){
+    groups.push((slots[`exec${g}`]||[]).map(pid=>{ const p=pid?playerById(pid):null; return p?p.name:null; }));
+  }
+  groupTemplates.push({id:'tpl_'+uid(),name,groups});
+  await _saveGroupTemplatesCloud();
+  toast('💾 Šablona „'+name+'" uložena.');
+}
+function applyGroupTemplate(id){
+  const tpl=groupTemplates.find(t=>t.id===id); if(!tpl)return;
+  showGroups=true;
+  // vyčisti všechny 4 groupy
+  for(let g=1;g<=4;g++){ if(slots[`exec${g}`]) slots[`exec${g}`].fill(null); }
+  const byName={}; roster.forEach(p=>{ byName[(p.name||'').toLowerCase()]=p.id; });
+  let placed=0, missing=0;
+  for(let g=0;g<4;g++){
+    const arr=tpl.groups[g]||[];
+    for(let i=0;i<arr.length && i<5;i++){
+      const nm=arr[i]; if(!nm) continue;
+      const pid=byName[String(nm).toLowerCase()];
+      if(pid){ unassignPlayer(pid); slots[`exec${g+1}`][i]=pid; placed++; }
+      else missing++;
+    }
+  }
+  saveState();renderAll();
+  toast(`▦ Šablona „${tpl.name}" načtena (${placed} hráčů${missing?`, ${missing} nenalezeno v rosteru`:''}).`);
+}
+async function deleteGroupTemplate(id){
+  const tpl=groupTemplates.find(t=>t.id===id); if(!tpl)return;
+  if(!confirm(`Smazat šablonu „${tpl.name}"?`)) return;
+  groupTemplates=groupTemplates.filter(t=>t.id!==id);
+  await _saveGroupTemplatesCloud();
+  renderAll();
+}
+let _tplMenuCleanup=null;
+function openGroupTemplatesMenu(anchorEl){
+  if(_tplMenuCleanup){_tplMenuCleanup();_tplMenuCleanup=null;}
+  const menu=document.createElement('div');menu.className='ctx-menu';menu.style.minWidth='210px';
+  const hdr=document.createElement('div');
+  hdr.style.cssText='padding:5px 10px 8px;font-size:11px;font-weight:700;color:var(--accent);border-bottom:1px solid var(--border);margin-bottom:4px;';
+  hdr.textContent='Šablony group';menu.appendChild(hdr);
+  // Save current
+  const saveBtn=document.createElement('button');saveBtn.className='ctx-item';saveBtn.innerHTML='💾 Uložit aktuální groupy';
+  saveBtn.onclick=()=>{ _closeTplMenu(); saveCurrentGroupsAsTemplate(); };
+  menu.appendChild(saveBtn);
+  const sep=document.createElement('div');sep.className='ctx-sep';menu.appendChild(sep);
+  if(!groupTemplates.length){
+    const empty=document.createElement('div');empty.style.cssText='font-size:11px;color:var(--text-dim);padding:6px 10px;';empty.textContent='Žádné uložené šablony';menu.appendChild(empty);
+  } else {
+    groupTemplates.forEach(tpl=>{
+      const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:4px;padding:0 4px;';
+      const b=document.createElement('button');b.className='ctx-item';b.style.flex='1';b.textContent=tpl.name;b.title='Načíst tuto šablonu';
+      b.onclick=()=>{ _closeTplMenu(); applyGroupTemplate(tpl.id); };
+      const del=document.createElement('button');del.className='ctx-item danger';del.textContent='×';del.title='Smazat šablonu';del.style.cssText='flex:0 0 auto;width:26px;justify-content:center;';
+      del.onclick=(e)=>{ e.stopPropagation(); deleteGroupTemplate(tpl.id); _closeTplMenu(); };
+      row.appendChild(b);row.appendChild(del);menu.appendChild(row);
+    });
+  }
+  const rect=anchorEl.getBoundingClientRect();
+  menu.style.top=`${Math.min(rect.bottom+4,window.innerHeight-300)}px`;
+  menu.style.left=`${Math.min(rect.left,window.innerWidth-230)}px`;
+  document.body.appendChild(menu);
+  _tplMenuCleanup=()=>menu.remove();
+  setTimeout(()=>{ const close=e=>{ if(!menu.contains(e.target)){ _closeTplMenu(); document.removeEventListener('mousedown',close); } }; document.addEventListener('mousedown',close); },50);
+}
+function _closeTplMenu(){ if(_tplMenuCleanup){_tplMenuCleanup();_tplMenuCleanup=null;} }
 
 function startRenameAssign(labelEl, key){
   const old=labelEl.textContent;
@@ -3415,6 +3586,7 @@ function startRenameAssign(labelEl, key){
   const commit=()=>{
     const val=inp.value.trim()||old;
     if(key==='groups'){ groupsLabel=val; }
+    else if(key==='bench'){ benchLabel=val; }
     else { const ex=assignmentExtras.find(e=>e.id===key);if(ex) ex.label=val; }
     saveState();renderAll();
   };
@@ -3504,6 +3676,12 @@ function openRosterCtxMenu(pid,x,y){
     rmAlt.onclick=()=>{delete p.altOf;saveState();renderAll();closeCtxMenu();};menu.appendChild(rmAlt);
   }
 
+  // ── Separator + Rename ──
+  const sepRn=document.createElement('div');sepRn.className='ctx-sep';menu.appendChild(sepRn);
+  const rnItem=document.createElement('button');rnItem.className='ctx-item';rnItem.innerHTML='✎ Přejmenovat';
+  rnItem.onclick=()=>{closeCtxMenu();renamePlayer(pid);};
+  menu.appendChild(rnItem);
+
   // ── Separator + Remove ──
   const sep3=document.createElement('div');sep3.className='ctx-sep';menu.appendChild(sep3);
   const rmItem=document.createElement('button');rmItem.className='ctx-item danger';rmItem.innerHTML='🗑 Odebrat z rosteru';
@@ -3533,6 +3711,7 @@ function openAssignPicker(pid,anchorEl,opts={}){
   const pickerGroups = [];
   if(showGroups) ['exec1','exec2','exec3','exec4'].forEach((g,i)=>pickerGroups.push({label:`Group ${i+1}`,group:g}));
   assignmentExtras.forEach(ex=>pickerGroups.push({label:ex.label,group:ex.id}));
+  if(showBench) pickerGroups.push({label:benchLabel,group:'bench'});
   pickerGroups.forEach(({label,group})=>{
     const arr=slots[group]||[];const filled=arr.filter(x=>x!==null).length;const isHere=arr.includes(pid);
     const btn=document.createElement('button');btn.className='btn btn-ghost';btn.style.cssText='width:100%;text-align:left;margin-bottom:3px;font-size:11.5px;padding:5px 8px;display:flex;justify-content:space-between;align-items:center;';
@@ -4504,6 +4683,7 @@ function openAssignColorPicker(labelEl, storageKey, e){
         localStorage.setItem(`assignColor_${storageKey}`,c);
         syncRoleCardColor(storageKey,c);
         if(storageKey==='groups') groupsColor=c;
+        else if(storageKey==='bench'){ benchColor=c;saveState(); }
         else { const ex=assignmentExtras.find(e=>e.id===storageKey); if(ex){ex.color=c;saveState();} }
       }
       pk.remove();
@@ -5745,6 +5925,7 @@ function getSlotOrder(extrasOverride){
     ...Array.from({length:5},(_,i)=>`exec4.${i}`),
   ];
   extras.forEach(ex=>{ for(let i=0;i<ex.size;i++) order.push(`${ex.id}.${i}`); });
+  if(showBench) for(let i=0;i<benchSize;i++) order.push(`bench.${i}`);
   return order;
 }
 
@@ -5772,7 +5953,9 @@ function encodeShare(locked){
     return p ? `${p.name}~${p.class}~${p.spec||''}~${p.specIcon||''}~${p.role||'dps'}~${mainName}~${altsData}` : '';
   });
   // Prefix: compact extras manifest so share link is self-contained
-  const manifest=JSON.stringify(assignmentExtras.map(e=>({id:e.id,label:e.label,color:e.color,size:e.size})));
+  const manifestArr=assignmentExtras.map(e=>({id:e.id,label:e.label,color:e.color,size:e.size}));
+  if(showBench) manifestArr.push({id:'bench',label:benchLabel,color:benchColor,size:benchSize});
+  const manifest=JSON.stringify(manifestArr);
   const payload = (locked?'1':'0') + manifest + '|' + flat.join(',');
   // LZString → URL-safe compressed string
   return LZString?.compressToEncodedURIComponent
@@ -6039,7 +6222,7 @@ function buildPayload(lock=false){
     const num=sl.querySelector('.slide-num'); const ttl=sl.querySelector('.slide-title');
     slideBars[sl.id]={num:num?num.textContent:'',title:ttl?ttl.innerHTML:''};
   });
-  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, canvasData, variantCanvasData, cvTypeDefaults, locked: lock, slideNotes, slideBars, deletedSlides, slidesHTML: serializeSlides(), theme: savedTheme, tlEdits: _tlEdits, tlBosses: _tlBosses, tlBossCats: _tlBossCats, tlHighlightMode: _tlHighlightMode };
+  return { roster, slots, images, assignmentExtras, showGroups, groupsLabel, groupsColor, showBench, benchLabel, benchColor, benchSize, canvasData, variantCanvasData, cvTypeDefaults, locked: lock, slideNotes, slideBars, deletedSlides, slidesHTML: serializeSlides(), theme: savedTheme, tlEdits: _tlEdits, tlBosses: _tlBosses, tlBossCats: _tlBossCats, tlHighlightMode: _tlHighlightMode };
 }
 
 async function _postRoster(payload){
@@ -6145,6 +6328,11 @@ async function loadFromCloud(id, silent){
     if(data.showGroups!=null) showGroups=data.showGroups;
     if(data.groupsLabel) groupsLabel=data.groupsLabel;
     if(data.groupsColor) groupsColor=data.groupsColor;
+    if(data.showBench!=null) showBench=data.showBench;
+    if(data.benchLabel) benchLabel=data.benchLabel;
+    if(data.benchColor) benchColor=data.benchColor;
+    if(data.benchSize) benchSize=data.benchSize;
+    initSlots(); // dorovná bench pole po načtení slots z cloudu
     if(data.canvasData) canvasData=data.canvasData;
     if(data.variantCanvasData) variantCanvasData=data.variantCanvasData;
     if(data.cvTypeDefaults) cvTypeDefaults=data.cvTypeDefaults;
@@ -6268,6 +6456,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   await loadRosterJson();
   loadRanksList(); // async — sdílené ranky + barvy z trackeru
   loadPresetsCloud(); // async, non-blocking
+  loadGroupTemplatesCloud(); // async, non-blocking — globální pre-groupy
 
   // 3. Načtení z URL — cloud (?r=...) nebo legacy (#d=...)
   loadFromURL();

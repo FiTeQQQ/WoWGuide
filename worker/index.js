@@ -29,6 +29,7 @@ const CORS_HEADERS = {
 const PROTECTED_STATIC = new Set([
   'main', 'index-cfg', 'trial-roster', 'roster-sheets', 'loot-archive',
   'wcl-cfg', 'wcl-creds', 'blizz-specs', 'blizz-ach', 'blizz-token',
+  'group-templates',
 ]);
 
 async function guideMainKeys(env) {
