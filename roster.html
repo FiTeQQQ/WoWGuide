@@ -451,7 +451,8 @@ let hiddenCols=[];          // skryté sloupce (klíče) — sdílené
 let colWidths={};           // šířky sloupců (px), klíč = klíč sloupce — lokální preference
 let zoneNames={};           // vlastní názvy progress sloupců (raidů): {zoneId: název} — sdílené
 function _colW(key){ if(String(key).indexOf('z:')===0) return (colWidths&&colWidths[key])||118; const d={name:180,progress:118,h:100,m:100,note:160}; return (colWidths&&colWidths[key])||d[key]||120; }
-function _zoneLabel(key,z){ const zid=String(key).indexOf('z:')===0?String(key).slice(2):(z&&z.id); if(zoneNames&&zoneNames[zid]) return zoneNames[zid]; return (z&&z.name)||String(zid); }
+function _zoneDefaultLabel(z){ const tag=(+((z&&z.total)||0)===1)?'M':'H/M'; return (_shortRaid((z&&z.name)||'')+' '+tag).trim(); }
+function _zoneLabel(key,z){ const zid=String(key).indexOf('z:')===0?String(key).slice(2):(z&&z.id); if(zoneNames&&zoneNames[zid]!=null&&zoneNames[zid]!=='') return zoneNames[zid]; return _zoneDefaultLabel(z||{id:zid,name:String(zid)}); }
 function renameZone(zid,v){ v=(v||'').trim(); zoneNames=zoneNames||{}; if(v) zoneNames[zid]=v; else delete zoneNames[zid]; save(); flushCloud(); render(); }
 function _thW(key){ return `data-colkey="${key}" style="width:${_colW(key)}px"`; }
 function _rzH(key){ return `<span class="colresize" draggable="false" onmousedown="colResizeStart(event,'${key}')" onclick="event.stopPropagation()" ondragstart="event.preventDefault();return false;"></span>`; }
@@ -579,13 +580,12 @@ function headFor(key,ctx){
     const zid=String(key).slice(2);
     const z=(zonesP||[]).find(x=>String(x.id)===zid)||{id:zid,name:zid,total:0};
     const label=_zoneLabel(key,z);
-    const diffTag=(+z.total===1)?'M':'H/M';
     if(editMode){
       return `<th class="ccol cedit coldrag" ${_thW(key)} draggable="true" ondragstart="colDragStart(event,'${key}')" ondragover="event.preventDefault()" ondrop="colDrop(event,'${key}')">${_rzH(key)}
         <div class="cedit-top"><span class="cdrag" title="Přetáhni pro pořadí">⠿</span></div>
-        <input class="cname" value="${esc(label)}" title="Přejmenovat sloupec raidu" onchange="renameZone('${zid}',this.value)"></th>`;
+        <input class="cname" value="${esc(label)}" title="Přejmenovat sloupec raidu (celý nadpis vč. M / H/M)" onchange="renameZone('${zid}',this.value)"></th>`;
     }
-    return `<th class="coldrag" ${_thW(key)}${dragA(key)} title="Progress v ${esc(z.name)} (součet přes alty)">${_dh()}${esc(_shortRaid(label))} ${diffTag}${_rzH(key)}</th>`;
+    return `<th class="coldrag" ${_thW(key)}${dragA(key)} title="Progress v ${esc(z.name)} (součet přes alty)">${_dh()}${esc(label)}${_rzH(key)}</th>`;
   }
   if(key==='h') return `<th class="coldrag" ${_thW('h')}${dragA('h')} ${so('h')} title="Kolik raidů odehrál s námi (Heroic)">${_dh()}S námi H ${arrow('h')}${_rzH('h')}</th>`;
   if(key==='m') return `<th class="coldrag" ${_thW('m')}${dragA('m')} ${so('m')} title="Kolik raidů odehrál s námi (Mythic)">${_dh()}S námi M ${arrow('m')}${_rzH('m')}</th>`;
