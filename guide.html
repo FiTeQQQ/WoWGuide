@@ -9273,8 +9273,8 @@ function tlRenderTable(q){
     const bossId=cats[ev.ability];
     const boss=bossId?_tlBosses[bossId]:null;
     const color = boss ? boss.color : (ed.color !== undefined ? ed.color : ev.color);
-    // Boss tag řídí i barvu textu a přepisuje manuální nastavení; bez bosse manuální tcolor, jinak default
-    const tcolor = boss ? boss.color : (ed.tcolor || '#ffd100');
+    // Boss tag řídí barvu textu (vlastní boss.tcolor, fallback na boss.color) a přepisuje manuál; bez bosse manuální tcolor
+    const tcolor = boss ? (boss.tcolor || boss.color) : (ed.tcolor || '#ffd100');
     const bg='rgba(255,255,255,0.06)';
     const bossInitial=boss?boss.name.trim().charAt(0).toUpperCase():'';
     const bossLabel=boss
@@ -9451,6 +9451,14 @@ function _tlColorPopApply(c){
     tlRenderTable(document.getElementById('tlSearch').value);
     return;
   }
+  // Řádek má boss tag → uprav barvu textury bosse (platí pro všechny jeho řádky)
+  const _ablC=(_tlColorPopKey||'').split('|')[1]||'';
+  const _bidC=(_tlBossCats[_tlColorPopSlug]||{})[_ablC];
+  if(_bidC && _tlBosses[_bidC]){
+    if(c!==null){ _tlBosses[_bidC].color=c; _tlBosses[_bidC].highlight=_tlColorPopMode; _tlSaveBossData(); _tlRenderBossPanel(); }
+    tlRenderTable(document.getElementById('tlSearch').value);
+    return;
+  }
   if(c===null){ _tlColorReset(_tlColorPopSlug,_tlColorPopKey,_tlColorPopRow); }
   else { _tlColorApply(c,_tlColorPopSlug,_tlColorPopKey,_tlColorPopRow); }
 }
@@ -9481,7 +9489,23 @@ function _tlTextColorPopApply(c){
     tlRenderTable(document.getElementById('tlSearch').value);
     return;
   }
+  // Barva textu bosse (z panelu)
+  if(_tlTextPopSlug==='__boss__'){
+    if(_tlBosses[_tlTextPopKey]){
+      if(c===null) delete _tlBosses[_tlTextPopKey].tcolor; else _tlBosses[_tlTextPopKey].tcolor=c;
+      _tlSaveBossData(); _tlRenderBossPanel(); tlRenderTable(document.getElementById('tlSearch').value);
+    }
+    return;
+  }
   if(!_tlTextPopSlug||!_tlTextPopKey) return;
+  // Řádek má boss tag → uprav barvu textu bosse (platí pro všechny jeho řádky)
+  const _ablT=(_tlTextPopKey||'').split('|')[1]||'';
+  const _bidT=(_tlBossCats[_tlTextPopSlug]||{})[_ablT];
+  if(_bidT && _tlBosses[_bidT]){
+    if(c===null) delete _tlBosses[_bidT].tcolor; else _tlBosses[_bidT].tcolor=c;
+    _tlSaveBossData(); _tlRenderBossPanel(); tlRenderTable(document.getElementById('tlSearch').value);
+    return;
+  }
   const val = c===null ? '#ffd100' : c;
   if(c===null){
     if(_tlEdits[_tlTextPopSlug]&&_tlEdits[_tlTextPopSlug][_tlTextPopKey]) delete _tlEdits[_tlTextPopSlug][_tlTextPopKey]['tcolor'];
@@ -9524,7 +9548,8 @@ function _tlRenderBossPanel(){
   Object.entries(_tlBosses).forEach(([id,boss])=>{
     const active=_tlActiveBoss===id;
     html+=`<div style="display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:6px;cursor:pointer;margin-bottom:2px;${active?'background:rgba(255,255,255,.08);outline:1.5px solid '+boss.color+';outline-offset:-1px':'background:transparent'}" onclick="_tlSetActiveBoss('${id}')">
-      <span style="display:inline-block;width:13px;height:13px;border-radius:50%;background:${boss.color};border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer" title="Změnit barvu" onclick="event.stopPropagation();_tlBossPickColor('${id}',event)"></span>
+      <span style="display:inline-block;width:13px;height:13px;border-radius:50%;background:${boss.color};border:1px solid rgba(255,255,255,.25);flex-shrink:0;cursor:pointer" title="Barva textury" onclick="event.stopPropagation();_tlBossPickColor('${id}',event)"></span>
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:3px;flex-shrink:0;border:1px solid rgba(255,255,255,.25);cursor:pointer;font-size:10px;font-weight:800;line-height:1;color:${boss.tcolor||boss.color};background:rgba(255,255,255,.06)" title="Barva textu" onclick="event.stopPropagation();_tlBossPickTextColor('${id}',event)">A</span>
       <span data-boss-id="${id}" style="font-size:12px;color:${active?'#e2e8f0':'#a8b0c8'};flex:1;font-weight:${active?700:400};overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="2× klik = přejmenovat" ondblclick="event.stopPropagation();_tlBossRename('${id}',this)">${_tlEsc(boss.name)}</span>
       <span title="Overlay mód: ${boss.highlight||'overlay'} — klik = další" onclick="event.stopPropagation();_tlBossToggleHighlight('${id}')" style="font-size:10px;color:${{overlay:'#4ade80',border:'#60a5fa',stripe:'#facc15',fade:'#c084fc','fade-r':'#f472b6'}[boss.highlight||'overlay']||'#4ade80'};cursor:pointer;flex-shrink:0;padding:0 3px;line-height:1;font-weight:700;user-select:none">${{overlay:'▬',border:'□',stripe:'▨',fade:'◧','fade-r':'◨'}[boss.highlight||'overlay']||'▬'}</span>
       <span style="font-size:13px;line-height:1;color:#4b5563;cursor:pointer;flex-shrink:0;padding:0 2px" title="Smazat" onclick="event.stopPropagation();_tlBossDelete('${id}')">×</span>
@@ -9595,6 +9620,17 @@ function _tlBossPickColor(id,e){
   const pw=260,ph=50;
   pop.style.left=Math.min(e.clientX,window.innerWidth-pw-8)+'px';
   pop.style.top=Math.min(e.clientY+4,window.innerHeight-ph-8)+'px';
+}
+function _tlBossPickTextColor(id,e){
+  _tlTextPopSlug='__boss__';
+  _tlTextPopKey=id;
+  _tlTextPopRow=null;
+  const pop=document.getElementById('tlTextColorPop');
+  pop.style.display='flex';
+  const pw=270,ph=130;
+  const cx=e?e.clientX:200, cy=e?e.clientY:200;
+  pop.style.left=Math.max(4,Math.min(cx,window.innerWidth-pw-8))+'px';
+  pop.style.top=Math.max(4,(cy+ph>window.innerHeight-8?cy-ph-4:cy+4))+'px';
 }
 // Popup pro přiřazení bosse (otevírá se kliknutím na dot v tabulce)
 let _tlBossPopAbility=null;
