@@ -883,12 +883,7 @@
   .present-scaler > .slide-img .img-set-btn,
   .present-scaler > .slide-img .img-add-variant-btn,
   .present-scaler > .slide-img .img-dot-bar { display: none !important; }
-  .present-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 54px; height: 88px; border: none; border-radius: 10px; background: rgba(0,0,0,.5); color: #fff; font-size: 30px; cursor: pointer; opacity: .85; transition: opacity .15s, background .15s, right .2s; z-index: 11; }
-  .present-nav:hover { opacity: 1; background: rgba(0,0,0,.75); }
-  .present-nav.prev { left: 14px; }
-  .present-nav.next { right: 14px; }
-  /* Když jsou poznámky otevřené, posuň šipku „další" vlevo od panelu, ať zůstane viditelná */
-  #presentMode.notes-open .present-nav.next { right: 394px; }
+  /* Prezentační boční šipky odstraněny — navigace přes spodní tlačítka a šipky ←/→ */
   .present-vardots { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 7px; background: rgba(0,0,0,.5); padding: 6px 10px; border-radius: 20px; z-index: 6; }
   .present-vardot { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #cfd6e6; font-size: 12px; font-weight: 700; cursor: pointer; }
   .present-vardot:hover { border-color: var(--accent); color: #fff; }
@@ -3855,9 +3850,9 @@ function _applySlideVariant(el){
     arLeft.className='img-arrow-btn img-arrow-left';
     arLeft.innerHTML='&#8249;';
     arLeft.title='Předchozí varianta';
-    arLeft.style.cssText='position:absolute;left:0;top:0;bottom:0;width:44px;background:linear-gradient(to right,rgba(0,0,0,.35),transparent);border:none;color:#fff;font-size:28px;cursor:pointer;z-index:15;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;pointer-events:auto;padding:0';
+    arLeft.style.cssText='position:absolute;left:0;top:0;bottom:0;width:44px;background:linear-gradient(to right,rgba(0,0,0,.35),transparent);border:none;color:#fff;font-size:28px;cursor:pointer;z-index:15;display:flex;align-items:center;justify-content:center;opacity:.45;transition:opacity .15s;pointer-events:auto;padding:0';
     arLeft.onmouseenter=()=>arLeft.style.opacity='1';
-    arLeft.onmouseleave=()=>arLeft.style.opacity='0';
+    arLeft.onmouseleave=()=>arLeft.style.opacity='.45';
     arLeft.onclick=e=>{
       e.stopPropagation();
       const cur=_imgNormalize(id);
@@ -3871,9 +3866,9 @@ function _applySlideVariant(el){
     arRight.className='img-arrow-btn img-arrow-right';
     arRight.innerHTML='&#8250;';
     arRight.title='Další varianta';
-    arRight.style.cssText='position:absolute;right:0;top:0;bottom:0;width:44px;background:linear-gradient(to left,rgba(0,0,0,.35),transparent);border:none;color:#fff;font-size:28px;cursor:pointer;z-index:15;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;pointer-events:auto;padding:0';
+    arRight.style.cssText='position:absolute;right:0;top:0;bottom:0;width:44px;background:linear-gradient(to left,rgba(0,0,0,.35),transparent);border:none;color:#fff;font-size:28px;cursor:pointer;z-index:15;display:flex;align-items:center;justify-content:center;opacity:.45;transition:opacity .15s;pointer-events:auto;padding:0';
     arRight.onmouseenter=()=>arRight.style.opacity='1';
-    arRight.onmouseleave=()=>arRight.style.opacity='0';
+    arRight.onmouseleave=()=>arRight.style.opacity='.45';
     arRight.onclick=e=>{
       e.stopPropagation();
       const cur=_imgNormalize(id);
@@ -8155,8 +8150,6 @@ function presentBuild(){
       </div>
     </div>
     <div class="present-stage" id="presentStage">
-      <button class="present-nav prev" onclick="presentPrev()" title="Předchozí (←)">‹</button>
-      <button class="present-nav next" onclick="presentNext()" title="Další (→)">›</button>
       <div class="present-notes" id="presentNotes"></div>
     </div>
     <div class="present-bottom">
