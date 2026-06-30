@@ -6654,7 +6654,9 @@ document.addEventListener('DOMContentLoaded',async ()=>{
       const tag=document.activeElement?.tagName;
       if(tag==='INPUT'||tag==='TEXTAREA') return;
       e.preventDefault();
-      if(getCloudId()) cloudSave();
+      const tp=document.getElementById('timelinePanel');
+      if(tp && tp.style.display && tp.style.display!=='none' && typeof tlCloudSave==='function') tlCloudSave();
+      else cloudSave();
       return;
     }
     if(e.ctrlKey && e.key.toLowerCase()==='e' && !e.shiftKey && !e.altKey){
@@ -6726,11 +6728,13 @@ function renderCvOverlay(slideId){
     const g=buildCvEl(obj,isSelected,slideId,svg);
     if(g){
       svg.appendChild(g);
-      // Apply rotation AFTER element is in DOM so getBBox() returns real coords
+      // Rotace kolem STŘEDU TVARU (px z geometrie) — ne getBBox(g), který by zahrnul i selection handly → tvar by „uskakoval"
       if((obj.type==='rect'||obj.type==='circle'||obj.type==='triangle') && obj.rot){
         try{
-          const bb=g.getBBox();
-          const rcx=bb.x+bb.width/2, rcy=bb.y+bb.height/2;
+          const sr=svg.getBoundingClientRect();
+          const sw=sr.width||800, sh=sr.height||450;
+          const rcx=((obj.x+(obj.w||0)/2)/100)*sw;
+          const rcy=((obj.y+(obj.h||0)/2)/100)*sh;
           g.setAttribute('transform',`rotate(${obj.rot},${rcx},${rcy})`);
         }catch(e){}
       }
@@ -7416,18 +7420,10 @@ function startCvRotate(obj,slideId,ev){
   const svgW=svgR.width||800, svgH=svgR.height||450;
   // Find the g element in DOM to manipulate directly for smooth drag
   const gEl=svgEl.querySelector('[data-obj-id="'+obj.id+'"]');
-  // Get unrotated center via getBBox (temporarily remove transform)
   const savedRot=obj.rot||0;
-  if(gEl && savedRot!==0) gEl.removeAttribute('transform');
-  let bb=null;
-  try{if(gEl) bb=gEl.getBBox();}catch(err){}
-  // Restore transform
-  if(gEl && savedRot!==0 && bb){
-    gEl.setAttribute('transform',`rotate(${savedRot},${bb.x+bb.width/2},${bb.y+bb.height/2})`);
-  }
-  // Center in SVG user coords
-  const cxSvg=bb?(bb.x+bb.width/2):(obj.x+(obj.w||0)/2)/100*svgW;
-  const cySvg=bb?(bb.y+bb.height/2):(obj.y+(obj.h||0)/2)/100*svgH;
+  // Střed = STŘED TVARU z geometrie (px), shodný s renderem (žádný getBBox vč. handlů)
+  const cxSvg=((obj.x+(obj.w||0)/2)/100)*svgW;
+  const cySvg=((obj.y+(obj.h||0)/2)/100)*svgH;
   // Center in screen coords
   const cxScr=cxSvg+svgR.left, cyScr=cySvg+svgR.top;
   const startAngle=Math.atan2(ev.clientY-cyScr,ev.clientX-cxScr)*(180/Math.PI);
