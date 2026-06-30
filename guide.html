@@ -2832,12 +2832,14 @@ let _autoCloudTimer = null;
 let _suppressCloudSync = false; // true během/po načtení z cloudu → load nikdy nepřepíše cloud
 function _autoCloudSync(){
   if(_suppressCloudSync) return; // nezapisuj zpět to, co jsme právě načetli
+  // Read-only divák na zamčeném hlavním guidu → vůbec nezapisovat (žádné 403, žádný prompt na heslo)
+  if(window.__guideMain && !window.__IS_ADMIN) return;
   const id = getCloudId();
   if(!id) return;
   clearTimeout(_autoCloudTimer);
   _autoCloudTimer = setTimeout(async ()=>{
     try{
-      await _putRoster(id, buildPayload(shareLocked));
+      await _putRoster(id, buildPayload(shareLocked)); // interactive=false → bez promptu
     }catch(e){ console.warn('Auto cloud sync failed:',e); }
   }, 2000);
 }
@@ -3086,7 +3088,7 @@ function syncRosterCloud(){
 }
 
 // ── GROUP CONFLICT HELPERS ──
-const GROUP_SLOTS = ['exec1','exec2','exec3','exec4'];
+const GROUP_SLOTS = ['exec1','exec2','exec3','exec4','exec5','exec6'];
 function isGroupSlot(g){ return GROUP_SLOTS.includes(g); }
 
 // Vrátí důvod blokace nebo false
@@ -6344,12 +6346,12 @@ async function _postRoster(payload){
 }
 
 let _editReauthDeclined=false; // uživatel zrušil zadání hesla → neotravuj dál (reset při ručním uložení)
-async function _putRoster(id, payload){
+async function _putRoster(id, payload, interactive){
   const body=JSON.stringify(payload);
   const doPut=()=>fetch(`${API_BASE}/api/roster/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body});
   let res=await doPut();
-  if(res.status===403 && !_editReauthDeclined){
-    // chráněný klíč bez/se špatným edit heslem → vyžádej heslo a zkus znovu (uloží se do konce session)
+  // Heslo si vyžádáme JEN při ručním uložení (interactive). Na pozadí (auto-sync) nikdy → divák není otravován.
+  if(res.status===403 && interactive && !_editReauthDeclined){
     const pw=(typeof window.prompt==='function')?window.prompt('🔒 Uložení do cloudu odmítnuto — zadej edit heslo:'):'';
     if(pw){ if(typeof window.__setEditPass==='function') window.__setEditPass(pw); res=await doPut(); }
     else { _editReauthDeclined=true; }
@@ -6372,7 +6374,7 @@ async function cloudSave(){
   const payload = buildPayload(lock);
   try {
     if(id){
-      await _putRoster(id, payload);
+      await _putRoster(id, payload, true);
       toast('☁️ Uloženo!');
       setLocked(lock);
     } else {
@@ -9324,7 +9326,7 @@ async function tlCloudSave(){
   }
   if(btn){ btn.disabled=true; btn.textContent='Ukládám…'; }
   try{
-    await _putRoster(_cid, buildPayload(typeof shareLocked!=='undefined'?shareLocked:false));
+    await _putRoster(_cid, buildPayload(typeof shareLocked!=='undefined'?shareLocked:false), true);
     toast('☁️ Timeline uložena!');
     if(btn){ btn.textContent='✓ Uloženo'; setTimeout(()=>{ btn.disabled=false; btn.textContent='☁️ Uložit'; },2000); }
   }catch(e){
