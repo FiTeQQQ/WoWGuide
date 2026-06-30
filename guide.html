@@ -663,7 +663,7 @@
   .asgn-add-btn { width:100%; margin-top:12px; font-size:11px; padding:5px; border:1px dashed var(--border2); background:transparent; border-radius:6px; color:var(--text-dim); cursor:pointer; transition:all .15s; }
   .asgn-add-btn:hover { border-color:var(--accent-border); color:var(--accent); background:var(--accent-dim); }
   body:not(.edit-mode) .edit-only { display:none !important; }
-  #tlTableBody tr.tl-selected { box-shadow: inset 0 0 0 2px rgba(79,142,255,.9); }
+  body.edit-mode #tlTableBody tr.tl-selected { box-shadow: inset 0 0 0 2px rgba(79,142,255,.9); }
   .edit-mode .img-btn-group { display:flex !important; }
 
   /* ── LOCK STATE ── */
@@ -9526,6 +9526,7 @@ let _tlHighlightMode=_tlRead('tlHighlightMode')||'overlay';
 function _tlSetHighlightMode(m){
   _tlHighlightMode=m;
   localStorage.setItem(_tlKey('tlHighlightMode'),m);
+  if(typeof saveState==='function') saveState();
   if(_tlView==='table') tlRenderTable(document.getElementById('tlSearch').value);
 }
 let _tlBosses={}, _tlActiveBoss=null, _tlBossCats={};
@@ -9541,6 +9542,7 @@ let _tlBosses={}, _tlActiveBoss=null, _tlBossCats={};
 function _tlSaveBossData(){
   try{localStorage.setItem(_tlKey('tlBosses'),JSON.stringify(_tlBosses));}catch(e){}
   try{localStorage.setItem(_tlKey('tlBossCats'),JSON.stringify(_tlBossCats));}catch(e){}
+  if(typeof saveState==='function') saveState(); // spustí i auto cloud-sync, ať boss barvy nezmizí po refreshi
 }
 function _tlRenderBossPanel(){
   const el=document.getElementById('tlBossPanelRows'); if(!el) return;
