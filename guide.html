@@ -456,7 +456,8 @@
   .slot-chip:hover { background: rgba(30,35,55,0.9); }
   .slot-chip.empty { border-color:var(--border2); color:var(--text-dim); font-style:italic; }
   .slot-chip .cn { font-weight:600; flex:1; }
-  .slot-chip-tooltip { position:absolute; top:calc(100% + 8px); left:0; background:#0a0a0f; border:1px solid var(--border2); border-radius:6px; padding:6px 8px; font-size:10px; z-index:1001; box-shadow:0 6px 20px rgba(0,0,0,.9); opacity:0; pointer-events:none; transition:opacity 0.15s ease-out; min-width:160px; color:#ffffff; }
+  .slot-chip-tooltip { position:absolute; top:calc(100% + 8px); left:0; background:#0a0a0f !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; border:1px solid var(--border2); border-radius:6px; padding:6px 8px; font-size:10px; z-index:1001; box-shadow:0 6px 20px rgba(0,0,0,.9); opacity:0; pointer-events:none; transition:opacity 0.15s ease-out; min-width:160px; color:#ffffff; }
+  body.glass-on .slot-chip-tooltip { background:#0a0a0f !important; }
   .slot-chip-tooltip .tt-main { margin-bottom:6px; display:flex; align-items:center; gap:4px; font-weight:700; color:var(--text-mid); }
   .slot-chip-tooltip .tt-main img { width:14px; height:14px; border-radius:2px; }
   .slot-chip-tooltip .tt-alts { display:flex; flex-direction:column; gap:3px; }
@@ -3283,8 +3284,9 @@ function makeSlotChip(group,idx){
 
     // Build design tooltip with alts (HTML custom tooltip - FIXED)
     const main=getMainOfAlt(p.id);
-    const allAlts=main?getAltsOfMain(main.id):getAltsOfMain(p.id);
-    if(allAlts && allAlts.length>0){
+    const baseAlts=main?getAltsOfMain(main.id):getAltsOfMain(p.id);
+    const otherAlts=(baseAlts||[]).filter(alt=>alt.id!==p.id);
+    if(main || otherAlts.length>0){
       const tt=document.createElement('div');tt.className='slot-chip-tooltip';
 
       // Show "Main:" only if this player IS an alt
@@ -3293,22 +3295,21 @@ function makeSlotChip(group,idx){
         ttMain.appendChild(clsImgEl(main.class));
         const mainName=document.createElement('span');mainName.style.color=CC[main.class]||'#9ca3af';mainName.textContent=main.name;ttMain.appendChild(mainName);
         tt.appendChild(ttMain);
-
-        const sep=document.createElement('div');sep.className='tt-sep';tt.appendChild(sep);
+        if(otherAlts.length>0){ const sep=document.createElement('div');sep.className='tt-sep';tt.appendChild(sep); }
       }
 
-      // Alts label
-      const altsLabel=document.createElement('div');altsLabel.className='tt-alts-label';altsLabel.textContent='Alts:';tt.appendChild(altsLabel);
-
-      // All alts
-      const ttAlts=document.createElement('div');ttAlts.className='tt-alts';
-      allAlts.filter(alt=>alt.id!==p.id).forEach(alt=>{
-        const altEl=document.createElement('div');altEl.className='tt-alt';
-        altEl.appendChild(clsImgEl(alt.class));
-        const altName=document.createElement('span');altName.className='tt-alt-name';altName.style.color=CC[alt.class]||'#9ca3af';altName.textContent=alt.name;altEl.appendChild(altName);
-        ttAlts.appendChild(altEl);
-      });
-      tt.appendChild(ttAlts);
+      // Alts label + list — jen když existují další alty (ne prázdná sekce)
+      if(otherAlts.length>0){
+        const altsLabel=document.createElement('div');altsLabel.className='tt-alts-label';altsLabel.textContent='Alts:';tt.appendChild(altsLabel);
+        const ttAlts=document.createElement('div');ttAlts.className='tt-alts';
+        otherAlts.forEach(alt=>{
+          const altEl=document.createElement('div');altEl.className='tt-alt';
+          altEl.appendChild(clsImgEl(alt.class));
+          const altName=document.createElement('span');altName.className='tt-alt-name';altName.style.color=CC[alt.class]||'#9ca3af';altName.textContent=alt.name;altEl.appendChild(altName);
+          ttAlts.appendChild(altEl);
+        });
+        tt.appendChild(ttAlts);
+      }
       d.appendChild(tt);
 
       // Show/hide tooltip on hover
