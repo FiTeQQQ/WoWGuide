@@ -2840,6 +2840,46 @@ function _autoCloudSync(){
     }catch(e){ console.warn('Auto cloud sync failed:',e); }
   }, 2000);
 }
+
+// ── ASSIGNMENTY: samostatný NECHRÁNĚNÝ cloud klíč (bez edit hesla) ──
+// Groupy/bench/kategorie jsou provozní data, ukládají se vždy a bez zámku.
+let _autoAsgnTimer = null;
+function _asgnId(){ const id=getCloudId(); return id ? ('asgn-'+id) : null; }
+function _buildAsgnPayload(){
+  return { _asgn:1, slots, assignmentExtras, showGroups, groupsLabel, groupsColor, groupCount,
+           showBench, benchLabel, benchColor, benchSize };
+}
+function _autoAsgnSync(){
+  if(_suppressCloudSync) return;
+  const aid=_asgnId(); if(!aid) return;
+  clearTimeout(_autoAsgnTimer);
+  _autoAsgnTimer=setTimeout(async()=>{
+    try{ await _putRosterById(aid, _buildAsgnPayload()); }
+    catch(e){ console.warn('Auto asgn sync failed:',e); }
+  }, 1200);
+}
+async function _loadAsgnCloud(){
+  const aid=_asgnId(); if(!aid) return false;
+  try{
+    const r=await fetch(`${API_BASE}/api/roster/${aid}`,{cache:'no-cache'});
+    if(!r.ok) return false;
+    const d=await r.json();
+    if(!d || !d._asgn) return false; // samostatný asgn záznam zatím neexistuje → ponech data z guide payloadu
+    if(Array.isArray(d.assignmentExtras)) assignmentExtras=d.assignmentExtras;
+    if(d.showGroups!=null) showGroups=d.showGroups;
+    if(d.groupsLabel) groupsLabel=d.groupsLabel;
+    if(d.groupsColor) groupsColor=d.groupsColor;
+    if(d.groupCount) groupCount=Math.max(1,Math.min(MAX_GROUPS,d.groupCount));
+    if(d.showBench!=null) showBench=d.showBench;
+    if(d.benchLabel) benchLabel=d.benchLabel;
+    if(d.benchColor) benchColor=d.benchColor;
+    if(d.benchSize) benchSize=d.benchSize;
+    initSlots();
+    if(d.slots){ slots=d.slots; initSlots(); }
+    if(typeof renderAll==='function') renderAll();
+    return true;
+  }catch(e){ console.warn('load asgn failed',e); return false; }
+}
 function saveState(){
   try{
     const _slideNotesSnap={};
@@ -2853,6 +2893,7 @@ function saveState(){
   }catch(e){ console.warn('saveState localStorage error:',e); }
   syncRosterCloud();
   _autoCloudSync();
+  _autoAsgnSync(); // assignmenty zvlášť, nechráněný klíč — uloží se i bez hesla
 }
 
 // ── IMAGE VARIANTS ──
@@ -6264,8 +6305,17 @@ async function _postRoster(payload){
   return (await res.json()).id;
 }
 
+let _editReauthDeclined=false; // uživatel zrušil zadání hesla → neotravuj dál (reset při ručním uložení)
 async function _putRoster(id, payload){
-  const res = await fetch(`${API_BASE}/api/roster/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const body=JSON.stringify(payload);
+  const doPut=()=>fetch(`${API_BASE}/api/roster/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body});
+  let res=await doPut();
+  if(res.status===403 && !_editReauthDeclined){
+    // chráněný klíč bez/se špatným edit heslem → vyžádej heslo a zkus znovu (uloží se do konce session)
+    const pw=(typeof window.prompt==='function')?window.prompt('🔒 Uložení do cloudu odmítnuto — zadej edit heslo:'):'';
+    if(pw){ if(typeof window.__setEditPass==='function') window.__setEditPass(pw); res=await doPut(); }
+    else { _editReauthDeclined=true; }
+  }
   if(!res.ok) throw new Error('Save failed');
 }
 
@@ -6278,6 +6328,7 @@ async function _putRosterById(id, payload){
 
 async function cloudSave(){
   // Tiché uložení — pokud je ?r= ID, uloží do cloudu; jinak jen lokálně
+  _editReauthDeclined=false; // ruční uložení → dej heslu novou šanci
   const id = getCloudId();
   const lock = shareLocked;
   const payload = buildPayload(lock);
@@ -6389,6 +6440,7 @@ async function loadFromCloud(id, silent){
     if(data.tlBossCats){ _tlBossCats=data.tlBossCats; try{localStorage.setItem(_tlKey('tlBossCats'),JSON.stringify(_tlBossCats));}catch(e){} }
     if(data.tlHighlightMode){ _tlHighlightMode=data.tlHighlightMode; try{localStorage.setItem(_tlKey('tlHighlightMode'),_tlHighlightMode);}catch(e){} }
     applyTheme(_resolveTheme(data.theme));
+    await _loadAsgnCloud(); // assignmenty z nechráněného klíče přepíšou kopii z guide payloadu (zdroj pravdy)
     saveState(); renderAll(); applyImages(); renderAllCvOverlays();
     updateCloudButtons();
     if(window.__IS_ADMIN){ setTimeout(function(){ try{ if(typeof editMode!=='undefined' && !editMode && typeof toggleEditMode==='function'){ if(typeof isLocked!=='undefined' && isLocked && typeof setLocked==='function') setLocked(false); toggleEditMode(); } }catch(e){} }, 300); }
@@ -9224,6 +9276,7 @@ function _tlInitDrag(){
 function hideTimeline(){ document.getElementById('timelinePanel').style.display='none'; }
 async function tlCloudSave(){
   const btn=document.getElementById('tlSaveBtn');
+  _editReauthDeclined=false; // ruční uložení → dej heslu novou šanci
   const _cid=(typeof getCloudId==='function')?getCloudId():null;
   if(!_cid){ toast('❌ Nejprve sdílej guide přes Share'); return; }
   // Hlavní guide je chráněný → potřebujeme edit heslo, jinak vrátí 403
