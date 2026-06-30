@@ -663,6 +663,7 @@
   .asgn-add-btn { width:100%; margin-top:12px; font-size:11px; padding:5px; border:1px dashed var(--border2); background:transparent; border-radius:6px; color:var(--text-dim); cursor:pointer; transition:all .15s; }
   .asgn-add-btn:hover { border-color:var(--accent-border); color:var(--accent); background:var(--accent-dim); }
   body:not(.edit-mode) .edit-only { display:none !important; }
+  #tlTableBody tr.tl-selected { box-shadow: inset 0 0 0 2px rgba(79,142,255,.9); }
   .edit-mode .img-btn-group { display:flex !important; }
 
   /* ── LOCK STATE ── */
@@ -9121,6 +9122,54 @@ function _tlSetEdit(slug,key,field,val){
 
 let _tlView='table', _tlZoom=2, _tlActive=null;
 
+// ── Hromadný výběr řádků timeline (transientní, neukládá se) ──
+let _tlSel = new Set(); // eKeys "time|ability"
+function tlToggleSel(cb){
+  const tr=cb.closest('tr'); const k=tr&&tr.dataset.key; if(!k) return;
+  if(cb.checked) _tlSel.add(k); else _tlSel.delete(k);
+  tr.classList.toggle('tl-selected', cb.checked);
+  _tlUpdateBulkBar();
+}
+function tlSelectAllToggle(cb){
+  document.querySelectorAll('#tlTableBody tr').forEach(tr=>{
+    const k=tr.dataset.key; if(!k) return;
+    if(cb.checked) _tlSel.add(k); else _tlSel.delete(k);
+    tr.classList.toggle('tl-selected',cb.checked);
+    const rc=tr.querySelector('.tl-rowsel'); if(rc) rc.checked=cb.checked;
+  });
+  _tlUpdateBulkBar();
+}
+function tlClearSel(){
+  _tlSel.clear();
+  document.querySelectorAll('#tlTableBody tr.tl-selected').forEach(tr=>tr.classList.remove('tl-selected'));
+  document.querySelectorAll('#tlTableBody .tl-rowsel').forEach(c=>c.checked=false);
+  const sa=document.getElementById('tlSelAll'); if(sa) sa.checked=false;
+  _tlUpdateBulkBar();
+}
+function _tlUpdateBulkBar(){
+  const bar=document.getElementById('tlBulkBar'); if(!bar) return;
+  const on=(typeof editMode!=='undefined')&&editMode;
+  bar.style.display=(_tlSel.size>0 && on && _tlView==='table')?'flex':'none';
+  const c=document.getElementById('tlBulkCount'); if(c) c.textContent='Vybráno: '+_tlSel.size;
+}
+function tlBulkPickColor(e){
+  if(!_tlSel.size) return;
+  _tlColorPopSlug='__bulk__'; _tlColorPopKey=''; _tlColorPopRow=null;
+  _tlColorPopSetMode(_tlColorPopMode||'overlay');
+  const pop=document.getElementById('tlColorPop'); pop.style.display='flex';
+  const pw=270,ph=110, cx=e?e.clientX:200, cy=e?e.clientY:200;
+  pop.style.left=Math.max(4,Math.min(cx,window.innerWidth-pw-8))+'px';
+  pop.style.top=Math.max(4,(cy+ph>window.innerHeight-8?cy-ph-4:cy+4))+'px';
+}
+function tlBulkPickTextColor(e){
+  if(!_tlSel.size) return;
+  _tlTextPopSlug='__bulk__'; _tlTextPopKey=''; _tlTextPopRow=null;
+  const pop=document.getElementById('tlTextColorPop'); pop.style.display='flex';
+  const pw=270,ph=130, cx=e?e.clientX:200, cy=e?e.clientY:200;
+  pop.style.left=Math.max(4,Math.min(cx,window.innerWidth-pw-8))+'px';
+  pop.style.top=Math.max(4,(cy+ph>window.innerHeight-8?cy-ph-4:cy+4))+'px';
+}
+
 function showTimeline(){
   // Lightblinded (seed) má natvrdo _TL_DATA; každý jiný boss startuje s prázdnou timeline
   if(_isSeedBoss()){
@@ -9149,6 +9198,7 @@ function _tlSyncEditBtn(){
   const on=(typeof editMode!=='undefined') && editMode;
   b.className='btn '+(on?'btn-green':'btn-ghost');
   b.textContent=on?'✏ Úpravy: ZAP':'✏ Edit';
+  if(!on) tlClearSel(); else _tlUpdateBulkBar();
 }
 function _tlInitDrag(){
   const el=document.getElementById('tlGanttView');
@@ -9199,6 +9249,7 @@ function tlSetView(v){
   });
   if(v==='table') tlRenderTable(document.getElementById('tlSearch').value);
   else tlRenderGantt(document.getElementById('tlSearch').value);
+  _tlUpdateBulkBar();
 }
 
 function tlFilter(q){
@@ -9222,7 +9273,8 @@ function tlRenderTable(q){
     const bossId=cats[ev.ability];
     const boss=bossId?_tlBosses[bossId]:null;
     const color = boss ? boss.color : (ed.color !== undefined ? ed.color : ev.color);
-    const tcolor = ed.tcolor || '#ffd100';
+    // Boss tag řídí i barvu textu a přepisuje manuální nastavení; bez bosse manuální tcolor, jinak default
+    const tcolor = boss ? boss.color : (ed.tcolor || '#ffd100');
     const bg='rgba(255,255,255,0.06)';
     const bossInitial=boss?boss.name.trim().charAt(0).toUpperCase():'';
     const bossLabel=boss
@@ -9232,8 +9284,8 @@ function tlRenderTable(q){
     const _hlMode=boss?(boss.highlight||'overlay'):(ed.highlight||_tlHighlightMode);
     const rowStyle=_hlColor?_tlRowStyle(_hlColor,_hlMode):`background:${bg}`;
     const _firstTdBL=_hlColor&&_hlMode==='overlay'?`box-shadow:inset 4px 0 0 0 ${_hlColor}`:``;
-    html+=`<tr style="${rowStyle}" data-key="${_tlEsc(eKey)}">
-      <td style="text-align:center;padding:6px 10px;color:#e2e8f0;font-family:monospace;font-size:14px;font-weight:700;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.08);white-space:nowrap;${_firstTdBL}">${ev.time}</td>
+    html+=`<tr class="${_tlSel.has(eKey)?'tl-selected':''}" style="${rowStyle}" data-key="${_tlEsc(eKey)}">
+      <td style="text-align:center;padding:6px 10px;color:#e2e8f0;font-family:monospace;font-size:14px;font-weight:700;letter-spacing:0.5px;border-right:1px solid rgba(255,255,255,0.08);white-space:nowrap;${_firstTdBL}"><input type="checkbox" class="edit-only tl-rowsel" ${_tlSel.has(eKey)?'checked':''} onclick="event.stopPropagation();tlToggleSel(this)" title="Vybrat řádek" style="margin-right:6px;vertical-align:middle;accent-color:var(--accent);cursor:pointer;width:13px;height:13px">${ev.time}</td>
       <td style="padding:6px 10px;border-right:1px solid rgba(255,255,255,0.05)">
         <span style="display:inline-flex;align-items:center;gap:6px">
           <span class="edit-only" data-tl-color-dot data-slug="${_tlEsc(slug)}" data-key="${_tlEsc(eKey)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;border:1px solid rgba(255,255,255,0.25);cursor:pointer" title="Změnit barvu řádku" onclick="tlPickColor(this,event.clientX,event.clientY)"></span>
@@ -9261,6 +9313,7 @@ function tlRenderTable(q){
     else _tlNotePlaceholder(el,true);
   });
   if(window.WH&&WH.init) setTimeout(()=>{try{WH.init();}catch(e){}},150);
+  _tlUpdateBulkBar();
 }
 function _tlRowStyle(hex,mode){
   const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
@@ -9388,6 +9441,16 @@ function _tlColorPopApply(c){
     }
     return;
   }
+  if(_tlColorPopSlug==='__bulk__'){
+    const slug=_tlActive?_tlActive.slug:_getBossSlug();
+    _tlSel.forEach(k=>{
+      if(c===null){ if(_tlEdits[slug]&&_tlEdits[slug][k]){ delete _tlEdits[slug][k].color; delete _tlEdits[slug][k].highlight; } }
+      else { _tlSetEdit(slug,k,'color',c); _tlSetEdit(slug,k,'highlight',_tlColorPopMode); }
+    });
+    _tlSaveEdits(); if(typeof saveState==='function') saveState();
+    tlRenderTable(document.getElementById('tlSearch').value);
+    return;
+  }
   if(c===null){ _tlColorReset(_tlColorPopSlug,_tlColorPopKey,_tlColorPopRow); }
   else { _tlColorApply(c,_tlColorPopSlug,_tlColorPopKey,_tlColorPopRow); }
 }
@@ -9408,6 +9471,16 @@ function tlPickTextColor(el,cx,cy){
 }
 function _tlTextColorPopApply(c){
   document.getElementById('tlTextColorPop').style.display='none';
+  if(_tlTextPopSlug==='__bulk__'){
+    const slug=_tlActive?_tlActive.slug:_getBossSlug();
+    _tlSel.forEach(k=>{
+      if(c===null){ if(_tlEdits[slug]&&_tlEdits[slug][k]) delete _tlEdits[slug][k].tcolor; }
+      else { _tlSetEdit(slug,k,'tcolor',c); }
+    });
+    _tlSaveEdits(); if(typeof saveState==='function') saveState();
+    tlRenderTable(document.getElementById('tlSearch').value);
+    return;
+  }
   if(!_tlTextPopSlug||!_tlTextPopKey) return;
   const val = c===null ? '#ffd100' : c;
   if(c===null){
@@ -9782,7 +9855,7 @@ function _tlHideTip(){ const t=document.getElementById('tlTip'); if(t) t.style.d
     <div style="width:100%;max-width:700px;margin:0 auto;padding:0 12px 16px">
       <table id="tlTable" style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">
         <thead><tr style="position:sticky;top:0;background:var(--bg2,#161922);z-index:2">
-          <th style="width:58px;text-align:center;padding:6px 4px;border-bottom:1px solid var(--border,#2a2d3a);color:var(--text-dim,#8b8fa8);font-weight:600">Čas</th>
+          <th style="width:72px;text-align:center;padding:6px 4px;border-bottom:1px solid var(--border,#2a2d3a);color:var(--text-dim,#8b8fa8);font-weight:600"><input type="checkbox" id="tlSelAll" class="edit-only" onclick="tlSelectAllToggle(this)" title="Vybrat / zrušit vše (filtrované)" style="margin-right:5px;vertical-align:middle;accent-color:var(--accent);cursor:pointer;width:13px;height:13px">Čas</th>
           <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#2a2d3a);color:var(--text-dim,#8b8fa8);font-weight:600">Abilita</th>
           <th style="width:44px;text-align:center;padding:6px 4px;border-bottom:1px solid var(--border,#2a2d3a);color:var(--text-dim,#8b8fa8);font-weight:600" title="Přiřadít bosse">Boss</th>
           <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#2a2d3a);color:var(--text-dim,#8b8fa8);font-weight:600">Poznámka</th>
@@ -9806,6 +9879,13 @@ function _tlHideTip(){ const t=document.getElementById('tlTip'); if(t) t.style.d
         <button class="btn btn-ghost" style="width:100%;font-size:10px;padding:3px 0" onclick="_tlBossClearAll()">Vymazat přiřazení</button>
       </div>
     </div>
+  </div>
+  <!-- Hromadná lišta výběru (jen edit mode, když je něco vybráno) -->
+  <div id="tlBulkBar" style="display:none;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--border,#2a2d3a);background:var(--bg2,#161922);flex-shrink:0">
+    <span id="tlBulkCount" style="font-size:12px;font-weight:700;color:var(--text)"></span>
+    <button class="btn btn-ghost" style="font-size:12px;padding:4px 12px" onclick="tlBulkPickColor(event)">🎨 Textura / barva</button>
+    <button class="btn btn-ghost" style="font-size:12px;padding:4px 12px" onclick="tlBulkPickTextColor(event)">🅰 Barva textu</button>
+    <button class="btn btn-ghost" style="font-size:12px;padding:4px 12px;margin-left:auto" onclick="tlClearSel()">✕ Zrušit výběr</button>
   </div>
 </div>
 <!-- ====== END TIMELINE PANEL ====== -->
