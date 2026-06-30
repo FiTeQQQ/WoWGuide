@@ -2692,6 +2692,7 @@ let deletedSlides = []; // slide IDs permanently removed by user
 let _cvTool    = 'select';
 let _cvSelSlide= null;
 let _cvSelId   = null;
+let _cvMulti   = new Set(); // víceprvkový výběr (id na _cvSelSlide)
 let _cvDraw    = null;
 let _cvDrag    = null;
 let _cvCopied  = null;
@@ -6725,9 +6726,14 @@ function renderCvOverlay(slideId){
   const objs=canvasData[slideId]||[];
   objs.forEach(obj=>{
     const isSelected=_cvSelSlide===slideId && _cvSelId===obj.id;
-    const g=buildCvEl(obj,isSelected,slideId,svg);
+    const isMember=_cvSelSlide===slideId && _cvMulti.has(obj.id);
+    // Handly jen u primárního a NEzamčeného; zamčený nejde transformovat
+    const g=buildCvEl(obj, isSelected && !obj.locked, slideId, svg);
     if(g){
       svg.appendChild(g);
+      // Vizuální indikace: zamčený = žlutý nádech, člen výběru = modrý nádech
+      if(obj.locked){ g.style.filter='drop-shadow(0 0 1.6px #fbbf24)'; g.style.cursor='not-allowed'; }
+      else if(isMember && !isSelected){ g.style.filter='drop-shadow(0 0 2px #4f8eff)'; }
       // Rotace kolem STŘEDU TVARU (px z geometrie) — ne getBBox(g), který by zahrnul i selection handly → tvar by „uskakoval"
       if((obj.type==='rect'||obj.type==='circle'||obj.type==='triangle') && obj.rot){
         try{
@@ -6762,8 +6768,10 @@ function renderCvOverlay(slideId){
     a.addEventListener('mousedown', e=>{
       if(!editMode||_cvTool!=='select') return;
       e.stopPropagation(); e.preventDefault();
-      cvSelectObj(slideId, obj.id);
-      _cvPotentialDrag={slideId,objId:obj.id,startX:e.clientX,startY:e.clientY,orig:JSON.parse(JSON.stringify(obj))};
+      cvHandleSelectClick(slideId, obj.id, e.shiftKey);
+      const cur=cvFindObj(slideId,obj.id)||obj;
+      if(e.shiftKey || _cvLocked(cur)) return;
+      _cvPotentialDrag={slideId,objId:obj.id,startX:e.clientX,startY:e.clientY,orig:JSON.parse(JSON.stringify(cur))};
     });
     whLayer.appendChild(a);
   });
@@ -6863,6 +6871,7 @@ function buildCvEl(obj,selected,slideId,svg){
   g.dataset.objId=obj.id;
   g.classList.add('cv-obj');
   if(selected) g.classList.add('cv-selected');
+  g.addEventListener('contextmenu',e=>showCvElCtxMenu(e,obj,slideId));
 
   const fillClr=hexAlpha(obj.fill||'#ff4444', obj.fillA??0.3);
   const strokeClr=hexAlpha(obj.stroke||'#ff4444', obj.strokeA??1);
@@ -6890,7 +6899,6 @@ function buildCvEl(obj,selected,slideId,svg){
       {const _stA=(obj.shapeTextAlpha!=null?obj.shapeTextAlpha:1);t.setAttribute('stroke',`rgba(0,0,0,${(0.6*_stA).toFixed(2)})`);} t.setAttribute('stroke-width','0.4%');
       t.textContent=obj.shapeText; g.appendChild(t);
     }
-    g.addEventListener('contextmenu',e=>showCvCtxMenu(e,obj,slideId));
     if(obj.groupTag){
       g.addEventListener('mouseover',function(e){e.stopPropagation();showCvGroupTipForTag(obj,e);});
       g.addEventListener('mousemove',function(e){positionCvGroupTip(e);});
@@ -6921,7 +6929,6 @@ function buildCvEl(obj,selected,slideId,svg){
       {const _stA=(obj.shapeTextAlpha!=null?obj.shapeTextAlpha:1);t.setAttribute('stroke',`rgba(0,0,0,${(0.6*_stA).toFixed(2)})`);} t.setAttribute('stroke-width','0.4%');
       t.textContent=obj.shapeText; g.appendChild(t);
     }
-    g.addEventListener('contextmenu',e=>showCvCtxMenu(e,obj,slideId));
     if(obj.groupTag){
       g.addEventListener('mouseover',function(e){e.stopPropagation();showCvGroupTipForTag(obj,e);});
       g.addEventListener('mousemove',function(e){positionCvGroupTip(e);});
@@ -6957,7 +6964,6 @@ function buildCvEl(obj,selected,slideId,svg){
       {const _stA=(obj.shapeTextAlpha!=null?obj.shapeTextAlpha:1);t.setAttribute('stroke',`rgba(0,0,0,${(0.6*_stA).toFixed(2)})`);} t.setAttribute('stroke-width','0.4%');
       t.textContent=obj.shapeText; g.appendChild(t);
     }
-    g.addEventListener('contextmenu',e=>showCvCtxMenu(e,obj,slideId));
     if(selected) addCvHandles(g,obj,slideId);
   }
   else if(obj.type==='arrow'){
@@ -7334,12 +7340,14 @@ function buildCvEl(obj,selected,slideId,svg){
     }
   }
 
-  // Mousedown: select + start potential drag
+  // Mousedown: select (multi/grupa) + start potential drag (pokud není zamčeno)
   g.addEventListener('mousedown',e=>{
     if(_cvTool!=='select') return;
     e.stopPropagation(); e.preventDefault();
-    cvSelectObj(slideId,obj.id);
-    _cvPotentialDrag={slideId,objId:obj.id,startX:e.clientX,startY:e.clientY,orig:JSON.parse(JSON.stringify(obj))};
+    cvHandleSelectClick(slideId,obj.id,e.shiftKey);
+    const cur=cvFindObj(slideId,obj.id)||obj;
+    if(e.shiftKey || _cvLocked(cur)) return; // zamčený nebo shift-výběr → nezačínat drag
+    _cvPotentialDrag={slideId,objId:obj.id,startX:e.clientX,startY:e.clientY,orig:JSON.parse(JSON.stringify(cur))};
   });
 
   // Double-click text: edit text
@@ -7469,19 +7477,72 @@ function addArrowHandles(g,obj,slideId){
 }
 
 // ─── Selection ───
+function cvFindObj(slideId,objId){ return (canvasData[slideId]||[]).find(o=>o.id===objId); }
+function _cvLocked(o){ return !!(o&&o.locked); }
+// Členové stejné grupy (vč. sebe); bez grupy → jen sám
+function cvGroupMembers(slideId,obj){
+  if(!obj) return [];
+  if(!obj.groupId) return [obj];
+  return (canvasData[slideId]||[]).filter(o=>o.groupId===obj.groupId);
+}
+// Efektivní výběr (objekty) na aktuálním slidu = vše v _cvMulti
+function cvEffectiveSel(){
+  if(!_cvSelSlide) return [];
+  const arr=canvasData[_cvSelSlide]||[];
+  return arr.filter(o=>_cvMulti.has(o.id));
+}
+// Centrální logika kliknutí (Shift = přidat/odebrat; jinak grupa-aware single)
+function cvHandleSelectClick(slideId,objId,shift){
+  const obj=cvFindObj(slideId,objId); if(!obj) return;
+  if(_cvSelSlide && _cvSelSlide!==slideId){ const p=_cvSelSlide; _cvMulti.clear(); _cvSelSlide=null; renderCvOverlay(p); }
+  _cvSelSlide=slideId;
+  if(shift){
+    if(_cvMulti.has(objId)) _cvMulti.delete(objId); else _cvMulti.add(objId);
+    _cvSelId=_cvMulti.has(objId)?objId:([..._cvMulti][0]||null);
+  } else {
+    _cvMulti=new Set();
+    cvGroupMembers(slideId,obj).forEach(m=>_cvMulti.add(m.id));
+    _cvSelId=objId;
+  }
+  renderCvOverlay(slideId);
+  const pr=cvFindObj(slideId,_cvSelId); if(pr) syncPropsPanel(pr);
+}
+function cvGroupSelected(){
+  const sel=cvEffectiveSel(); if(sel.length<2){ toast('Vyber aspoň 2 elementy (Shift+klik).'); return; }
+  const gid='grp_'+cvUid();
+  sel.forEach(o=>o.groupId=gid);
+  saveState(); renderCvOverlay(_cvSelSlide); toast('Seskupeno ('+sel.length+').');
+}
+function cvUngroupSelected(){
+  const sel=cvEffectiveSel(); let n=0;
+  sel.forEach(o=>{ if(o.groupId){ delete o.groupId; n++; } });
+  saveState(); renderCvOverlay(_cvSelSlide); if(n) toast('Skupina zrušena.');
+}
+function cvToggleLock(){
+  const sel=cvEffectiveSel(); if(!sel.length) return;
+  const anyUnlocked=sel.some(o=>!o.locked);
+  sel.forEach(o=>{ if(anyUnlocked) o.locked=true; else delete o.locked; });
+  saveState(); renderCvOverlay(_cvSelSlide);
+  toast(anyUnlocked?'🔒 Zamčeno':'🔓 Odemčeno');
+}
+
 function cvSelectObj(slideId,objId){
   const prevSlide=_cvSelSlide;
   _cvSelSlide=slideId; _cvSelId=objId;
+  // _cvMulti = grupa daného objektu (nebo jen on)
+  _cvMulti=new Set();
+  const o=cvFindObj(slideId,objId);
+  cvGroupMembers(slideId,o).forEach(m=>_cvMulti.add(m.id));
+  if(!_cvMulti.size && objId) _cvMulti.add(objId);
   if(prevSlide && prevSlide!==slideId) renderCvOverlay(prevSlide);
   renderCvOverlay(slideId);
-  const obj=(canvasData[slideId]||[]).find(o=>o.id===objId);
-  if(obj) syncPropsPanel(obj);
+  if(o) syncPropsPanel(o);
 }
 
 function cvDeselect(){
   if(!_cvSelSlide) return;
   const prev=_cvSelSlide;
-  _cvSelSlide=null; _cvSelId=null;
+  _cvSelSlide=null; _cvSelId=null; _cvMulti.clear();
   renderCvOverlay(prev);
   document.getElementById('cvPropsPanel')?.classList.remove('visible');
 }
@@ -7580,8 +7641,12 @@ function cvMouseMove(e,slideId){
     const dx=Math.abs(e.clientX-_cvPotentialDrag.startX);
     const dy=Math.abs(e.clientY-_cvPotentialDrag.startY);
     if(dx>4||dy>4){
-      _cvDrag={type:'move',slideId:_cvPotentialDrag.slideId,objId:_cvPotentialDrag.objId,
-               startX:_cvPotentialDrag.startX,startY:_cvPotentialDrag.startY,orig:_cvPotentialDrag.orig};
+      const _sid=_cvPotentialDrag.slideId;
+      // Movers = celý výběr/grupa (kromě zamčených) — pohyb společně
+      let movers=cvEffectiveSel().filter(o=>!o.locked).map(o=>({id:o.id,orig:JSON.parse(JSON.stringify(o))}));
+      if(!movers.find(m=>m.id===_cvPotentialDrag.objId)){ const po=cvFindObj(_sid,_cvPotentialDrag.objId); if(po&&!po.locked) movers.push({id:po.id,orig:JSON.parse(JSON.stringify(po))}); }
+      _cvDrag={type:'move',slideId:_sid,objId:_cvPotentialDrag.objId,
+               startX:_cvPotentialDrag.startX,startY:_cvPotentialDrag.startY,orig:_cvPotentialDrag.orig,movers};
       _cvPotentialDrag=null;
     }
   }
@@ -7593,8 +7658,13 @@ function cvMouseMove(e,slideId){
     if(!obj) return;
     const orig=_cvDrag.orig;
     if(_cvDrag.type==='move'){
-      if(obj.type==='arrow'){ obj.x1=orig.x1+dx; obj.y1=orig.y1+dy; obj.x2=orig.x2+dx; obj.y2=orig.y2+dy; }
-      else { obj.x=orig.x+dx; obj.y=orig.y+dy; }
+      // Posuň všechny členy výběru/grupy o stejné dx,dy
+      const movers=_cvDrag.movers&&_cvDrag.movers.length?_cvDrag.movers:[{id:obj.id,orig}];
+      movers.forEach(mv=>{
+        const mo=cvFindObj(_cvDrag.slideId,mv.id); if(!mo) return;
+        if(mo.type==='arrow'){ mo.x1=mv.orig.x1+dx; mo.y1=mv.orig.y1+dy; mo.x2=mv.orig.x2+dx; mo.y2=mv.orig.y2+dy; }
+        else { mo.x=mv.orig.x+dx; mo.y=mv.orig.y+dy; }
+      });
     } else if(_cvDrag.type==='resize'){
       const i=_cvDrag.corner;
       if(i===0){ obj.x=orig.x+dx; obj.y=orig.y+dy; obj.w=orig.w-dx; obj.h=orig.h-dy; }
@@ -7760,10 +7830,13 @@ function cvZOrder(dir){
 }
 
 function cvDeleteSelected(){
-  if(!_cvSelSlide||!_cvSelId) return;
-  canvasData[_cvSelSlide]=(canvasData[_cvSelSlide]||[]).filter(function(o){return o.id!==_cvSelId;});
+  if(!_cvSelSlide) return;
+  const sel=cvEffectiveSel(); const ids=new Set(sel.map(o=>o.id));
+  if(_cvSelId) ids.add(_cvSelId);
+  if(!ids.size) return;
+  canvasData[_cvSelSlide]=(canvasData[_cvSelSlide]||[]).filter(o=>!ids.has(o.id));
   const sid=_cvSelSlide;
-  _cvSelSlide=null; _cvSelId=null;
+  _cvSelSlide=null; _cvSelId=null; _cvMulti.clear();
   hideCvGroupTip();
   saveState(); renderCvOverlay(sid);
   document.getElementById('cvPropsPanel').classList.remove('visible');
@@ -7771,24 +7844,39 @@ function cvDeleteSelected(){
 
 let _cvHoverSlide = null;
 function cvCopySelected(){
-  if(!_cvSelSlide||!_cvSelId) return;
-  const obj=(canvasData[_cvSelSlide]||[]).find(function(o){return o.id===_cvSelId;});
-  if(obj) _cvCopied=JSON.parse(JSON.stringify(obj));
+  if(!_cvSelSlide) return;
+  let sel=cvEffectiveSel();
+  if(!sel.length && _cvSelId){ const o=cvFindObj(_cvSelSlide,_cvSelId); if(o) sel=[o]; }
+  if(!sel.length) return;
+  _cvCopied=sel.map(o=>JSON.parse(JSON.stringify(o)));
 }
 
 function cvPaste(){
   if(!_cvCopied) return;
-  // Prefer slide under cursor, fallback to _cvSelSlide, fallback to first slide
+  const items=Array.isArray(_cvCopied)?_cvCopied:[_cvCopied];
+  if(!items.length) return;
   const sid = _cvHoverSlide || _cvSelSlide || (document.querySelector('.slide-img')&&document.querySelector('.slide-img').id);
   if(!sid) return;
-  const n=Object.assign(JSON.parse(JSON.stringify(_cvCopied)),{id:cvUid()});
-  // Offset a bit so it doesn't stack exactly on top
-  if(n.type==='arrow'){ n.x1=(n.x1||0)+3; n.y1=(n.y1||0)+3; n.x2=(n.x2||0)+3; n.y2=(n.y2||0)+3; }
-  else { n.x=(n.x||0)+3; n.y=(n.y||0)+3; }
   if(!canvasData[sid]) canvasData[sid]=[];
-  canvasData[sid].push(n);
-  saveState(); renderCvOverlay(sid); cvSelectObj(sid,n.id);
-  toast('Vloženo na slide ' + (document.getElementById(sid)?.closest('.slide-wrap')?.querySelector('.slide-num')?.textContent || sid));
+  // Pokud kopie obsahovala grupu (víc členů se stejným groupId), zachovej grupu pod novým id
+  const newGid='grp_'+cvUid();
+  const hadGroup=items.length>1 && items.every(o=>o.groupId) && new Set(items.map(o=>o.groupId)).size===1;
+  const newIds=[];
+  items.forEach(src=>{
+    const n=Object.assign(JSON.parse(JSON.stringify(src)),{id:cvUid()});
+    if(n.locked) delete n.locked; // vložené odemknuté
+    if(items.length>1){ if(hadGroup||n.groupId) n.groupId=newGid; }
+    else { delete n.groupId; }
+    if(n.type==='arrow'){ n.x1=(n.x1||0)+3; n.y1=(n.y1||0)+3; n.x2=(n.x2||0)+3; n.y2=(n.y2||0)+3; }
+    else { n.x=(n.x||0)+3; n.y=(n.y||0)+3; }
+    canvasData[sid].push(n); newIds.push(n.id);
+  });
+  saveState(); renderCvOverlay(sid);
+  // Vyber vložené
+  _cvSelSlide=sid; _cvMulti=new Set(newIds); _cvSelId=newIds[0]||null;
+  renderCvOverlay(sid);
+  const pr=cvFindObj(sid,_cvSelId); if(pr) syncPropsPanel(pr);
+  toast((newIds.length>1?newIds.length+' elementů vloženo':'Vloženo')+' na slide ' + (document.getElementById(sid)?.closest('.slide-wrap')?.querySelector('.slide-num')?.textContent || sid));
 }
 
 function _positionPropsPanel(){
@@ -9081,6 +9169,38 @@ function showCvGroupTipForTag(obj, e){
 
 // ══ CANVAS CONTEXT MENU ══
 let _cvCtxSlide=null, _cvCtxId=null;
+
+// Dynamické menu elementu: grupy / zámek / kopírovat / smazat (+ tag pro rect/circle)
+let _cvElMenuCleanup=null;
+function showCvElCtxMenu(e,obj,slideId){
+  e.preventDefault(); e.stopPropagation();
+  if(typeof editMode!=='undefined' && !editMode) return;
+  if(typeof closeCvCtxMenu==='function') closeCvCtxMenu();
+  if(_cvElMenuCleanup){_cvElMenuCleanup();_cvElMenuCleanup=null;}
+  // Klik mimo aktuální výběr → vyber tento element (grupa-aware)
+  if(_cvSelSlide!==slideId || !_cvMulti.has(obj.id)) cvHandleSelectClick(slideId,obj.id,false);
+  const sel=cvEffectiveSel();
+  const menu=document.createElement('div'); menu.className='ctx-menu'; menu.style.minWidth='180px';
+  const add=(html,fn,danger)=>{ const b=document.createElement('button'); b.className='ctx-item'+(danger?' danger':''); b.innerHTML=html; b.onclick=()=>{ if(_cvElMenuCleanup){_cvElMenuCleanup();_cvElMenuCleanup=null;} fn(); }; menu.appendChild(b); };
+  const sep=()=>{ const d=document.createElement('div'); d.className='ctx-sep'; menu.appendChild(d); };
+  if(obj.type==='rect'||obj.type==='circle'){
+    add('🏷 Přiřadit tag…', ()=>showCvCtxMenu(e,obj,slideId));
+    sep();
+  }
+  if(sel.length>1) add('▦ Seskupit ('+sel.length+')', cvGroupSelected);
+  if(sel.some(o=>o.groupId)) add('⊟ Zrušit skupinu', cvUngroupSelected);
+  const anyUnlocked=sel.some(o=>!o.locked);
+  add(anyUnlocked?'🔒 Zamknout':'🔓 Odemknout', cvToggleLock);
+  sep();
+  add('⧉ Kopírovat', cvCopySelected);
+  if(_cvCopied) add('📋 Vložit sem', ()=>{ _cvHoverSlide=slideId; cvPaste(); });
+  add('🗑 Smazat', cvDeleteSelected, true);
+  document.body.appendChild(menu);
+  menu.style.top=Math.min(e.clientY,window.innerHeight-menu.offsetHeight-8)+'px';
+  menu.style.left=Math.min(e.clientX,window.innerWidth-menu.offsetWidth-8)+'px';
+  _cvElMenuCleanup=()=>menu.remove();
+  setTimeout(()=>{ const close=ev=>{ if(!menu.contains(ev.target)){ if(_cvElMenuCleanup){_cvElMenuCleanup();_cvElMenuCleanup=null;} document.removeEventListener('mousedown',close); } }; document.addEventListener('mousedown',close); },50);
+}
 
 function showCvCtxMenu(e, obj, slideId){
   e.preventDefault(); e.stopPropagation();
