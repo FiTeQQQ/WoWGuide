@@ -5481,8 +5481,45 @@ function handleWowheadPaste(e){
   // Match: wowhead.com/[ptr-x/]type=id[/name-slug]
   const m=text.match(/wowhead\.com\/(?:[a-z0-9-]+\/)?([a-z]+)=(\d+)(?:\/([a-z0-9-]+))?/i);
   if(!m){
-    // Not a Wowhead URL — paste as plain text (strip formatting)
     e.preventDefault();
+    // Pokud schránka obsahuje HTML s wowhead odkazem (kopie spell chipu z poznámky) → zachovej 1:1
+    const html=(e.clipboardData||window.clipboardData)?.getData('text/html')||'';
+    if(html && /data-wowhead|wowhead\.com/i.test(html)){
+      const tmp=document.createElement('div'); tmp.innerHTML=html;
+      const isWowA=el=>el.tagName==='A' && (el.getAttribute('data-wowhead')||/wowhead\.com/i.test(el.getAttribute('href')||''));
+      const clean=(node)=>{
+        const out=[];
+        node.childNodes.forEach(ch=>{
+          if(ch.nodeType===3){ if(ch.nodeValue) out.push(document.createTextNode(ch.nodeValue)); return; }
+          if(ch.nodeType!==1) return;
+          if(isWowA(ch)){
+            const a=ch.cloneNode(true);
+            [...a.attributes].forEach(at=>{ if(/^on/i.test(at.name)) a.removeAttribute(at.name); });
+            a.addEventListener('click', ev=>{ ev.stopPropagation(); window.open(a.href,'_blank','noopener,noreferrer'); ev.preventDefault(); });
+            out.push(a); return;
+          }
+          if(ch.tagName==='BR'){ out.push(document.createElement('br')); return; }
+          if(['B','STRONG','I','EM','U','SPAN'].includes(ch.tagName)){
+            const el=document.createElement(ch.tagName.toLowerCase());
+            if(ch.style.fontWeight) el.style.fontWeight=ch.style.fontWeight;
+            if(ch.style.fontStyle) el.style.fontStyle=ch.style.fontStyle;
+            if(ch.style.color) el.style.color=ch.style.color;
+            clean(ch).forEach(n=>el.appendChild(n));
+            out.push(el); return;
+          }
+          clean(ch).forEach(n=>out.push(n)); // ostatní tagy zploštit (text + odkazy se zachovají)
+        });
+        return out;
+      };
+      const frag=document.createDocumentFragment();
+      clean(tmp).forEach(n=>frag.appendChild(n));
+      const sel=window.getSelection();
+      if(sel?.rangeCount){ sel.deleteFromDocument(); const r=sel.getRangeAt(0); r.insertNode(frag); sel.collapseToEnd(); }
+      if(window.$WowheadPower && typeof window.$WowheadPower.init==='function') window.$WowheadPower.init();
+      setTimeout(applyWowheadHandlers, 300);
+      return;
+    }
+    // Jinak vlož jako čistý text (bez formátování)
     const sel=window.getSelection();
     if(!sel?.rangeCount)return;
     sel.deleteFromDocument();
