@@ -2848,7 +2848,10 @@ function _autoCloudSync(){
 // ── ASSIGNMENTY: samostatný NECHRÁNĚNÝ cloud klíč (bez edit hesla) ──
 // Groupy/bench/kategorie jsou provozní data, ukládají se vždy a bez zámku.
 let _autoAsgnTimer = null;
-function _asgnId(){ const id=getCloudId(); return id ? ('asgn-'+id) : null; }
+// Kopie (?r=...) NEpoužívají asgn side-channel — assignmenty mají ve vlastním (nechráněném) payloadu.
+// asgn klíč je jen pro hlavní chráněný guide (ukládání bez hesla).
+function _isCopyGuide(){ try{ return !!new URLSearchParams(location.search).get('r'); }catch(e){ return false; } }
+function _asgnId(){ if(_isCopyGuide()) return null; const id=getCloudId(); return id ? ('asgn-'+id) : null; }
 function _buildAsgnPayload(){
   return { _asgn:1, slots, assignmentExtras, showGroups, groupsLabel, groupsColor, groupCount,
            showBench, benchLabel, benchColor, benchSize };
@@ -2861,6 +2864,19 @@ function _autoAsgnSync(){
     try{ await _putRosterById(aid, _buildAsgnPayload()); }
     catch(e){ console.warn('Auto asgn sync failed:',e); }
   }, 1200);
+}
+// Před sdílením/forkem vlož aktuální assignmenty (z asgn klíče) přímo do payloadu kopie,
+// aby byla kopie soběstačná (jinak by měla prázdné groupy — data žijí v samostatném asgn klíči).
+async function _mergeAsgnIntoPayload(payload){
+  if(!payload) return;
+  const srcId=getCloudId(); if(!srcId) return;
+  const FIELDS=['slots','assignmentExtras','showGroups','groupsLabel','groupsColor','groupCount','showBench','benchLabel','benchColor','benchSize'];
+  const _hasSlots=d=>d&&d.slots&&Object.values(d.slots).some(a=>Array.isArray(a)&&a.some(x=>x));
+  const apply=d=>{ FIELDS.forEach(k=>{ if(d[k]!==undefined) payload[k]=d[k]; }); };
+  // 1) Hlavní payload zdroje (má assignmenty když byl uložen)
+  try{ const r=await fetch(`${API_BASE}/api/roster/${srcId}`,{cache:'no-cache'}); if(r.ok){ const d=await r.json(); if(_hasSlots(d)) apply(d); } }catch(e){}
+  // 2) asgn klíč (nejčerstvější assignmenty bez hesla) — má přednost
+  try{ const r=await fetch(`${API_BASE}/api/roster/asgn-${srcId}`,{cache:'no-cache'}); if(r.ok){ const d=await r.json(); if(d&&d._asgn&&_hasSlots(d)) apply(d); } }catch(e){ console.warn('mergeAsgn failed',e); }
 }
 async function _loadAsgnCloud(){
   const aid=_asgnId(); if(!aid) return false;
@@ -6397,6 +6413,7 @@ async function cloudShare(){
     const customName = await shareModal('', currentId);
     if(customName === null) return;
     const slug = customName.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+    await _mergeAsgnIntoPayload(payload); // zajisti aktuální assignmenty v kopii
     let finalId;
     if(slug){
       await _putRosterById(slug, payload);
@@ -6422,6 +6439,7 @@ async function cloudFork(){
   const slug=customId.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
   const finalId=slug||null; // null = vygeneruj náhodné
   const payload = buildPayload(shareLocked);
+  await _mergeAsgnIntoPayload(payload); // zajisti aktuální assignmenty v kopii
   try {
     const newId = finalId ? await _putRosterById(finalId, payload) : await _postRoster(payload);
     const _bossP = _getBossSlug() !== 'default' ? '&boss='+_getBossSlug() : '';
