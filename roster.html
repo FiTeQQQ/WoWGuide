@@ -370,7 +370,7 @@
     <button class="btn btn-accent admin-only" onclick="openAdd()">+ Přidat hráče</button>
     <button class="btn btn-ghost admin-only" onclick="wclToggle()" title="Načíst účast (S námi H/M) a progress (kolik bossů H/M) z WarcraftLogs. Pustíš typicky po raidu.">📊 Načíst z logů</button>
     <button class="btn btn-ghost" id="editBtn" onclick="rosEdit()" title="Upravit ranky, sloupce a vzhled (vyžaduje heslo)">✏ Edit</button>
-    <button class="btn btn-ghost" id="saveBtn" onclick="cloudSave()" title="Uložit změny do cloudu (jinak zůstanou jen lokálně; pojistka uloží i při zavření okna)">💾 Uložit</button>
+    <button class="btn btn-ghost" id="saveBtn" onclick="cloudSave()" title="Uložit změny do cloudu (jinak zůstanou jen lokálně; pojistka uloží i při zavření okna)">☁ Uložit</button>
     <input class="search" id="search" placeholder="Hledat hráče / poznámku…" oninput="render()">
     <span class="status" id="status"></span>
   </div>
@@ -877,8 +877,8 @@ let _dirty=false, _saving=false;
 function _updateSaveBtn(){
   const b=document.getElementById('saveBtn'); if(!b)return;
   if(_saving){ b.textContent='⏳ Ukládám…'; b.className='btn btn-ghost'; }
-  else if(_dirty){ b.textContent='💾 Uložit změny'; b.className='btn btn-accent'; }
-  else { b.textContent='💾 Uložit'; b.className='btn btn-ghost'; }
+  else if(_dirty){ b.textContent='☁ Uložit změny'; b.className='btn btn-accent'; }
+  else { b.textContent='☁ Uložit'; b.className='btn btn-ghost'; }
 }
 // Změna se uloží LOKÁLNĚ hned; do cloudu (KV) AŽ na tlačítko Uložit — automatický flush zrušen kvůli šetření KV zápisů.
 // Pojistka: beforeunload beacon uloží neuložené změny při zavření okna.
