@@ -720,7 +720,7 @@ function renderSidePanel(){
   nav.innerHTML = `
     <a class="sp-item active" href="index.html">${svgI('home')}<span>Home</span></a>
     <a class="sp-item" href="roster.html">${svgI('roster')}<span>Roster</span></a>
-    <a class="sp-item" href="leaderboard.html">${svgI('leaderboard')}<span>Leaderboard</span></a>
+    <a class="sp-item" href="leaderboard.html">${svgI('leaderboard')}<span>Hall of Fame</span></a>
     <div class="sp-head">Guides</div>
     ${guides || '<div class="sp-season">Zatím žádné raidy</div>'}
     <div class="sp-bottom">
@@ -886,7 +886,7 @@ function orderedAlts(main, alts){
 }
 
 // ---- konfigurace sloupců (mimo vždy-přítomné "Jméno") ----
-const ROSTER_COLS = { class:{label:'Třída'}, role:{label:'Role',c:true}, ilvl:{label:'iLvl',c:true}, io:{label:'M+ IO',c:true}, level:{label:'Lvl',c:true}, rank:{label:'Guild Rank'} };
+const ROSTER_COLS = { class:{label:'Class'}, role:{label:'Role',c:true}, ilvl:{label:'iLvl',c:true}, io:{label:'M+ IO',c:true}, level:{label:'Lvl',c:true}, rank:{label:'Guild Rank'} };
 const ROSTER_COL_ORDER = ['class','role','ilvl','io','level','rank'];
 function _cols(){
   let cfg = Array.isArray(_colCfg) ? _colCfg.filter(c=>c && ROSTER_COLS[c.key]) : null;

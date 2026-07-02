@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Leaderboard — Rapid Evolution EU</title>
+<title>Hall of Fame — Rapid Evolution EU</title>
 <script>
 /* ── Admin edit-lock gate (sdílené napříč stránkami) ── */
 (function(){
@@ -124,6 +124,7 @@ table.lb td.rk{text-align:center;color:var(--dim);font-weight:700;width:54px}
 table.lb td.v{text-align:right;font-weight:700;color:#cdd3e0}
 table.lb tr:hover td{background:rgba(255,255,255,.03)}
 tr.g1 td{background:rgba(245,192,74,.06)}tr.g2 td{background:rgba(200,210,225,.05)}tr.g3 td{background:rgba(205,127,80,.06)}
+.cls-ico{width:18px;height:18px;border-radius:4px;vertical-align:middle;margin-right:7px;border:1px solid rgba(0,0,0,.5)}
 .pname{font-weight:600;cursor:pointer}
 .altbadge{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--dim);border-radius:20px;padding:1px 6px;font-size:10px;margin-left:5px}
 .dormant .pname{filter:grayscale(1);opacity:.72}
@@ -169,7 +170,7 @@ h1.title{font-size:22px;font-weight:800;color:#fff;margin-bottom:2px}
 </div>
 
 <div class="wrap">
-  <h1 class="title">Leaderboard</h1>
+  <h1 class="title">Hall of Fame</h1>
   <div class="sub">Guild žebříčky · Rapid Evolution EU</div>
 
   <div class="panel">
@@ -198,6 +199,8 @@ h1.title{font-size:22px;font-weight:800;color:#fff;margin-bottom:2px}
 const API_BASE='https://raidguide-api.filip-tesarik1.workers.dev';
 const GH_RAW='https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/';
 const CLASS_COLORS={'Warrior':'#C69B6D','Paladin':'#F48CBA','Hunter':'#AAD372','Rogue':'#FFF468','Priest':'#FFFFFF','Death Knight':'#C41E3A','Shaman':'#0070DD','Mage':'#3FC7EB','Warlock':'#8788EE','Monk':'#00FF98','Druid':'#FF7C0A','Demon Hunter':'#A330C9','Evoker':'#33937F'};
+const CLASS_ICON_KEY={'Warrior':'warrior','Paladin':'paladin','Hunter':'hunter','Rogue':'rogue','Priest':'priest','Death Knight':'deathknight','Shaman':'shaman','Mage':'mage','Warlock':'warlock','Monk':'monk','Druid':'druid','Demon Hunter':'demonhunter','Evoker':'evoker'};
+function classIcon(name){const k=CLASS_ICON_KEY[name];return k?`https://wow.zamimg.com/images/wow/icons/medium/classicon_${k}.jpg`:'';}
 const CATS=[
  {g:'Achievements',items:[
    {k:'achPoints',label:'Achievement Points',agg:'max'},{k:'achCount',label:'Achievements',agg:'max'}]},
@@ -232,7 +235,7 @@ function renderSidePanel(){
   document.getElementById('spNav').innerHTML=`
     <a class="sp-item" href="index.html">${svgI('home')}<span>Home</span></a>
     <a class="sp-item" href="roster.html">${svgI('roster')}<span>Roster</span></a>
-    <a class="sp-item active" href="leaderboard.html">${svgI('lb')}<span>Leaderboard</span></a>
+    <a class="sp-item active" href="leaderboard.html">${svgI('lb')}<span>Hall of Fame</span></a>
     <div class="sp-head">Guides</div>${guides||'<div class="sp-season">Zatím žádné raidy</div>'}
     <div class="sp-bottom"><div class="sp-head">External Links</div>
     <a class="sp-item" href="${_discord?escH(_discord):'#'}" ${_discord?'target="_blank" rel="noopener"':''}>${svgI('discord')}<span>Discord</span></a></div>`;
@@ -300,13 +303,13 @@ function render(){
   if(_page>pages)_page=pages;
   const shown=rows.slice((_page-1)*per,(_page-1)*per+per);
   const medal=['🥇','🥈','🥉'];
-  const body=`<table class="lb"><thead><tr><th class="c">#</th><th>Hráč</th><th>Třída</th>${cat.wrr?'<th class="c">Realm</th>':''}<th class="r">${escH(cat.label)}</th></tr></thead><tbody>${
-    shown.map((p,i)=>{const idx=(_page-1)*per+i;const col=CLASS_COLORS[p.className]||'#cdd3e0';const alt=p.alts.length>1?`<span class="altbadge">+${p.alts.length-1}</span>`:'';
+  const body=`<table class="lb"><thead><tr><th class="c">#</th><th>Hráč</th><th>Class</th>${cat.wrr?'<th class="c">Realm</th>':''}<th class="r">${escH(cat.label)}</th></tr></thead><tbody>${
+    shown.map((p,i)=>{const idx=(_page-1)*per+i;const col=CLASS_COLORS[p.className]||'#cdd3e0';const alt=p.alts.length>1?`<span class="altbadge">+${p.alts.length-1}</span>`:'';const ci=classIcon(p.className);
       const wrrCell=cat.wrr?`<td class="c wrr">${p.wrr.realm?('#'+fmt(p.wrr.realm)):'—'}</td>`:'';
       const vcol=cat.k==='io'?scoreColor(p.stats.io):'#cdd3e0';
       return `<tr class="${idx<3?'g'+(idx+1):''}${p.dormant?' dormant':''}"><td class="rk">${idx<3?medal[idx]:(idx+1)}</td>
         <td><span class="pname" style="color:${col}" onclick="openPc('${encodeURIComponent(p.name)}')">${escH(p.name)}</span>${alt}</td>
-        <td style="color:${col}">${escH(p.className||'—')}</td>${wrrCell}
+        <td>${ci?`<img class="cls-ico" src="${ci}" alt="" onerror="this.style.display='none'">`:''}<span style="color:${col};font-weight:600">${escH(p.className||'—')}</span></td>${wrrCell}
         <td class="v" style="color:${vcol}">${fmt(p.stats[cat.k])}</td></tr>`;}).join('')
   }</tbody></table>
   <div class="pager"><button onclick="_page--;render()" ${_page<=1?'disabled':''}>‹</button><span style="font-size:12px;color:var(--dim)">${_page} / ${pages} · ${total} hráčů</span><button onclick="_page++;render()" ${_page>=pages?'disabled':''}>›</button></div>`;
