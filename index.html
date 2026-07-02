@@ -653,8 +653,9 @@ async function saveCfg(){
 
 /* ---------- init ---------- */
 async function init(){
-  try{ _rosterPass = sessionStorage.getItem('rosterPass') || ''; }catch(e){}
-  if(_rosterPass) _rosterUnlocked = true;
+  // roster se po refreshi vždy sám zamkne (heslo se neobnovuje z session)
+  try{ sessionStorage.removeItem('rosterPass'); }catch(e){}
+  _rosterPass=''; _rosterUnlocked=false;
   loadCfg();
   loadGuild();
   loadRosterAlts();
@@ -673,8 +674,8 @@ async function loadRosterAlts(){
   }catch(e){}
   try{ renderRoster(); }catch(e){}
 }
-let _raSaveT = null;
-function saveRosterAltsSoon(){ clearTimeout(_raSaveT); _raSaveT = setTimeout(saveRosterAlts, 500); }
+// strukturální změny (párování/dormant) ukládáme OKAMŽITĚ — žádný debounce, ať se nic neztratí při refreshi
+function saveRosterAltsSoon(){ saveRosterAlts(); }
 async function saveRosterAlts(){
   try{
     const r = await fetch(API_BASE + '/api/roster/roster-alts', {
