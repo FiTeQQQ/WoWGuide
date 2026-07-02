@@ -12,3 +12,6 @@ Addons/
 
 # Testovací loot export
 loot-test-export.json
+
+# Interní handoff/summary — nepushovat na web
+summary.md
