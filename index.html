@@ -332,6 +332,7 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
     <span class="eb-label">Roster</span>
     <button class="btn btn-ghost" onclick="openRankEditor()">🏷 Přejmenovat ranky</button>
     <button class="btn btn-ghost" onclick="openColEditor()">▦ Sloupce</button>
+    <button class="btn btn-ghost" onclick="openIoEditor()">🎨 IO barvy</button>
   </div>
 
 
@@ -473,6 +474,20 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
   </div>
 </div>
 
+<div class="modal-overlay" id="ioModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Barvy M+ IO skóre</span>
+      <button class="modal-close" onclick="closeIoEditor()">×</button>
+    </div>
+    <div id="ioEditorBody"></div>
+    <div class="modal-footer">
+      <span style="flex:1;font-size:11px;color:var(--faint)">☁️ Ukládá se do cloudu (index-cfg) — vidí kdokoli</span>
+      <button class="btn btn-success" onclick="closeIoEditor()">Hotovo</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="colModal">
   <div class="modal">
     <div class="modal-header">
@@ -531,6 +546,9 @@ let _altMap = {};      // { "AltName": "MainName" } — párování altů na mai
 let _rio = {};         // { "charnamelower": {ilvl, io, color} } — Raider.IO cache (runtime)
 let _expanded = {};    // { "MainName": true } — které mainy mají rozbalené alty (runtime)
 let _colCfg = null;    // [{key,hidden}] pořadí + viditelnost sloupců rosteru (cloud: index-cfg)
+let _ioMode = 'api';   // 'api' = barva přímo z Raider.IO | 'brackets' = percentilová škála (cloud)
+let _cutoffs = [];     // [{label,min,color}] sestupně podle min (cloud)
+let _cutSeason = 'season-mn-1';
 
 const PROG_GRADS = [
   {id:'epic',    label:'Epic → Legendary',    from:'#a335ee', to:'#ff8000'},
@@ -583,6 +601,9 @@ async function loadCfg(){
       if(m && m.rankNames && typeof m.rankNames==='object'){ _rankNames = m.rankNames; }
       if(m && m.altMap && typeof m.altMap==='object'){ _altMap = m.altMap; }
       if(m && Array.isArray(m.rosterCols)){ _colCfg = m.rosterCols; }
+      if(m && (m.ioMode==='brackets'||m.ioMode==='api')){ _ioMode = m.ioMode; }
+      if(m && Array.isArray(m.cutoffs)){ _cutoffs = m.cutoffs.slice().sort((a,b)=>b.min-a.min); }
+      if(m && m.cutSeason){ _cutSeason = m.cutSeason; }
       if(m && Array.isArray(m.seasons) && m.seasons.length){ _manifest = { seasons: m.seasons }; }
       else if(m && Array.isArray(m.raids) && m.raids.length){ _manifest = { seasons:[{name:'Season 1',raids:m.raids}] }; }
     }
@@ -600,7 +621,7 @@ async function saveCfg(){
   try{
     await fetch(API_BASE + '/api/roster/' + CFG_KEY, {
       method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, rankNames: _rankNames, altMap: _altMap, rosterCols: _cols(), seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
+      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, rankNames: _rankNames, altMap: _altMap, rosterCols: _cols(), ioMode: _ioMode, cutoffs: _cutoffs, cutSeason: _cutSeason, seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
     });
   }catch(e){}
 }
@@ -685,6 +706,8 @@ function onFilterChange(){ _page = 1; renderRoster(); }
 function gotoPage(p){ _page = p; renderRoster(); document.getElementById('rosterBody').scrollIntoView({behavior:'smooth',block:'nearest'}); }
 function escJs(s){ return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 function ioColor(v){ return v>=3200?'#ff8000':v>=2800?'#a335ee':v>=2400?'#3b82f6':v>=2000?'#37d66a':'var(--dim)'; }
+function bracketColor(score){ if(!score||score<=0) return ''; for(const b of _cutoffs){ if(score>=b.min) return b.color||'#666666'; } return '#666666'; }
+function scoreColor(score, apiColor){ if(_ioMode==='brackets' && _cutoffs.length) return bracketColor(score) || apiColor || ioColor(score); return apiColor || ioColor(score); }
 function numCell(v,color){ return (v&&v>0)?`<span style="font-weight:600;color:${color||'#cdd3e0'}">${v}</span>`:'<span style="color:var(--faint)">—</span>'; }
 function rioOf(name){ return _rio[String(name||'').toLowerCase()] || {}; }
 // jednotné jméno maina pro postavu (rozbalí řetěz altů, ochrana proti cyklu)
@@ -703,7 +726,7 @@ function _visCols(){ return _cols().filter(c=>!c.hidden).map(c=>c.key); }
 
 function _cellHTML(m, key, isAlt){
   const col = CLASS_COLORS[m.className] || '#cdd3e0';
-  const rio = rioOf(m.name); const ilvl = rio.ilvl||0, io = rio.io||0; const ioC = rio.color || ioColor(io);
+  const rio = rioOf(m.name); const ilvl = rio.ilvl||0, io = rio.io||0; const ioC = scoreColor(io, rio.color);
   switch(key){
     case 'class': { const ci=classIcon(m.className); return `<td>${ci?`<img class="cls-ico" src="${ci}" alt="" onerror="this.style.display='none'">`:''}<span class="cls-pill" style="color:${col}${isAlt?';font-weight:500;font-size:12px':''}">${escH(m.className||'—')}</span></td>`; }
     case 'role': { const role=m.role||'?'; const ri=roleIcon(role); return `<td class="c">${ri?`<img class="role-img" src="${ri}" title="${role}" alt="${role}">`:'<span class="role-unk role-badge" title="neznámé">?</span>'}</td>`; }
@@ -1063,6 +1086,56 @@ function renderRankEditor(){
     </div>`;
   }).join('');
 }
+/* ---------- editor barev IO (API vs percentilová škála) ---------- */
+function openIoEditor(){ renderIoEditor(); document.getElementById('ioModal').classList.add('open'); }
+function closeIoEditor(){ document.getElementById('ioModal').classList.remove('open'); }
+function setIoMode(mode){ _ioMode = (mode==='brackets')?'brackets':'api'; renderIoEditor(); renderRoster(); saveCfgSoon(); }
+function renderIoEditor(){
+  const brackets = _ioMode==='brackets';
+  const list = _cutoffs.length
+    ? _cutoffs.map(b=>`<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px">
+        <span style="width:16px;height:16px;border-radius:4px;background:${escH(b.color||'#666')};flex:0 0 auto"></span>
+        <span style="flex:1;font-size:13px">${escH(b.label||'')}</span>
+        <span style="font-size:13px;font-weight:600;color:${escH(b.color||'#ccc')}">≥ ${b.min}</span></div>`).join('')
+      + `<div style="display:flex;align-items:center;gap:10px;padding:6px 10px"><span style="width:16px;height:16px;border-radius:4px;background:#666666;flex:0 0 auto"></span><span style="flex:1;font-size:13px;color:var(--dim)">pod nejnižší</span><span style="font-size:12px;color:var(--faint)">šedá</span></div>`
+    : '<div style="font-size:12px;color:var(--faint);padding:8px 2px">Zatím nenačteno — klikni na „⟳ Aktualizovat z Raider.IO".</div>';
+  document.getElementById('ioEditorBody').innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn ${!brackets?'btn-primary':'btn-ghost'}" onclick="setIoMode('api')" style="flex:1">Podle Raider.IO (auto)</button>
+      <button class="btn ${brackets?'btn-primary':'btn-ghost'}" onclick="setIoMode('brackets')" style="flex:1">Percentilová škála</button>
+    </div>
+    <div style="font-size:12px;color:var(--dim);line-height:1.5;margin-bottom:8px">${!brackets
+      ? 'Barvu počítá Raider.IO pro každou postavu zvlášť — vždy sedí na aktuální sezónu, nulová údržba.'
+      : 'Skóre se barví podle percentilových prahů níže. Prahy i barvy se tahají z Raider.IO — po startu nové sezóny jen změň season slug a klikni Aktualizovat (netáhne se to při každém načtení).'}</div>
+    <div style="display:flex;align-items:flex-end;gap:10px;margin:12px 0 10px">
+      <div style="flex:1"><label style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:4px">Season slug</label>
+        <input id="ioSeason" class="ed-rowin" value="${escH(_cutSeason)}" placeholder="season-mn-1"></div>
+      <button class="btn btn-ghost" id="ioUpdBtn" onclick="updateCutoffs()">⟳ Aktualizovat z Raider.IO</button>
+    </div>
+    <div id="ioStatus" style="font-size:11px;color:var(--faint);margin:2px 0 12px;min-height:14px"></div>
+    ${list}`;
+}
+async function updateCutoffs(){
+  const season = (document.getElementById('ioSeason').value||'').trim() || 'season-mn-1';
+  _cutSeason = season;
+  const st=document.getElementById('ioStatus'), btn=document.getElementById('ioUpdBtn');
+  if(btn) btn.disabled=true; if(st) st.textContent='Načítám z Raider.IO…';
+  try{
+    const region = (_guild && _guild.region) || 'eu';
+    const r = await fetch(`${API_BASE}/api/rio-cutoffs?region=${encodeURIComponent(region)}&season=${encodeURIComponent(season)}`);
+    const d = await r.json();
+    if(d && Array.isArray(d.brackets) && d.brackets.length){
+      _cutoffs = d.brackets.slice().sort((a,b)=>b.min-a.min);
+      _ioMode = 'brackets';
+      renderIoEditor(); renderRoster(); saveCfgSoon();
+      const st2=document.getElementById('ioStatus'); if(st2) st2.textContent='Načteno ✓ '+(d.updatedAt?('· '+d.updatedAt):'');
+    } else {
+      if(st) st.textContent='Nepodařilo se načíst'+(d&&d.error?(' — '+d.error):'')+'. Zkontroluj season slug.';
+    }
+  }catch(e){ if(st) st.textContent='Chyba: '+e.message; }
+  const b2=document.getElementById('ioUpdBtn'); if(b2) b2.disabled=false;
+}
+
 /* ---------- editor sloupců rosteru ---------- */
 function openColEditor(){ renderColEditor(); document.getElementById('colModal').classList.add('open'); }
 function closeColEditor(){ document.getElementById('colModal').classList.remove('open'); }

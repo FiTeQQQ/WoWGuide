@@ -405,6 +405,38 @@ export default {
       }
     }
 
+    /* ----- Raider.IO season cutoffs (percentilové brackety + barvy) ----- */
+    if (request.method === 'GET' && pathname === '/api/rio-cutoffs') {
+      const region = (url.searchParams.get('region') || 'eu').toLowerCase();
+      const season = url.searchParams.get('season') || 'season-mn-1';
+      const faction = (url.searchParams.get('faction') || 'all').toLowerCase();
+      const cacheKey = `riocut:${region}:${season}:${faction}`.toLowerCase();
+      try {
+        const cached = await env.ROSTERS.get(cacheKey, { type: 'json' });
+        if (cached && (Date.now() - (cached._t || 0)) < 6 * 60 * 60 * 1000) return json(cached);
+        const u = new URL('https://raider.io/api/v1/mythic-plus/season-cutoffs');
+        u.searchParams.set('region', region);
+        u.searchParams.set('season', season);
+        const res = await fetch(u.toString());
+        if (!res.ok) return json({ brackets: [], error: 'HTTP ' + res.status });
+        const d = await res.json();
+        const c = (d && d.cutoffs) || {};
+        const pick = (node) => {
+          const f = node && node[faction];
+          const col = node && node[faction + 'Color'];
+          return f ? { min: Math.round(f.quantileMinValue || 0), color: col || '' } : null;
+        };
+        const map = [['p999', 'Top 0.1%'], ['p990', 'Top 1%'], ['p900', 'Top 10%'], ['p750', 'Top 25%'], ['p600', 'Top 40%']];
+        const brackets = [];
+        for (const [k, label] of map) { const b = pick(c[k]); if (b && b.min > 0) brackets.push({ label, min: b.min, color: b.color }); }
+        const rec = { season, region, faction, brackets, updatedAt: c.updatedAt || '', _t: Date.now() };
+        await env.ROSTERS.put(cacheKey, JSON.stringify(rec), { expirationTtl: 6 * 60 * 60 });
+        return json(rec);
+      } catch (e) {
+        return json({ brackets: [], error: String(e && e.message || e) });
+      }
+    }
+
     /* ----- Blizzard item ID lookup (name -> id) for loot tooltips ----- */
     if (request.method === 'GET' && pathname === '/api/blizz/itemid') {
       const name = (url.searchParams.get('name') || '').trim();
