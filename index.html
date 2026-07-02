@@ -307,11 +307,12 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
 .sp-logo svg{width:26px;height:26px;flex:0 0 auto}
 .sp-logo .sp-lname{font-size:15px;font-weight:800;letter-spacing:.02em;color:#fff}
 .sp-logo .sp-lname span{color:var(--accent)}
-.sp-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--txt);font-size:13.5px;font-weight:700;cursor:pointer;text-decoration:none;margin-bottom:6px;transition:background .15s,border-color .15s,color .15s}
-.sp-item:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.16)}
-.sp-item.active{background:rgba(79,142,255,.16);border-color:rgba(79,142,255,.5);color:#fff}
-.sp-item svg{width:18px;height:18px;flex:0 0 auto;color:var(--dim)}
-.sp-item.active svg,.sp-item:hover svg{color:var(--accent)}
+.sp-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.008));color:var(--dim);font-size:13.5px;font-weight:600;cursor:pointer;text-decoration:none;margin-bottom:5px;transition:background .15s,border-color .15s,color .15s}
+.sp-item:hover{color:var(--txt);border-color:rgba(255,255,255,.14);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02))}
+.sp-item.active{color:#fff;font-weight:700;border-color:rgba(79,142,255,.45);background:linear-gradient(90deg,rgba(79,142,255,.34),rgba(79,142,255,.06))}
+.sp-item svg{width:17px;height:17px;flex:0 0 auto;color:var(--faint)}
+.sp-item:hover svg{color:var(--dim)}
+.sp-item.active svg{color:#bcd4ff}
 .sp-item>span:not(.sp-badge){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sp-item .sp-badge{margin-left:auto;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:20px;padding:2px 7px;flex:0 0 auto}
 .sp-head{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:12px 8px 9px;margin-top:6px;border-top:1px solid var(--line)}
@@ -321,9 +322,9 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
 .sp-login svg{width:17px;height:17px}
 body.glass-on .sp-body{background:rgba(16,20,32,.82) !important;backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);border-right-color:rgba(255,255,255,.14)}
 body.glass-on .sp-handle{background:rgba(16,20,32,.68) !important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-right-color:rgba(255,255,255,.14)}
-body.glass-on .sp-item{background:rgba(255,255,255,.06) !important;border-color:rgba(255,255,255,.14) !important}
-body.glass-on .sp-item:hover{background:rgba(255,255,255,.13) !important}
-body.glass-on .sp-item.active{background:rgba(79,142,255,.22) !important;border-color:rgba(79,142,255,.55) !important}
+body.glass-on .sp-item{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02)) !important;border-color:rgba(255,255,255,.14) !important}
+body.glass-on .sp-item:hover{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05)) !important}
+body.glass-on .sp-item.active{background:linear-gradient(90deg,rgba(79,142,255,.4),rgba(79,142,255,.1)) !important;border-color:rgba(79,142,255,.55) !important}
 
 /* editor modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:20px}
@@ -712,10 +713,9 @@ function svgI(name){ return `<svg viewBox="0 0 24 24" fill="none" stroke="curren
 function renderSidePanel(){
   const nav=document.getElementById('spNav'); if(!nav) return;
   const seasons=(_manifest && _manifest.seasons) || [];
-  const multi = seasons.filter(s=>(s.raids||[]).length).length > 1;
   let guides='';
-  seasons.forEach(se=>{ const raids=(se.raids||[]); if(!raids.length) return;
-    if(multi) guides += `<div class="sp-season">${escH(se.name||'Season')}</div>`;
+  seasons.forEach((se,i)=>{ const raids=(se.raids||[]); if(!raids.length) return;
+    guides += `<div class="sp-season">${escH(se.name||('Season '+(i+1)))}</div>`;   // Guide = Season → raidy (auto z manifestu)
     guides += raids.map(r=>`<a class="sp-item" href="raid.html?raid=${encodeURIComponent(r.slug)}" title="${escH(r.name)}">${svgI('raid')}<span>${escH(r.name)}</span></a>`).join('');
   });
   nav.innerHTML = `
