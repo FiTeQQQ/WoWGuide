@@ -231,11 +231,11 @@ async function fetchCharLB(token, region, realm, nameRaw) {
     deaths: firstStat(flat, ['total deaths']),
     deathsFall: sumStats(flat, k => k.includes('death') && k.includes('fall')),
     deathsEnv: sumStats(flat, k => k.includes('death') && (k.includes('drown') || k.includes('lava') || k.includes('fire') || k.includes('fatigue'))),
-    goldSpent: sumStats(flat, k => k.includes('gold spent')),
-    duelsLost: firstStat(flat, ['duels lost']),
-    junkFished: sumStats(flat, k => k.includes('junk') && k.includes('fish')),
+    goldSpent: sumStats(flat, k => (k.includes('gold') || k.includes('money')) && k.includes('spent')),
+    duelsLost: firstStat(flat, ['duels lost', 'total duels lost']) || sumStats(flat, k => k.includes('duel') && k.includes('lost')),
+    junkFished: sumStats(flat, k => k.includes('fish') && (k.includes('junk') || k.includes('useless'))),
     hearths: sumStats(flat, k => k.includes('hearthstone')),
-    flightPaths: sumStats(flat, k => k.includes('flight path')),
+    flightPaths: sumStats(flat, k => k.includes('flight path') || (k.includes('flight') && k.includes('taken'))),
   };
 }
 
@@ -543,6 +543,22 @@ export default {
       const raw = await env.ROSTERS.get('lb-raw');
       if (!raw) return json({ chars: {}, updatedAt: null, total: 0 });
       return new Response(raw, { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
+    }
+
+    /* ----- Leaderboard: debug názvů statistik jedné postavy (admin) ----- */
+    if (request.method === 'GET' && pathname === '/api/lb/debug') {
+      if (!(await editAuthOK(request, env))) return json({ error: 'locked' }, 403);
+      const region = (url.searchParams.get('region') || GUILD_DEFAULT.region).toLowerCase();
+      const realm = url.searchParams.get('realm') || GUILD_DEFAULT.realm;
+      const name = (url.searchParams.get('name') || '').toLowerCase();
+      if (!name) return json({ error: 'name required' }, 400);
+      try {
+        const token = await getBlizzToken(env);
+        const st = await blizzGet(token, region, `/profile/wow/character/${realm}/${encodeURIComponent(name)}/achievements/statistics`).catch(() => null);
+        const flat = flattenStats(st);
+        const all = Object.keys(flat).sort().map(k => [k, flat[k]]);
+        return json({ count: all.length, all });
+      } catch (e) { return json({ error: String(e && e.message || e) }, 500); }
     }
 
     /* ----- Leaderboard: dávkový build (admin) ----- */

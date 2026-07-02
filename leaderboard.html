@@ -197,9 +197,8 @@ const CATS=[
    {k:'mounts',label:'Mounts',agg:'max'},{k:'pets',label:'Pets',agg:'max'},{k:'toys',label:'Toys',agg:'max'},
    {k:'heirlooms',label:'Heirlooms',agg:'max'},{k:'titles',label:'Titles',agg:'max'},{k:'repsExalted',label:'Exalted Reps',agg:'max'}]},
  {g:'Performance',items:[
-   {k:'io',label:'M+ IO',agg:'max',wrr:true},{k:'ilvl',label:'Item Level',agg:'max'},
-   {k:'hk',label:'Honorable Kills',agg:'sum'},{k:'quests',label:'Quests',agg:'sum'},{k:'honorLevel',label:'Honor Level',agg:'max'}]},
- {g:'Hall of Shame',items:[
+   {k:'io',label:'M+ IO',agg:'max',wrr:true},{k:'hk',label:'Honorable Kills',agg:'sum'},
+   {k:'quests',label:'Quests',agg:'sum'},{k:'honorLevel',label:'Honor Level',agg:'max'},
    {k:'deaths',label:'Total Deaths',agg:'sum'},{k:'deathsFall',label:'Falling Deaths',agg:'sum'},
    {k:'deathsEnv',label:'Environment Deaths',agg:'sum'},{k:'goldSpent',label:'Gold Spent',agg:'sum'},
    {k:'duelsLost',label:'Duels Lost',agg:'sum'},{k:'junkFished',label:'Junk Fished',agg:'sum'},
@@ -209,7 +208,10 @@ const ALL_CATS=CATS.flatMap(g=>g.items);
 function escH(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function fmt(n){return (n||0).toLocaleString('cs-CZ');}
 
-let _raw={chars:{}}, _altMap={}, _dormant={}, _rankNames={}, _seasons=[], _discord='';
+let _raw={chars:{}}, _altMap={}, _dormant={}, _rankNames={}, _seasons=[], _discord='', _ioMode='api', _cutoffs=[];
+function ioColor(v){return v>=3200?'#ff8000':v>=2800?'#a335ee':v>=2400?'#3b82f6':v>=2000?'#37d66a':'var(--dim)';}
+function bracketColor(score){if(!score||score<=0)return '';for(const b of _cutoffs){if(score>=b.min)return b.color||'#666666';}return '#666666';}
+function scoreColor(score){if(_ioMode==='brackets'&&_cutoffs.length)return bracketColor(score)||ioColor(score);return ioColor(score);}
 let _players=[], _ranks={}, _curGroup='Achievements', _curCat='achPoints', _page=1;
 
 function rootMain(name){let c=name,g=0;while(_altMap[c]&&g<12){c=_altMap[c];g++;}return c;}
@@ -241,7 +243,7 @@ async function loadAll(){
     fetch(API_BASE+'/api/roster/roster-alts?_='+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null),
     fetch(API_BASE+'/api/lb/raw?_='+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null),
   ]);
-  if(cfg){ if(cfg.theme)applyTheme(cfg.theme); if(cfg.rankNames)_rankNames=cfg.rankNames; if(Array.isArray(cfg.seasons))_seasons=cfg.seasons; if(cfg.discordUrl)_discord=cfg.discordUrl; }
+  if(cfg){ if(cfg.theme)applyTheme(cfg.theme); if(cfg.rankNames)_rankNames=cfg.rankNames; if(Array.isArray(cfg.seasons))_seasons=cfg.seasons; if(cfg.discordUrl)_discord=cfg.discordUrl; if(cfg.ioMode)_ioMode=cfg.ioMode; if(Array.isArray(cfg.cutoffs))_cutoffs=cfg.cutoffs.slice().sort((a,b)=>b.min-a.min); }
   if(ra){ if(ra.altMap)_altMap=ra.altMap; if(ra.dormant)_dormant=ra.dormant; }
   if(raw&&raw.chars)_raw=raw;
   renderSidePanel(); aggregate(); renderTabs(); render();
@@ -292,13 +294,14 @@ function render(){
   if(_page>pages)_page=pages;
   const shown=rows.slice((_page-1)*per,(_page-1)*per+per);
   const medal=['🥇','🥈','🥉'];
-  const body=`<table class="lb"><thead><tr><th class="c">#</th><th>Hráč</th><th>Třída</th>${cat.wrr?'<th class="c">W · R · Realm</th>':''}<th class="r">${escH(cat.label)}</th></tr></thead><tbody>${
+  const body=`<table class="lb"><thead><tr><th class="c">#</th><th>Hráč</th><th>Třída</th>${cat.wrr?'<th class="c">Realm</th>':''}<th class="r">${escH(cat.label)}</th></tr></thead><tbody>${
     shown.map((p,i)=>{const idx=(_page-1)*per+i;const col=CLASS_COLORS[p.className]||'#cdd3e0';const alt=p.alts.length>1?`<span class="altbadge">+${p.alts.length-1}</span>`:'';
-      const wrrCell=cat.wrr?`<td class="c wrr">${p.wrr.w?`<b>${fmt(p.wrr.w)}</b>`:'—'} · ${p.wrr.r?fmt(p.wrr.r):'—'} · ${p.wrr.realm?fmt(p.wrr.realm):'—'}</td>`:'';
+      const wrrCell=cat.wrr?`<td class="c wrr">${p.wrr.realm?('#'+fmt(p.wrr.realm)):'—'}</td>`:'';
+      const vcol=cat.k==='io'?scoreColor(p.stats.io):'#cdd3e0';
       return `<tr class="${idx<3?'g'+(idx+1):''}${p.dormant?' dormant':''}"><td class="rk">${idx<3?medal[idx]:(idx+1)}</td>
         <td><span class="pname" style="color:${col}" onclick="openPc('${encodeURIComponent(p.name)}')">${escH(p.name)}</span>${alt}</td>
         <td style="color:${col}">${escH(p.className||'—')}</td>${wrrCell}
-        <td class="v">${fmt(p.stats[cat.k])}</td></tr>`;}).join('')
+        <td class="v" style="color:${vcol}">${fmt(p.stats[cat.k])}</td></tr>`;}).join('')
   }</tbody></table>
   <div class="pager"><button onclick="_page--;render()" ${_page<=1?'disabled':''}>‹</button><span style="font-size:12px;color:var(--dim)">${_page} / ${pages} · ${total} hráčů</span><button onclick="_page++;render()" ${_page>=pages?'disabled':''}>›</button></div>`;
   document.getElementById('body').innerHTML=total?body:'<div class="loading">Nikdo v této kategorii.</div>';
