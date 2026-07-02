@@ -90,6 +90,7 @@
   #tableWrap th,#tableWrap td{overflow:hidden}
   #tableWrap td{text-overflow:ellipsis;white-space:nowrap}
   #tableWrap td .note-in,#tableWrap td input,#tableWrap td select{max-width:100%;box-sizing:border-box}
+  #tableWrap th.actcol{width:auto;min-width:160px}
   tr.flag{background:rgba(220,60,60,.045)}
   tr.flag td:first-child{box-shadow:inset 2px 0 0 0 rgba(239,68,68,.45)}
   tbody tr.prow{cursor:pointer;transition:background .12s}
@@ -131,6 +132,10 @@
   th.coldrag{position:relative}
   .colresize{position:absolute;top:0;right:0;width:7px;height:100%;cursor:col-resize;z-index:3}
   .colresize:hover{background:rgba(79,142,255,.45)}
+  .albar{display:inline-flex;gap:2px;margin-top:4px}
+  .albtn{width:20px;height:18px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border2);background:var(--surface2);color:var(--text-dim);border-radius:4px;cursor:pointer;padding:0}
+  .albtn.on{color:var(--accent);border-color:var(--accent);background:rgba(79,142,255,.15)}
+  .albtn:hover{color:var(--text)}
   th.cedit{vertical-align:top;cursor:grab}
   .cedit-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
   .cdrag{color:var(--text-dim);cursor:grab;font-size:12px}
@@ -508,6 +513,7 @@ let customCols=[];          // vlastní sloupce [{id,name,type,options}]
 let colOrder=[];            // pořadí VŠECH sloupců (klíče: name/progress/h/m/note + custom id)
 let hiddenCols=[];          // skryté sloupce (klíče) — sdílené
 let colWidths={};           // šířky sloupců (px), klíč = klíč sloupce — lokální preference
+let colAlign={};            // zarovnání sloupců {key:'left'|'center'|'right'} — sdílené
 let zoneNames={};           // vlastní názvy progress sloupců (raidů): {zoneId: název} — sdílené
 let builtinNames={};        // přejmenování předdef. sloupců {h,m,note: název} — sdílené
 let removedCols={};         // ručně odebrané předdef./raid sloupce {key:true} — sdílené
@@ -522,13 +528,29 @@ function _zoneDefaultLabel(z){ const tag=(+((z&&z.total)||0)===1)?'M':'H/M'; ret
 function _zoneLabel(key,z){ const zid=String(key).indexOf('z:')===0?String(key).slice(2):(z&&z.id); if(zoneNames&&zoneNames[zid]!=null&&zoneNames[zid]!=='') return zoneNames[zid]; return _zoneDefaultLabel(z||{id:zid,name:String(zid)}); }
 function renameZone(zid,v){ v=(v||'').trim(); zoneNames=zoneNames||{}; if(v) zoneNames[zid]=v; else delete zoneNames[zid]; save(); flushCloud(); render(); }
 function _thW(key){ return `data-colkey="${key}" style="width:${_colW(key)}px"`; }
-function _rzH(key){ return `<span class="colresize" draggable="false" onmousedown="colResizeStart(event,'${key}')" onclick="event.stopPropagation()" ondragstart="event.preventDefault();return false;"></span>`; }
+function _rzH(key){ if(!editMode) return ''; return `<span class="colresize" draggable="false" onmousedown="colResizeStart(event,'${key}')" onclick="event.stopPropagation()" ondragstart="event.preventDefault();return false;"></span>`; }
+// ── Zarovnání sloupců (vlevo/střed/vpravo) ──
+function _defAlign(key){ if(String(key).indexOf('z:')===0) return 'left'; const d={name:'left',note:'left',h:'center',m:'center',hc:'center',mc:'center'}; if(d[key]) return d[key]; const c=customCols.find(x=>x.id===key); if(c) return (c.type==='number'||c.type==='checkbox'||c.type==='status')?'center':'left'; return 'left'; }
+function _align(key){ return (colAlign&&colAlign[key])||_defAlign(key); }
+function setColAlign(key,a){ colAlign=colAlign||{}; if(a===_defAlign(key)) delete colAlign[key]; else colAlign[key]=a; save(); flushCloud(); render(); }
+function _alignBtns(key){
+  if(!editMode) return '';
+  const cur=_align(key);
+  const L='<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><rect x="1" y="2" width="14" height="1.6"/><rect x="1" y="6" width="9" height="1.6"/><rect x="1" y="10" width="12" height="1.6"/><rect x="1" y="14" width="7" height="1.6"/></svg>';
+  const C='<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><rect x="1" y="2" width="14" height="1.6"/><rect x="3.5" y="6" width="9" height="1.6"/><rect x="2" y="10" width="12" height="1.6"/><rect x="4.5" y="14" width="7" height="1.6"/></svg>';
+  const R='<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><rect x="1" y="2" width="14" height="1.6"/><rect x="6" y="6" width="9" height="1.6"/><rect x="3" y="10" width="12" height="1.6"/><rect x="8" y="14" width="7" height="1.6"/></svg>';
+  const mk=(a,svg,ttl)=>`<button class="albtn${cur===a?' on':''}" title="${ttl}" onclick="event.stopPropagation();setColAlign('${key}','${a}')">${svg}</button>`;
+  return `<div class="albar">${mk('left',L,'Vlevo')}${mk('center',C,'Na střed')}${mk('right',R,'Vpravo')}</div>`;
+}
+function _tagTd(key,html){ return html.replace('<td','<td data-colkey="'+key+'"'); }
+function _alignStyleTag(cols){ const css=(cols||[]).filter(k=>colAlign&&colAlign[k]).map(k=>`#tableWrap th[data-colkey="${k}"],#tableWrap td[data-colkey="${k}"]{text-align:${colAlign[k]} !important}`).join(''); return css?`<style>${css}</style>`:''; }
 let _rz=null;
 function colResizeStart(e,key){
+  if(!editMode) return;
   e.preventDefault(); e.stopPropagation();
   const th=e.target.closest('th'); if(!th) return;
   th.draggable=false; // ať tažení nespustí reorder-drag v edit módu
-  _rz={key,startX:e.clientX,startW:th.getBoundingClientRect().width,th};
+  _rz={key,startX:e.clientX,startW:_colW(key),th};
   document.addEventListener('mousemove',colResizeMove);
   document.addEventListener('mouseup',colResizeEnd);
   document.body.style.userSelect='none';
@@ -545,7 +567,7 @@ function colResizeEnd(){
   document.removeEventListener('mouseup',colResizeEnd);
   document.body.style.userSelect='';
   try{localStorage.setItem('colWidths',JSON.stringify(colWidths));}catch(e){}
-  _rz=null; save(); render();
+  _rz=null; save(); flushCloud(); render();
 }
 let hiddenDefault=[];       // ranky skryté ve výchozím (perzistentní)
 let rankColors={};          // barvy štítků ranků (sdílené)
@@ -590,6 +612,7 @@ function colHead(col){
     <input class="cname" value="${esc(col.name)}" onchange="renameCol('${col.id}',this.value)">
     <select class="ctype" onchange="setColType('${col.id}',this.value)">${to('text','Text')}${to('number','Číslo')}${to('select','Dropdown')}${to('checkbox','Checkbox ✓/☐/?')}${to('status','Stav ✓/✕/bench…')}</select>
     ${col.type==='select'?`<input class="copts" value="${esc((col.options||[]).join(', '))}" placeholder="volby, oddělené čárkou" onchange="setColOptions('${col.id}',this.value)">`:''}
+    ${_alignBtns(col.id)}
   </th>`;
 }
 function colCell(p,col){
@@ -645,7 +668,7 @@ function _dh(){ return editMode?'<span class="cdrag" title="Přetáhni pro pořa
 function headFor(key,ctx){
   const arrow=ctx.arrow, zonesP=ctx.zonesP;
   const so=k=>editMode?'':`onclick="setSort('${k}')"`;
-  if(key==='name') return `<th class="coldrag" ${_thW('name')}${dragA('name')} ${so('name')}>${_dh()}Hráč ${arrow('name')}${_rzH('name')}</th>`;
+  if(key==='name') return `<th class="coldrag" ${_thW('name')}${dragA('name')} ${so('name')}>${_dh()}Hráč ${arrow('name')}${_rzH('name')}${_alignBtns('name')}</th>`;
   if(String(key).indexOf('z:')===0){
     const zid=String(key).slice(2);
     const z=(zonesP||[]).find(x=>String(x.id)===zid)||{id:zid,name:zid,total:0};
@@ -653,12 +676,12 @@ function headFor(key,ctx){
     if(editMode){
       return `<th class="ccol cedit coldrag" ${_thW(key)} draggable="true" ondragstart="colDragStart(event,'${key}')" ondragover="event.preventDefault()" ondrop="colDrop(event,'${key}')">${_rzH(key)}
         <div class="cedit-top"><span class="cdrag" title="Přetáhni pro pořadí">⠿</span></div>
-        <input class="cname" value="${esc(label)}" title="Přejmenovat sloupec raidu (celý nadpis vč. M / H/M)" onchange="renameZone('${zid}',this.value)"></th>`;
+        <input class="cname" value="${esc(label)}" title="Přejmenovat sloupec raidu (celý nadpis vč. M / H/M)" onchange="renameZone('${zid}',this.value)">${_alignBtns(key)}</th>`;
     }
     return `<th class="coldrag" ${_thW(key)}${dragA(key)} title="Progress v ${esc(z.name)} (součet přes alty)">${_dh()}${esc(label)}${_rzH(key)}</th>`;
   }
   if(key==='h'||key==='m'||key==='note'||key==='hc'||key==='mc'){
-    if(editMode) return `<th class="ccol cedit coldrag" ${_thW(key)} draggable="true" ondragstart="colDragStart(event,'${key}')" ondragover="event.preventDefault()" ondrop="colDrop(event,'${key}')">${_rzH(key)}<div class="cedit-top"><span class="cdrag" title="Pořadí">⠿</span><button class="cdel" title="Odebrat sloupec" onclick="delPredef('${key}')">✕</button></div><input class="cname" value="${esc(_builtinLabel(key))}" onchange="renameBuiltin('${key}',this.value)"></th>`;
+    if(editMode) return `<th class="ccol cedit coldrag" ${_thW(key)} draggable="true" ondragstart="colDragStart(event,'${key}')" ondragover="event.preventDefault()" ondrop="colDrop(event,'${key}')">${_rzH(key)}<div class="cedit-top"><span class="cdrag" title="Pořadí">⠿</span><button class="cdel" title="Odebrat sloupec" onclick="delPredef('${key}')">✕</button></div><input class="cname" value="${esc(_builtinLabel(key))}" onchange="renameBuiltin('${key}',this.value)">${_alignBtns(key)}</th>`;
     const W='za posledních '+(attWeeks||6)+' týdnů';
     const tip=key==='h'?('Byl s námi na Heroicu ('+W+')'):key==='m'?('Byl s námi na Mythicu ('+W+')'):key==='hc'?('Počet Heroic raidů s námi ('+W+')'):key==='mc'?('Počet Mythic raidů s námi ('+W+')'):'';
     const sortable=(key==='h'||key==='m');
@@ -700,7 +723,7 @@ function _colLabel(key){ if(key==='name')return 'Hráč'; if(String(key).indexOf
 function toggleColHidden(key){ if(hiddenCols.includes(key)) hiddenCols=hiddenCols.filter(k=>k!==key); else hiddenCols.push(key); save(); render(); }
 let _dragCol=null;
 function colDragStart(e,key){ _dragCol=key; if(e.dataTransfer)e.dataTransfer.effectAllowed='move'; }
-function colDrop(e,targetKey){ e.preventDefault(); if(!_dragCol||_dragCol===targetKey)return; _ensureColOrder(); const from=colOrder.indexOf(_dragCol); const tgt=colOrder.indexOf(targetKey); _dragCol=null; if(from<0||tgt<0)return; const m=colOrder.splice(from,1)[0]; colOrder.splice(tgt,0,m); save(); render(); }
+function colDrop(e,targetKey){ e.preventDefault(); if(!_dragCol||_dragCol===targetKey)return; _ensureColOrder(); const from=colOrder.indexOf(_dragCol); const tgt=colOrder.indexOf(targetKey); _dragCol=null; if(from<0||tgt<0)return; const m=colOrder.splice(from,1)[0]; colOrder.splice(tgt,0,m); save(); flushCloud(); render(); }
 function renameRank(oldName,newName){ newName=(newName||'').trim(); if(!newName||newName===oldName){render();return;} if(ranks.includes(newName)){toast('Rank toho jména už existuje.');render();return;} const i=ranks.indexOf(oldName); if(i<0)return; ranks[i]=newName; people.forEach(p=>{ if(p.rank===oldName)p.rank=newName; }); hiddenDefault=hiddenDefault.map(r=>r===oldName?newName:r); if(hiddenRanks.has(oldName)){hiddenRanks.delete(oldName);hiddenRanks.add(newName);} if(rankColors&&rankColors[oldName]!=null){ rankColors[newName]=rankColors[oldName]; delete rankColors[oldName]; } save(); render(); flushCloud(); }
 function delRank(name){ if(ranks.length<=1){toast('Musí zůstat aspoň jeden rank.');return;} if(!confirm(`Smazat rank „${name}"? Hráči s ním dostanou jiný rank.`))return; const fb=ranks.find(r=>r!==name)||'Core'; ranks=ranks.filter(r=>r!==name); people.forEach(p=>{ if(p.rank===name)p.rank=fb; }); hiddenDefault=hiddenDefault.filter(r=>r!==name); hiddenRanks.delete(name); if(rankColors)delete rankColors[name]; save(); render(); }
 function toggleRankDefaultHidden(name){ if(hiddenDefault.includes(name)){ hiddenDefault=hiddenDefault.filter(r=>r!==name); hiddenRanks.delete(name); } else { hiddenDefault.push(name); hiddenRanks.add(name); } save(); render(); }
@@ -773,7 +796,7 @@ async function load(){
   // seznam ranků (meta klíč — guide ho nepřepisuje)
   try{
     const rm=await fetch(API_BASE+'/api/roster/'+TRK_KEY,{cache:'no-cache'});
-    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.colOrder))colOrder=jm.colOrder;if(Array.isArray(jm.hiddenCols))hiddenCols=jm.hiddenCols;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;if(jm.rankColors&&typeof jm.rankColors==='object')rankColors=jm.rankColors;if(jm.colWidths&&typeof jm.colWidths==='object')colWidths=jm.colWidths;if(jm.zoneNames&&typeof jm.zoneNames==='object')zoneNames=jm.zoneNames;if(jm.builtinNames&&typeof jm.builtinNames==='object')builtinNames=jm.builtinNames;if(jm.removedCols&&typeof jm.removedCols==='object')removedCols=jm.removedCols;if(+jm.attWeeks>0)attWeeks=+jm.attWeeks;if(+jm.compMaxRows>0)compMaxRows=+jm.compMaxRows;if(jm.theme)themeMode=jm.theme;if(jm.layout)layoutMode=jm.layout;}
+    if(rm.ok){const jm=await rm.json();if(Array.isArray(jm.ranks)&&jm.ranks.length)ranks=jm.ranks;if(Array.isArray(jm.columns))customCols=jm.columns;if(Array.isArray(jm.colOrder))colOrder=jm.colOrder;if(Array.isArray(jm.hiddenCols))hiddenCols=jm.hiddenCols;if(Array.isArray(jm.hiddenDefault))hiddenDefault=jm.hiddenDefault;if(jm.rankColors&&typeof jm.rankColors==='object')rankColors=jm.rankColors;if(jm.colWidths&&typeof jm.colWidths==='object')colWidths=jm.colWidths;if(jm.colAlign&&typeof jm.colAlign==='object')colAlign=jm.colAlign;if(jm.zoneNames&&typeof jm.zoneNames==='object')zoneNames=jm.zoneNames;if(jm.builtinNames&&typeof jm.builtinNames==='object')builtinNames=jm.builtinNames;if(jm.removedCols&&typeof jm.removedCols==='object')removedCols=jm.removedCols;if(+jm.attWeeks>0)attWeeks=+jm.attWeeks;if(+jm.compMaxRows>0)compMaxRows=+jm.compMaxRows;if(jm.theme)themeMode=jm.theme;if(jm.layout)layoutMode=jm.layout;}
   }catch(e){
     try{const lr=JSON.parse(localStorage.getItem('trkRanks')||'null');if(Array.isArray(lr)&&lr.length)ranks=lr;}catch(_){}
   }
@@ -866,12 +889,12 @@ async function flushCloud(){
   _saving=true; _updateSaveBtn();
   try{
     await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()})});
-    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,zoneNames,builtinNames,removedCols,attWeeks,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()})});
+    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,colAlign,zoneNames,builtinNames,removedCols,attWeeks,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()})});
     _dirty=false;
   }catch(e){ const st=document.getElementById('status'); if(st)st.textContent='⚠ Cloud offline (změny zatím jen lokálně)'; }
   _saving=false; _updateSaveBtn();
 }
-function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,zoneNames,builtinNames,removedCols,attWeeks,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
+function _flushBeacon(){ if(!_dirty)return; try{ const flat=buildFlatFromPeople(); const h={'Content-Type':'application/json'}; fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:h,body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()}),keepalive:true}); fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:h,body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,colAlign,zoneNames,builtinNames,removedCols,attWeeks,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()}),keepalive:true}); }catch(e){} }
 window.addEventListener('beforeunload',_flushBeacon);
 
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}render();}
@@ -928,10 +951,10 @@ function render(){
   const visCols=colOrder.filter(k=>!hiddenCols.includes(k));
   const colCount=visCols.length;
   const hctx={arrow,zonesP};
-  let html=`<table><thead><tr>
+  let html=`${_alignStyleTag(visCols)}<table><thead><tr>
     <th style="width:18px"></th>
     ${visCols.map(k=>headFor(k,hctx)).join('')}
-    <th style="width:180px"></th></tr></thead><tbody>`;
+    <th class="actcol"></th></tr></thead><tbody>`;
   arr.forEach(p=>{
     const t=totals(p);const flag=p.rank==='Trial'&&t.h===0;const exp=!!expanded[p.id];
     const bh=breakdown(p,'h'),bm=breakdown(p,'m');
@@ -939,7 +962,7 @@ function render(){
     const rctx={zonesP,naCore,t,bh,bm};
     html+=`<tr class="prow ${flag?'flag':''}" onclick="prowClick(event,'${p.id}')" oncontextmenu="rosterCtx(event,'${p.id}');return false;">
       <td><span class="expand">${exp?'▾':'▸'}</span></td>
-      ${visCols.map(k=>cellFor(p,k,rctx)).join('')}
+      ${visCols.map(k=>_tagTd(k,cellFor(p,k,rctx))).join('')}
       <td><div class="act">
         <button class="iconbtn promo" title="Přesunout do hlavního rosteru" onclick="promote('${p.id}')">↗ Promote</button>
         <button class="iconbtn del" title="Smazat hráče" onclick="del('${p.id}')">✕</button>
@@ -949,7 +972,7 @@ function render(){
       const zlist=(zonesP.length?zonesP:[{id:'_',name:'',total:0}]);
       const altRows=(p.chars||[]).map((c,ci)=>{
         if(ci===0) return ''; // hlavní postava = sám hráč
-        return `<tr class="altrow" oncontextmenu="altCtx(event,'${p.id}',${ci});return false;"><td></td>${visCols.map(k=>altCellFor(p,c,ci,k,zlist,naCore)).join('')}<td><div class="act"><button class="iconbtn" title="Zrušit jako alta → samostatný main (smazat úplně: pravý klik)" onclick="unAlt('${p.id}',${ci})">✕</button></div></td></tr>`;
+        return `<tr class="altrow" oncontextmenu="altCtx(event,'${p.id}',${ci});return false;"><td></td>${visCols.map(k=>_tagTd(k,altCellFor(p,c,ci,k,zlist,naCore))).join('')}<td><div class="act"><button class="iconbtn" title="Zrušit jako alta → samostatný main (smazat úplně: pravý klik)" onclick="unAlt('${p.id}',${ci})">✕</button></div></td></tr>`;
       }).join('');
       html+=altRows;
       html+=`<tr class="altrow altadd"><td></td><td colspan="${colCount+1}"><button class="iconbtn" onclick="addChar('${p.id}')">+ Přidat alta</button></td></tr>`;
