@@ -98,10 +98,10 @@ body.glass-on .pager{background:rgba(255,255,255,.04) !important;border-top-colo
 .btn.accent{color:#8fb8ff;border-color:rgba(79,142,255,.4);background:rgba(79,142,255,.1)}
 .btn-ghost{background:rgba(255,255,255,.06);border:1px solid var(--line);color:#cdd3e0;border-radius:8px;font-size:13px;font-weight:600;padding:8px 14px;cursor:pointer}
 .btn-ghost:hover{background:rgba(255,255,255,.1)}
-.site-header{display:flex;align-items:center;justify-content:flex-end;max-width:1320px;margin:0 auto;padding:16px 24px 4px}
-.edit-trigger{opacity:.35;transition:opacity .15s}
-.edit-trigger:hover,.edit-trigger:focus{opacity:1}
-body.is-admin .edit-trigger{opacity:.6}
+.pre-panel{display:flex;justify-content:flex-end;min-height:18px;margin-bottom:8px}
+.edit-trigger{opacity:0;transition:opacity .15s}
+.pre-panel:hover .edit-trigger,.edit-trigger:hover,.edit-trigger:focus{opacity:1}
+body.is-admin .edit-trigger{opacity:.55}
 .filters{display:flex;gap:9px;flex-wrap:wrap;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
 .filters input{background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:7px 10px;outline:none;min-width:180px;flex:1}
 .chk{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--dim);cursor:pointer;white-space:nowrap;flex:0 0 auto}
@@ -159,7 +159,6 @@ h1.title{font-size:22px;font-weight:800;color:#fff;margin-bottom:2px}
 </head>
 <body>
 <div class="glass-bg" id="glassBg"></div>
-<header class="site-header"><button class="btn btn-ghost edit-trigger" onclick="unlockEdit()" title="Upravit (vyžaduje heslo)">✏ Upravit</button></header>
 
 <div id="sidePanel">
   <div class="sp-body">
@@ -173,6 +172,7 @@ h1.title{font-size:22px;font-weight:800;color:#fff;margin-bottom:2px}
   <h1 class="title">Hall of Fame</h1>
   <div class="sub">Guild žebříčky · Rapid Evolution EU</div>
 
+  <div class="pre-panel"><button class="btn btn-ghost edit-trigger" onclick="unlockEdit()" title="Upravit (vyžaduje hlavní heslo)">✏ Upravit</button></div>
   <div class="panel">
     <div class="panel-head">
       <span class="panel-title">Žebříčky</span>
