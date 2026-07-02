@@ -76,6 +76,16 @@ body.is-admin .admin-only{display:inline-flex}
 .sp-season::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent);flex:0 0 auto}
 body.glass-on .sp-body{background:rgba(12,16,28,.40);backdrop-filter:blur(20px) saturate(165%)}
 body.glass-on .sp-handle{background:rgba(12,16,28,.34);backdrop-filter:blur(20px)}
+/* glass 1:1 jako index */
+body.glass-on .panel{background:rgba(12,16,28,.40) !important;backdrop-filter:blur(20px) saturate(165%);-webkit-backdrop-filter:blur(20px) saturate(165%);border:1px solid rgba(255,255,255,.12) !important;box-shadow:none !important}
+body.glass-on .panel-head{border-bottom-color:rgba(255,255,255,.12) !important}
+body.glass-on .filters,body.glass-on .tabs{background:rgba(255,255,255,.04) !important;border-bottom-color:rgba(255,255,255,.12) !important}
+body.glass-on .filters input,body.glass-on .tab{background:rgba(255,255,255,.07) !important;border-color:rgba(255,255,255,.14) !important}
+body.glass-on .tabgroups{border-bottom-color:rgba(255,255,255,.12) !important}
+body.glass-on table.lb th{border-bottom-color:rgba(255,255,255,.12) !important}
+body.glass-on table.lb td{border-bottom-color:rgba(255,255,255,.06) !important}
+body.glass-on table.lb tr:hover td{background:rgba(255,255,255,.07) !important}
+body.glass-on .pager{background:rgba(255,255,255,.04) !important;border-top-color:rgba(255,255,255,.12) !important}
 
 /* panel + table */
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
@@ -89,9 +99,14 @@ body.glass-on .sp-handle{background:rgba(12,16,28,.34);backdrop-filter:blur(20px
 .filters{display:flex;gap:9px;flex-wrap:wrap;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
 .filters input{background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:7px 10px;outline:none;min-width:180px;flex:1}
 .chk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);cursor:pointer}
-.tabs{display:flex;gap:6px;flex-wrap:wrap;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
-.tabgrp{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);align-self:center;margin:0 2px 0 6px}
-.tab{font-size:12px;color:var(--dim);background:#0e1018;border:1px solid var(--line);border-radius:7px;padding:6px 10px;cursor:pointer}
+.tabs{padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.tabgroups{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px;padding-bottom:11px;border-bottom:1px solid var(--line)}
+.grp{font-size:12.5px;font-weight:700;color:var(--dim);background:transparent;border:1px solid var(--line);border-radius:8px;padding:7px 14px;cursor:pointer;transition:background .13s,color .13s}
+.grp:hover{color:var(--txt)}
+.grp.on{color:#fff;background:linear-gradient(90deg,rgba(79,142,255,.3),rgba(79,142,255,.08));border-color:rgba(79,142,255,.5)}
+.tabcats{display:flex;gap:6px;flex-wrap:wrap}
+.tab{font-size:12px;color:var(--dim);background:#0e1018;border:1px solid var(--line);border-radius:7px;padding:6px 11px;cursor:pointer}
+.tab:hover{color:var(--txt)}
 .tab.on{color:#fff;background:linear-gradient(90deg,rgba(79,142,255,.32),rgba(79,142,255,.1));border-color:rgba(79,142,255,.5)}
 table.lb{width:100%;border-collapse:collapse;font-size:13px}
 table.lb th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:10px 14px;border-bottom:1px solid var(--line);text-align:left}
@@ -175,11 +190,11 @@ const API_BASE='https://raidguide-api.filip-tesarik1.workers.dev';
 const GH_RAW='https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/';
 const CLASS_COLORS={'Warrior':'#C69B6D','Paladin':'#F48CBA','Hunter':'#AAD372','Rogue':'#FFF468','Priest':'#FFFFFF','Death Knight':'#C41E3A','Shaman':'#0070DD','Mage':'#3FC7EB','Warlock':'#8788EE','Monk':'#00FF98','Druid':'#FF7C0A','Demon Hunter':'#A330C9','Evoker':'#33937F'};
 const CATS=[
+ {g:'Achievements',items:[
+   {k:'achPoints',label:'Achievement Points',agg:'max'},{k:'achCount',label:'Achievements',agg:'max'}]},
  {g:'Collections',items:[
    {k:'mounts',label:'Mounts',agg:'max'},{k:'pets',label:'Pets',agg:'max'},{k:'toys',label:'Toys',agg:'max'},
    {k:'heirlooms',label:'Heirlooms',agg:'max'},{k:'titles',label:'Titles',agg:'max'},{k:'repsExalted',label:'Exalted Reps',agg:'max'}]},
- {g:'Achievements',items:[
-   {k:'achPoints',label:'Achievement Points',agg:'max'},{k:'achCount',label:'Achievements',agg:'max'}]},
  {g:'Performance',items:[
    {k:'io',label:'M+ IO',agg:'max',wrr:true},{k:'ilvl',label:'Item Level',agg:'max'},
    {k:'hk',label:'Honorable Kills',agg:'sum'},{k:'quests',label:'Quests',agg:'sum'},{k:'honorLevel',label:'Honor Level',agg:'max'}]},
@@ -194,7 +209,7 @@ function escH(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,
 function fmt(n){return (n||0).toLocaleString('cs-CZ');}
 
 let _raw={chars:{}}, _altMap={}, _dormant={}, _rankNames={}, _seasons=[], _discord='';
-let _players=[], _ranks={}, _curCat='mounts', _page=1;
+let _players=[], _ranks={}, _curGroup='Achievements', _curCat='achPoints', _page=1;
 
 function rootMain(name){let c=name,g=0;while(_altMap[c]&&g<12){c=_altMap[c];g++;}return c;}
 function rankLabel(n){const m=_rankNames[String(n)]||{};return m.name||(n===0?'Guild Master':('Rank '+n));}
@@ -255,10 +270,12 @@ function aggregate(){
 }
 
 function renderTabs(){
-  document.getElementById('tabs').innerHTML=CATS.map(g=>
-    `<span class="tabgrp">${g.g}</span>`+g.items.map(c=>`<span class="tab${c.k===_curCat?' on':''}" onclick="setCat('${c.k}')">${escH(c.label)}</span>`).join('')
-  ).join('');
+  const groups=CATS.map(g=>`<span class="grp${g.g===_curGroup?' on':''}" onclick="setGroup('${g.g}')">${escH(g.g)}</span>`).join('');
+  const grp=CATS.find(g=>g.g===_curGroup)||CATS[0];
+  const cats=grp.items.map(c=>`<span class="tab${c.k===_curCat?' on':''}" onclick="setCat('${c.k}')">${escH(c.label)}</span>`).join('');
+  document.getElementById('tabs').innerHTML=`<div class="tabgroups">${groups}</div><div class="tabcats">${cats}</div>`;
 }
+function setGroup(g){_curGroup=g;const grp=CATS.find(x=>x.g===g);if(grp&&!grp.items.some(i=>i.k===_curCat))_curCat=grp.items[0].k;_page=1;renderTabs();render();}
 function setCat(k){_curCat=k;_page=1;renderTabs();render();}
 
 function render(){
