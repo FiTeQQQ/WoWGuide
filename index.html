@@ -108,11 +108,11 @@ a{text-decoration:none;color:inherit}
 .panel-body{padding:16px 18px}
 
 /* roster filters */
-.filters{display:flex;gap:14px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--panel2)}
-.ffield{display:flex;flex-direction:column;gap:4px;min-width:140px;flex:1}
-.ffield label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
-.ffield select{background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:7px 9px;outline:none;cursor:pointer}
-.ffield input{background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:7px 9px;outline:none;width:100%}
+.filters{display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.ffield{display:flex;flex-direction:column;gap:3px;min-width:92px;flex:1 1 0}
+.ffield label{font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ffield select{background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:6px 7px;outline:none;cursor:pointer;width:100%}
+.ffield input{background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:6px 8px;outline:none;width:100%}
 .ffield input:focus{border-color:rgba(79,142,255,.5)}
 .ffield input::placeholder{color:var(--faint)}
 .ffield select option,.ffield select optgroup{background:#13151f;color:#e0e2ea}
@@ -143,8 +143,9 @@ table.roster tr.alt-row:hover td{background:rgba(120,150,215,.1)}
 table.roster tr.dormant td{opacity:.45}
 table.roster tr.dormant:hover td{opacity:.7}
 .roster.editable tr.main-row,.roster.editable tr.alt-row{cursor:grab}
-.roster-lock{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--dim);border-radius:7px;font-size:13px;padding:3px 8px;cursor:pointer;line-height:1}
-.roster-lock.on{color:var(--accent);border-color:rgba(79,142,255,.4)}
+.roster-lock{background:none;border:none;color:var(--faint);font-size:14px;padding:0 2px;cursor:pointer;line-height:1;opacity:.75;transition:opacity .15s,color .15s}
+.roster-lock:hover{opacity:1;color:var(--dim)}
+.roster-lock.on{color:var(--accent);opacity:1}
 .roster-ctx{position:fixed;z-index:200;display:none;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px;min-width:230px;box-shadow:0 12px 30px rgba(0,0,0,.5)}
 .roster-ctx .rc-title{font-size:11px;color:var(--faint);padding:2px 4px 7px;border-bottom:1px solid var(--line);margin-bottom:7px}
 .roster-ctx input{width:100%;background:#0e1018;border:1px solid var(--line);border-radius:6px;color:var(--txt);font-size:12px;padding:6px 8px;outline:none;margin-bottom:7px}
@@ -375,14 +376,14 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
     <div>
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Guild Roster</span>
-          <span style="display:flex;align-items:center;gap:10px">
+          <span style="display:flex;align-items:center;gap:6px">
             <span id="rosterCount" style="font-size:11px;color:var(--dim)"></span>
             <button id="rosterLock" class="roster-lock" onclick="rosterLockToggle()" title="Upravit alty (heslo)">🔒</button>
           </span>
         </div>
         <div class="filters">
-          <div class="ffield" style="flex:1;min-width:150px"><label>Hledat postavu</label>
-            <input id="fSearch" oninput="onFilterChange()" placeholder="jméno maina nebo alta…" autocomplete="off"></div>
+          <div class="ffield" style="flex:2 1 0;min-width:120px"><label>Hledat postavu</label>
+            <input id="fSearch" oninput="onFilterChange()" placeholder="jméno maina/alta…" autocomplete="off"></div>
           <div class="ffield"><label>Řazení</label>
             <select id="fSort" onchange="onFilterChange()">
               <option value="rank">Guild Rank</option>
@@ -404,7 +405,7 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
               <option value="mains">Jen mainy</option>
               <option value="flat">Všechny postavy</option>
             </select></div>
-          <div class="ffield" style="max-width:110px"><label>Na stránku</label>
+          <div class="ffield" style="flex:0 0 auto;min-width:64px;max-width:80px"><label>Na str.</label>
             <select id="fPer" onchange="onFilterChange()">
               <option value="10">10</option>
               <option value="25" selected>25</option>
