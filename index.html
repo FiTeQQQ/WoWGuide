@@ -307,7 +307,7 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
 .sp-logo svg{width:26px;height:26px;flex:0 0 auto}
 .sp-logo .sp-lname{font-size:15px;font-weight:800;letter-spacing:.02em;color:#fff}
 .sp-logo .sp-lname span{color:var(--accent)}
-.sp-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.008));color:var(--dim);font-size:13.5px;font-weight:600;cursor:pointer;text-decoration:none;margin-bottom:5px;transition:background .15s,border-color .15s,color .15s}
+.sp-item{display:flex;align-items:center;gap:10px;padding:6px 11px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.008));color:var(--dim);font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;margin-bottom:4px;transition:background .15s,border-color .15s,color .15s}
 .sp-item:hover{color:var(--txt);border-color:rgba(255,255,255,.14);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02))}
 .sp-item.active{color:#fff;font-weight:700;border-color:rgba(79,142,255,.45);background:linear-gradient(90deg,rgba(79,142,255,.34),rgba(79,142,255,.06))}
 .sp-item svg{width:17px;height:17px;flex:0 0 auto;color:var(--faint)}
@@ -317,11 +317,8 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
 .sp-item .sp-badge{margin-left:auto;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:20px;padding:2px 7px;flex:0 0 auto}
 .sp-head{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:12px 8px 9px;margin-top:6px;border-top:1px solid var(--line)}
 .sp-season{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);opacity:.75;padding:2px 8px 5px}
-.sp-login{margin-top:auto;display:flex;align-items:center;justify-content:center;gap:9px;padding:11px;border-radius:9px;border:1px solid rgba(79,142,255,.4);background:rgba(79,142,255,.1);color:var(--accent);font-size:13.5px;font-weight:800;cursor:pointer;margin-top:14px}
-.sp-login:hover{background:rgba(79,142,255,.18)}
-.sp-login svg{width:17px;height:17px}
-body.glass-on .sp-body{background:rgba(16,20,32,.82) !important;backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);border-right-color:rgba(255,255,255,.14)}
-body.glass-on .sp-handle{background:rgba(16,20,32,.68) !important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-right-color:rgba(255,255,255,.14)}
+body.glass-on .sp-body{background:rgba(12,16,28,.40) !important;backdrop-filter:blur(20px) saturate(165%);-webkit-backdrop-filter:blur(20px) saturate(165%);border-right-color:rgba(255,255,255,.12)}
+body.glass-on .sp-handle{background:rgba(12,16,28,.34) !important;backdrop-filter:blur(20px) saturate(165%);-webkit-backdrop-filter:blur(20px) saturate(165%);border-right-color:rgba(255,255,255,.12)}
 body.glass-on .sp-item{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02)) !important;border-color:rgba(255,255,255,.14) !important}
 body.glass-on .sp-item:hover{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05)) !important}
 body.glass-on .sp-item.active{background:linear-gradient(90deg,rgba(79,142,255,.4),rgba(79,142,255,.1)) !important;border-color:rgba(79,142,255,.55) !important}
@@ -363,7 +360,6 @@ body.glass-on .sp-item.active{background:linear-gradient(90deg,rgba(79,142,255,.
       <span class="sp-lname">Rapid<span>Evolution</span></span>
     </div>
     <div id="spNav"></div>
-    <div class="sp-login" id="spLogin" onclick="spLogin()"></div>
   </div>
   <div class="sp-handle" onclick="spTogglePin()" title="Menu (najeď myší / klikni pro připnutí)">
     <span class="sp-hicon">☰</span>
@@ -726,12 +722,9 @@ function renderSidePanel(){
     ${guides || '<div class="sp-season">Zatím žádné raidy</div>'}
     <div class="sp-head">External Links</div>
     <a class="sp-item" id="spDiscord" href="${_discordUrl?escH(_discordUrl):'#'}" ${_discordUrl?'target="_blank" rel="noopener"':'onclick="return spDiscord(event)"'}>${svgI('discord')}<span>Discord</span></a>`;
-  const lg=document.getElementById('spLogin');
-  if(lg){ const admin=!!window.__IS_ADMIN; lg.innerHTML = `${svgI(admin?'logout':'login')}<span>${admin?'Odemčeno (admin)':'Login'}</span>`; }
 }
 function spTogglePin(){ const p=document.getElementById('sidePanel'); if(p) p.classList.toggle('pinned'); }
 function spLeaderboard(e){ e.preventDefault(); alert('Leaderboard — přidáme brzy 🙂'); return false; }
-function spLogin(){ if(typeof idxEdit==='function') idxEdit(); }
 function spDiscord(e){ e.preventDefault(); if(_discordUrl){ window.open(_discordUrl,'_blank','noopener'); return false; } if(window.__IS_ADMIN) setDiscordUrl(); else alert('Discord odkaz zatím nenastaven.'); return false; }
 function setDiscordUrl(){ const v=prompt('Odkaz na Discord (celá URL):', _discordUrl||''); if(v===null) return; _discordUrl=(v||'').trim(); renderSidePanel(); saveCfg(); }
 
