@@ -181,6 +181,9 @@ h1.title{font-size:22px;font-weight:800;color:#fff;margin-bottom:2px}
       <div class="head-r">
         <span class="meta" id="lbMeta">Načítám…</span>
         <div id="prog"><span id="progTxt"></span><span class="bar"><i id="progBar"></i></span></div>
+        <select id="lbIcon" class="admin-only" onchange="setIconTypeLB(this.value)" title="Ikona u postav (roster i Hall of Fame)" style="background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:6px 8px;outline:none;cursor:pointer">
+          <option value="class">Class ikony</option><option value="spec">Spec ikony</option>
+        </select>
         <button class="btn accent admin-only" onclick="rebuild()" title="Aktualizovat data (jen admin)">⟳ Aktualizace</button>
       </div>
     </div>
@@ -260,6 +263,7 @@ async function loadAll(){
     fetch(API_BASE+'/api/lb/raw?_='+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null),
   ]);
   if(cfg){ if(cfg.theme)applyTheme(cfg.theme); if(cfg.rankNames)_rankNames=cfg.rankNames; if(Array.isArray(cfg.seasons))_seasons=cfg.seasons; if(cfg.discordUrl)_discord=cfg.discordUrl; if(cfg.ioMode)_ioMode=cfg.ioMode; if(Array.isArray(cfg.cutoffs))_cutoffs=cfg.cutoffs.slice().sort((a,b)=>b.min-a.min); if(cfg.iconType==='spec'||cfg.iconType==='class')_iconType=cfg.iconType; }
+  const li=document.getElementById('lbIcon'); if(li) li.value=_iconType;
   if(ra){ if(ra.altMap)_altMap=ra.altMap; if(ra.dormant)_dormant=ra.dormant; }
   if(raw&&raw.chars)_raw=raw;
   renderSidePanel(); aggregate(); renderTabs(); render();
@@ -370,6 +374,15 @@ async function rebuild(){
   setTimeout(()=>{prog.style.display='none';bar.style.width='0';},2500);
 }
 function lbEditToggle(){ if(document.body.classList.contains('is-admin')){ document.body.classList.remove('is-admin'); } else { unlockEdit(); } }
+async function setIconTypeLB(v){
+  _iconType=(v==='spec')?'spec':'class'; render();
+  try{
+    const cur=await fetch(API_BASE+'/api/roster/index-cfg?_='+Date.now()).then(r=>r.ok?r.json():{}).catch(()=>({}));
+    cur.iconType=_iconType; cur.updatedAt=new Date().toISOString();   // read-modify-write, ať nepřepíšu ostatní pole
+    const r=await fetch(API_BASE+'/api/roster/index-cfg',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(cur)});
+    if(r.status===403) alert('Neuloženo — odemkni edit (hlavní heslo).');
+  }catch(e){}
+}
 window.__onUnlock=function(){ render(); };
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closePc();});
 loadAll();
