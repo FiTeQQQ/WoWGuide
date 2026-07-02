@@ -982,7 +982,8 @@ function rosterCtx(ev, name){
     <div class="rc-title">Postava: <b style="color:var(--txt)">${escH(name)}</b>${cur?` · alt „${escH(cur)}"`:''}</div>
     <input id="ctxMain" list="charNames" placeholder="Jméno hlavní postavy…" value="${escH(cur||'')}">
     <button onclick="setAlt()">✓ Označit jako alt</button>
-    ${cur?`<button class="danger" onclick="clearAlt()">↺ Zrušit alt (udělat main)</button>`:''}
+    ${cur?`<button onclick="promoteToMain()">⭐ Označit jako Main (přeskupí skupinu)</button>`:''}
+    ${cur?`<button class="danger" onclick="clearAlt()">↺ Odpojit (samostatný main)</button>`:''}
     <button onclick="toggleDormant()">${dorm?'☀ Označit jako aktivní':'💤 Označit jako neaktivní (dormant)'}</button>
     <button onclick="hideRosterCtx()">Zavřít</button>`;
   const x = Math.min(ev.clientX, window.innerWidth-250);
@@ -1004,6 +1005,15 @@ function setAlt(){
   hideRosterCtx(); renderRoster(); saveRosterAltsSoon();
 }
 function clearAlt(){ if(_ctxName){ delete _altMap[_ctxName]; } hideRosterCtx(); renderRoster(); saveRosterAltsSoon(); }
+function promoteToMain(){
+  const name=_ctxName; if(!name) return;
+  const byName={}; _guild.members.forEach(m=>byName[m.name]=m);
+  const oldRoot=_rootMain(byName, name);
+  if(oldRoot===name){ hideRosterCtx(); return; }               // už je main
+  const group=_guild.members.filter(m=>_rootMain(byName,m.name)===oldRoot).map(m=>m.name);
+  group.forEach(n=>{ if(n===name) delete _altMap[n]; else _altMap[n]=name; });  // nový main + zbytek pod něj
+  hideRosterCtx(); renderRoster(); saveRosterAltsSoon();
+}
 function toggleDormant(){ const n=_ctxName; if(!n) return; if(_dormant[n]) delete _dormant[n]; else _dormant[n]=true; hideRosterCtx(); renderRoster(); saveRosterAltsSoon(); }
 
 /* ---------- párování drag & drop (přetáhni postavu na maina) ---------- */
