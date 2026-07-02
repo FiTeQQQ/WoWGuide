@@ -135,13 +135,16 @@ table.roster tr:hover td{background:rgba(255,255,255,.03)}
 .rank-gm{color:var(--gold);font-weight:800}
 .lvl{font-weight:700;color:#cdd3e0}
 .alt-badge{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--dim);border-radius:20px;padding:1px 7px;font-size:10px;margin-left:6px;font-weight:600}
-.dorm-badge{font-size:11px;margin-left:5px;opacity:.75;filter:grayscale(.3)}
+.dorm-badge{font-size:10px;margin-left:5px;opacity:.7}
 table.roster tr.main-row:hover td{background:rgba(255,255,255,.03)}
 table.roster tr.alt-row td{background:rgba(96,120,180,.055)}
 table.roster tr.alt-row td:first-child{box-shadow:inset 3px 0 0 rgba(120,150,215,.32)}
 table.roster tr.alt-row:hover td{background:rgba(120,150,215,.1)}
-table.roster tr.dormant td{opacity:.45}
-table.roster tr.dormant:hover td{opacity:.7}
+/* dormant: zašedlé jméno/třída (grayscale + lehké ztlumení), čísla zůstávají čitelná */
+table.roster tr.dormant .pname{filter:grayscale(1);opacity:.72}
+table.roster tr.dormant .cls-pill{filter:grayscale(1);opacity:.72}
+table.roster tr.dormant .cls-ico{filter:grayscale(.85);opacity:.62}
+table.roster tr.dormant .rexp,table.roster tr.dormant .alt-badge{opacity:.55}
 .roster.editable tr.main-row,.roster.editable tr.alt-row{cursor:grab}
 .roster-lock{background:none;border:none;color:var(--faint);font-size:14px;padding:0 2px;cursor:pointer;line-height:1;opacity:.75;transition:opacity .15s,color .15s}
 .roster-lock:hover{opacity:1;color:var(--dim)}
@@ -344,6 +347,11 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
     <button class="btn btn-ghost" onclick="openColEditor()">▦ Sloupce</button>
     <button class="btn btn-ghost" onclick="openIoEditor()">🎨 IO barvy</button>
     <button class="btn btn-ghost" onclick="setRosterPass()">🔑 Roster heslo</button>
+    <span class="eb-sep"></span>
+    <span class="eb-label">Na stránku</span>
+    <select id="ebPer" onchange="setPerPage(this.value)" style="background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:6px 8px;outline:none;cursor:pointer">
+      <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+    </select>
   </div>
 
 
@@ -404,12 +412,6 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
               <option value="grouped">Mainy + alty</option>
               <option value="mains">Jen mainy</option>
               <option value="flat">Všechny postavy</option>
-            </select></div>
-          <div class="ffield" style="flex:0 0 auto;min-width:64px;max-width:80px"><label>Na str.</label>
-            <select id="fPer" onchange="onFilterChange()">
-              <option value="10">10</option>
-              <option value="25" selected>25</option>
-              <option value="50">50</option>
             </select></div>
         </div>
         <div id="rosterBody"><div class="loading">Načítám roster z Armory…</div></div>
@@ -570,6 +572,7 @@ let _colCfg = null;    // [{key,hidden}] pořadí + viditelnost sloupců rosteru
 let _ioMode = 'api';   // 'api' = barva přímo z Raider.IO | 'brackets' = percentilová škála (cloud)
 let _cutoffs = [];     // [{label,min,color}] sestupně podle min (cloud)
 let _cutSeason = 'season-mn-1';
+let _perPage = 25;     // počet na stránku (nastavuje admin, cloud: index-cfg)
 
 const PROG_GRADS = [
   {id:'epic',    label:'Epic → Legendary',    from:'#a335ee', to:'#ff8000'},
@@ -624,6 +627,8 @@ async function loadCfg(){
       if(m && (m.ioMode==='brackets'||m.ioMode==='api')){ _ioMode = m.ioMode; }
       if(m && Array.isArray(m.cutoffs)){ _cutoffs = m.cutoffs.slice().sort((a,b)=>b.min-a.min); }
       if(m && m.cutSeason){ _cutSeason = m.cutSeason; }
+      if(m && m.perPage){ _perPage = parseInt(m.perPage,10)||25; }
+      const ep=document.getElementById('ebPer'); if(ep) ep.value=String(_perPage);
       if(m && Array.isArray(m.seasons) && m.seasons.length){ _manifest = { seasons: m.seasons }; }
       else if(m && Array.isArray(m.raids) && m.raids.length){ _manifest = { seasons:[{name:'Season 1',raids:m.raids}] }; }
     }
@@ -641,7 +646,7 @@ async function saveCfg(){
   try{
     await fetch(API_BASE + '/api/roster/' + CFG_KEY, {
       method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, rankNames: _rankNames, rosterCols: _cols(), ioMode: _ioMode, cutoffs: _cutoffs, cutSeason: _cutSeason, seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
+      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, rankNames: _rankNames, rosterCols: _cols(), ioMode: _ioMode, cutoffs: _cutoffs, cutSeason: _cutSeason, perPage: _perPage, seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
     });
   }catch(e){}
 }
@@ -857,7 +862,7 @@ function renderRoster(){
   const sort = document.getElementById('fSort').value;
   const fc = document.getElementById('fClass').value;
   const fr = document.getElementById('fRole').value;
-  const per = parseInt(document.getElementById('fPer').value, 10) || 25;
+  const per = _perPage || 25;
   const view = (document.getElementById('fView')||{}).value || 'grouped';
   const ql = ((document.getElementById('fSearch')||{}).value || '').trim().toLowerCase();
   const members = _guild.members;
@@ -925,6 +930,7 @@ function renderRoster(){
 }
 
 function toggleExpand(name){ if(_expanded[name]) delete _expanded[name]; else _expanded[name]=true; renderRoster(); }
+function setPerPage(v){ _perPage = parseInt(v,10)||25; _page=1; renderRoster(); saveCfgSoon(); }
 
 /* ---------- Raider.IO (iLvl + M+ IO) ---------- */
 const RIO_TTL = 6*3600*1000;
