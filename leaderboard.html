@@ -223,6 +223,8 @@ let _raw={chars:{}}, _altMap={}, _dormant={}, _rankNames={}, _seasons=[], _disco
 function ioColor(v){return v>=3200?'#ff8000':v>=2800?'#a335ee':v>=2400?'#3b82f6':v>=2000?'#37d66a':'var(--dim)';}
 function bracketColor(score){if(!score||score<=0)return '';for(const b of _cutoffs){if(score>=b.min)return b.color||'#666666';}return '#666666';}
 function scoreColor(score){if(_ioMode==='brackets'&&_cutoffs.length)return bracketColor(score)||ioColor(score);return ioColor(score);}
+// gradientní obarvení umístění: 1 = zlatá, ...fade... , 25 = šedá; 25+ = jednotná šedá
+function rankColor(pos){if(!pos||pos>25)return 'var(--faint)';const t=(pos-1)/24,a=[245,192,74],b=[122,131,150];const c=a.map((v,i)=>Math.round(v+(b[i]-v)*t));return `rgb(${c[0]},${c[1]},${c[2]})`;}
 let _players=[], _ranks={}, _curGroup='Achievements', _curCat='achPoints', _page=1;
 
 function rootMain(name){let c=name,g=0;while(_altMap[c]&&g<12){c=_altMap[c];g++;}return c;}
@@ -309,7 +311,7 @@ function render(){
     shown.map((p,i)=>{const idx=(_page-1)*per+i;const col=CLASS_COLORS[p.className]||'#cdd3e0';const alt=p.alts.length>1?`<span class="altbadge">+${p.alts.length-1}</span>`:'';const ci=classIcon(p.className);
       const wrrCell=cat.wrr?`<td class="c wrr">${p.wrr.realm?('#'+fmt(p.wrr.realm)):'—'}</td>`:'';
       const vcol=cat.k==='io'?scoreColor(p.stats.io):'#cdd3e0';
-      return `<tr class="${idx<3?'g'+(idx+1):''}${p.dormant?' dormant':''}"><td class="rk">${idx<3?medal[idx]:(idx+1)}</td>
+      return `<tr class="${idx<3?'g'+(idx+1):''}${p.dormant?' dormant':''}"><td class="rk"${idx>=3?` style="color:${rankColor(idx+1)}"`:''}>${idx<3?medal[idx]:(idx+1)}</td>
         <td><span class="pname" style="color:${col}" onclick="openPc('${encodeURIComponent(p.name)}')">${escH(p.name)}</span>${alt}</td>
         <td>${ci?`<img class="cls-ico" src="${ci}" alt="" onerror="this.style.display='none'">`:''}<span style="color:${col};font-weight:600">${escH(p.className||'—')}</span></td>${wrrCell}
         <td class="v" style="color:${vcol}">${fmt(p.stats[cat.k])}</td></tr>`;}).join('')
@@ -321,11 +323,11 @@ function render(){
 /* ---- player card ---- */
 function openPc(enc){
   const name=decodeURIComponent(enc);const p=_players.find(x=>x.name===name);if(!p)return;
-  const col=CLASS_COLORS[p.className]||'#cdd3e0';
-  const rows=ALL_CATS.map(cat=>{const r=(_ranks[cat.k]||{})[p.name];if(!r)return '';return `<div class="pc-row"><span>${escH(cat.label)}</span><b style="color:${col}">${fmt(r.val)}</b><i class="${r.rank===1?'gold':''}">#${r.rank}</i></div>`;}).join('');
+  const col=CLASS_COLORS[p.className]||'#cdd3e0';const ci=classIcon(p.className);
+  const rows=ALL_CATS.map(cat=>{const r=(_ranks[cat.k]||{})[p.name];if(!r)return '';return `<div class="pc-row"><span>${escH(cat.label)}</span><b style="color:${col}">${fmt(r.val)}</b><i style="color:${rankColor(r.rank)}">#${r.rank}</i></div>`;}).join('');
   document.getElementById('pcCard').innerHTML=`
     <div class="pc-h" style="background:linear-gradient(120deg,${col}22,transparent)">
-      <div class="pc-av" style="background:${col}22;border:1px solid ${col}66;color:${col}">${escH(p.name.slice(0,2))}</div>
+      <div class="pc-av" style="background:${col}22;border:1px solid ${col}66;color:${col}">${ci?`<img src="${ci}" style="width:30px;height:30px;border-radius:6px" alt="" onerror="this.parentNode.textContent='${escH(p.name.slice(0,2))}'">`:escH(p.name.slice(0,2))}</div>
       <div style="flex:1"><div style="font-size:17px;font-weight:800;color:${col}">${escH(p.name)} <span style="color:var(--faint);font-size:12px;font-weight:500">${escH(p.className||'')}</span></div>
         <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap"><span class="chip">${escH(rankLabel(p.rank))}</span>${p.stats.ilvl?`<span class="chip">iLvl ${p.stats.ilvl}</span>`:''}${p.stats.io?`<span class="chip">IO ${fmt(p.stats.io)}</span>`:''}</div></div>
       <button class="mclose" onclick="closePc()">×</button>
