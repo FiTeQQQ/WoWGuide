@@ -98,7 +98,8 @@ body.glass-on .pager{background:rgba(255,255,255,.04) !important;border-top-colo
 .btn.accent{color:#8fb8ff;border-color:rgba(79,142,255,.4);background:rgba(79,142,255,.1)}
 .btn-ghost{background:rgba(255,255,255,.06);border:1px solid var(--line);color:#cdd3e0;border-radius:8px;font-size:13px;font-weight:600;padding:8px 14px;cursor:pointer}
 .btn-ghost:hover{background:rgba(255,255,255,.1)}
-.edit-trigger{position:fixed;top:14px;right:18px;z-index:95;opacity:.3;transition:opacity .15s}
+.site-header{display:flex;align-items:center;justify-content:flex-end;max-width:1320px;margin:0 auto;padding:16px 24px 4px}
+.edit-trigger{opacity:.35;transition:opacity .15s}
 .edit-trigger:hover,.edit-trigger:focus{opacity:1}
 body.is-admin .edit-trigger{opacity:.6}
 .filters{display:flex;gap:9px;flex-wrap:wrap;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
@@ -157,7 +158,7 @@ h1.title{font-size:22px;font-weight:800;color:#fff;margin-bottom:2px}
 </head>
 <body>
 <div class="glass-bg" id="glassBg"></div>
-<button class="btn btn-ghost edit-trigger" onclick="unlockEdit()" title="Upravit (vyžaduje heslo)">✏ Upravit</button>
+<header class="site-header"><button class="btn btn-ghost edit-trigger" onclick="unlockEdit()" title="Upravit (vyžaduje heslo)">✏ Upravit</button></header>
 
 <div id="sidePanel">
   <div class="sp-body">
