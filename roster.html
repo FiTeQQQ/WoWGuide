@@ -532,7 +532,7 @@ function _rzH(key){ if(!editMode) return ''; return `<span class="colresize" dra
 // ── Zarovnání sloupců (vlevo/střed/vpravo) ──
 function _defAlign(key){ if(String(key).indexOf('z:')===0) return 'left'; const d={name:'left',note:'left',h:'center',m:'center',hc:'center',mc:'center'}; if(d[key]) return d[key]; const c=customCols.find(x=>x.id===key); if(c) return (c.type==='number'||c.type==='checkbox'||c.type==='status')?'center':'left'; return 'left'; }
 function _align(key){ return (colAlign&&colAlign[key])||_defAlign(key); }
-function setColAlign(key,a){ colAlign=colAlign||{}; if(a===_defAlign(key)) delete colAlign[key]; else colAlign[key]=a; save(); flushCloud(); render(); }
+function setColAlign(key,a){ colAlign=colAlign||{}; if(a===_defAlign(key)) delete colAlign[key]; else colAlign[key]=a; save(); render(); }
 // Sdílené jádro zarovnání — použitelné pro VŠECHNY tabulky (roster, sheety, budoucí) i budoucí sloupce.
 const _ALSVG={
   left:'<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><rect x="1" y="2" width="14" height="1.6"/><rect x="1" y="6" width="9" height="1.6"/><rect x="1" y="10" width="12" height="1.6"/><rect x="1" y="14" width="7" height="1.6"/></svg>',
@@ -571,7 +571,7 @@ function colResizeEnd(){
   document.removeEventListener('mouseup',colResizeEnd);
   document.body.style.userSelect='';
   try{localStorage.setItem('colWidths',JSON.stringify(colWidths));}catch(e){}
-  _rz=null; save(); flushCloud(); render();
+  _rz=null; save(); render();
 }
 let hiddenDefault=[];       // ranky skryté ve výchozím (perzistentní)
 let rankColors={};          // barvy štítků ranků (sdílené)
@@ -581,6 +581,7 @@ let sortKey='rank', sortDir=1;
 let hiddenRanks=new Set();
 let selected=new Set();
 let saveTimer=null;
+let _lastMainJson='', _lastTrkJson=''; // dedup: nezapisuj do KV klíč, který se reálně nezměnil
 function uidCol(){return 'c'+Date.now().toString(36)+Math.floor(Math.random()*1e3).toString(36);}
 let layoutMode='side';      // 'side' = roster vedle složení, 'top' = složení 2x2 nahoře + roster pod
 let compMaxRows=5;          // max viditelných postav v tabulce složení (pak scroll)
@@ -727,7 +728,7 @@ function _colLabel(key){ if(key==='name')return 'Hráč'; if(String(key).indexOf
 function toggleColHidden(key){ if(hiddenCols.includes(key)) hiddenCols=hiddenCols.filter(k=>k!==key); else hiddenCols.push(key); save(); render(); }
 let _dragCol=null;
 function colDragStart(e,key){ _dragCol=key; if(e.dataTransfer)e.dataTransfer.effectAllowed='move'; }
-function colDrop(e,targetKey){ e.preventDefault(); if(!_dragCol||_dragCol===targetKey)return; _ensureColOrder(); const from=colOrder.indexOf(_dragCol); const tgt=colOrder.indexOf(targetKey); _dragCol=null; if(from<0||tgt<0)return; const m=colOrder.splice(from,1)[0]; colOrder.splice(tgt,0,m); save(); flushCloud(); render(); }
+function colDrop(e,targetKey){ e.preventDefault(); if(!_dragCol||_dragCol===targetKey)return; _ensureColOrder(); const from=colOrder.indexOf(_dragCol); const tgt=colOrder.indexOf(targetKey); _dragCol=null; if(from<0||tgt<0)return; const m=colOrder.splice(from,1)[0]; colOrder.splice(tgt,0,m); save(); render(); }
 function renameRank(oldName,newName){ newName=(newName||'').trim(); if(!newName||newName===oldName){render();return;} if(ranks.includes(newName)){toast('Rank toho jména už existuje.');render();return;} const i=ranks.indexOf(oldName); if(i<0)return; ranks[i]=newName; people.forEach(p=>{ if(p.rank===oldName)p.rank=newName; }); hiddenDefault=hiddenDefault.map(r=>r===oldName?newName:r); if(hiddenRanks.has(oldName)){hiddenRanks.delete(oldName);hiddenRanks.add(newName);} if(rankColors&&rankColors[oldName]!=null){ rankColors[newName]=rankColors[oldName]; delete rankColors[oldName]; } save(); render(); flushCloud(); }
 function delRank(name){ if(ranks.length<=1){toast('Musí zůstat aspoň jeden rank.');return;} if(!confirm(`Smazat rank „${name}"? Hráči s ním dostanou jiný rank.`))return; const fb=ranks.find(r=>r!==name)||'Core'; ranks=ranks.filter(r=>r!==name); people.forEach(p=>{ if(p.rank===name)p.rank=fb; }); hiddenDefault=hiddenDefault.filter(r=>r!==name); hiddenRanks.delete(name); if(rankColors)delete rankColors[name]; save(); render(); }
 function toggleRankDefaultHidden(name){ if(hiddenDefault.includes(name)){ hiddenDefault=hiddenDefault.filter(r=>r!==name); hiddenRanks.delete(name); } else { hiddenDefault.push(name); hiddenRanks.add(name); } save(); render(); }
@@ -892,8 +893,19 @@ async function flushCloud(){
   const flat=buildFlatFromPeople(); _flat=flat;
   _saving=true; _updateSaveBtn();
   try{
-    await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({roster:flat,updatedAt:new Date().toISOString()})});
-    await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,colAlign,zoneNames,builtinNames,removedCols,attWeeks,compMaxRows,theme:themeMode,layout:layoutMode,updatedAt:new Date().toISOString()})});
+    // Dedup: každý KV klíč zapiš jen když se jeho obsah (bez updatedAt) reálně změnil → šetří zápisy KV.
+    const mainObj={roster:flat};
+    const trkObj={ranks,columns:customCols,colOrder,hiddenCols,hiddenDefault,rankColors,colWidths,colAlign,zoneNames,builtinNames,removedCols,attWeeks,compMaxRows,theme:themeMode,layout:layoutMode};
+    const mainCore=JSON.stringify(mainObj), trkCore=JSON.stringify(trkObj);
+    const hdr={'Content-Type':'application/json'};
+    if(mainCore!==_lastMainJson){
+      await fetch(API_BASE+'/api/roster/main',{method:'PUT',headers:hdr,body:JSON.stringify({...mainObj,updatedAt:new Date().toISOString()})});
+      _lastMainJson=mainCore;
+    }
+    if(trkCore!==_lastTrkJson){
+      await fetch(API_BASE+'/api/roster/'+TRK_KEY,{method:'PUT',headers:hdr,body:JSON.stringify({...trkObj,updatedAt:new Date().toISOString()})});
+      _lastTrkJson=trkCore;
+    }
     _dirty=false;
   }catch(e){ const st=document.getElementById('status'); if(st)st.textContent='⚠ Cloud offline (změny zatím jen lokálně)'; }
   _saving=false; _updateSaveBtn();
