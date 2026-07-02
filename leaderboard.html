@@ -171,7 +171,7 @@ h1.title{font-size:22px;font-weight:800;color:#fff;margin-bottom:2px}
 <div class="wrap">
   <div class="title-row">
     <h1 class="title">Hall of Fame</h1>
-    <button class="btn btn-ghost edit-trigger" onclick="unlockEdit()" title="Upravit (vyžaduje hlavní heslo)">✏ Upravit</button>
+    <button class="btn btn-ghost edit-trigger" onclick="lbEditToggle()" title="Upravit (vyžaduje hlavní heslo)">✏ Upravit</button>
   </div>
   <div class="sub">Guild žebříčky · Rapid Evolution EU</div>
 
@@ -202,9 +202,9 @@ const API_BASE='https://raidguide-api.filip-tesarik1.workers.dev';
 const GH_RAW='https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/';
 const CLASS_COLORS={'Warrior':'#C69B6D','Paladin':'#F48CBA','Hunter':'#AAD372','Rogue':'#FFF468','Priest':'#FFFFFF','Death Knight':'#C41E3A','Shaman':'#0070DD','Mage':'#3FC7EB','Warlock':'#8788EE','Monk':'#00FF98','Druid':'#FF7C0A','Demon Hunter':'#A330C9','Evoker':'#33937F'};
 const CLASS_ICON_KEY={'Warrior':'warrior','Paladin':'paladin','Hunter':'hunter','Rogue':'rogue','Priest':'priest','Death Knight':'deathknight','Shaman':'shaman','Mage':'mage','Warlock':'warlock','Monk':'monk','Druid':'druid','Demon Hunter':'demonhunter','Evoker':'evoker'};
-function classIcon(name){const k=CLASS_ICON_KEY[name];return k?`https://wow.zamimg.com/images/wow/icons/medium/classicon_${k}.jpg`:'';}
+function classIcon(name){const k=CLASS_ICON_KEY[name];return k?`https://wow.zamimg.com/images/wow/icons/large/classicon_${k}.jpg`:'';}
 const SPEC_ICON={250:'spell_deathknight_bloodpresence',251:'spell_deathknight_frostpresence',252:'spell_deathknight_unholypresence',577:'ability_demonhunter_specdps',581:'ability_demonhunter_spectank',102:'spell_nature_starfall',103:'ability_druid_catform',104:'ability_racial_bearform',105:'spell_nature_healingtouch',1467:'classicon_evoker_devastation',1468:'classicon_evoker_preservation',1473:'classicon_evoker_augmentation',253:'ability_hunter_bestialdiscipline',254:'ability_hunter_focusedaim',255:'ability_hunter_camouflage',62:'spell_holy_magicalsentry',63:'spell_fire_firebolt02',64:'spell_frost_frostbolt02',268:'spell_monk_brewmaster_spec',269:'spell_monk_windwalker_spec',270:'spell_monk_mistweaver_spec',65:'spell_holy_holybolt',66:'ability_paladin_shieldofthetemplar',70:'spell_holy_auraoflight',256:'spell_holy_powerwordshield',257:'spell_holy_guardianspirit',258:'spell_shadow_shadowwordpain',259:'ability_rogue_deadlybrew',260:'ability_rogue_waylay',261:'ability_stealth',262:'spell_nature_lightning',263:'spell_shaman_improvedstormstrike',264:'spell_nature_magicimmunity',265:'spell_shadow_deathcoil',266:'spell_shadow_metamorphosis',267:'spell_shadow_rainoffire',71:'ability_warrior_savageblow',72:'ability_warrior_innerrage',73:'ability_warrior_defensivestance'};
-function specIcon(id){const k=SPEC_ICON[id];return k?`https://wow.zamimg.com/images/wow/icons/medium/${k}.jpg`:'';}
+function specIcon(id){const k=SPEC_ICON[id];return k?`https://wow.zamimg.com/images/wow/icons/large/${k}.jpg`:'';}
 function rowIcon(className,specId){if(_iconType==='spec'&&specId){const s=specIcon(specId);if(s)return s;}return classIcon(className);}
 const CATS=[
  {g:'Achievements',items:[
@@ -330,7 +330,7 @@ function openPc(enc){
   const rows=ALL_CATS.map(cat=>{const r=(_ranks[cat.k]||{})[p.name];if(!r)return '';return `<div class="pc-row"><span>${escH(cat.label)}</span><b style="color:${col}">${fmt(r.val)}</b><i style="color:${rankColor(r.rank)}">#${r.rank}</i></div>`;}).join('');
   document.getElementById('pcCard').innerHTML=`
     <div class="pc-h" style="background:linear-gradient(120deg,${col}22,transparent)">
-      <div class="pc-av" style="background:${col}22;border:1px solid ${col}66;color:${col}">${ci?`<img src="${ci}" style="width:30px;height:30px;border-radius:6px" alt="" onerror="this.parentNode.textContent='${escH(p.name.slice(0,2))}'">`:escH(p.name.slice(0,2))}</div>
+      <div class="pc-av" style="background:${col}22;border:2px solid ${col}88;color:${col};overflow:hidden">${ci?`<img src="${ci}" style="width:100%;height:100%;object-fit:cover" alt="" onerror="this.parentNode.textContent='${escH(p.name.slice(0,2))}'">`:escH(p.name.slice(0,2))}</div>
       <div style="flex:1"><div style="font-size:17px;font-weight:800;color:${col}">${escH(p.name)} <span style="color:var(--faint);font-size:12px;font-weight:500">${escH(p.className||'')}</span></div>
         <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap"><span class="chip">${escH(rankLabel(p.rank))}</span>${p.stats.ilvl?`<span class="chip">iLvl ${p.stats.ilvl}</span>`:''}${p.stats.io?`<span class="chip">IO ${fmt(p.stats.io)}</span>`:''}</div></div>
       <button class="mclose" onclick="closePc()">×</button>
@@ -369,6 +369,7 @@ async function rebuild(){
   if(raw&&raw.chars){_raw=raw;aggregate();render();}
   setTimeout(()=>{prog.style.display='none';bar.style.width='0';},2500);
 }
+function lbEditToggle(){ if(document.body.classList.contains('is-admin')){ document.body.classList.remove('is-admin'); } else { unlockEdit(); } }
 window.__onUnlock=function(){ render(); };
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closePc();});
 loadAll();
