@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leaderboard — Rapid Evolution EU</title>
+<script>
+/* ── Admin edit-lock gate (sdílené napříč stránkami) ── */
+(function(){
+  var sp = new URLSearchParams(location.search);
+  var IS_ADMIN = /(^|\/)admin(\/|$)/.test(location.pathname) || sp.get('admin')==='1' || sp.get('edit')==='1';
+  var P = ''; try{ P = sessionStorage.getItem('editPass') || ''; }catch(e){}
+  window.__IS_ADMIN = IS_ADMIN;
+  window.__getEditPass = function(){ return P; };
+  window.__setEditPass = function(v){ P = v||''; try{ sessionStorage.setItem('editPass', P); }catch(e){} };
+  var of = window.fetch.bind(window);
+  window.fetch = function(input, init){
+    init = init || {};
+    var m = (init.method || (input && input.method) || 'GET').toUpperCase();
+    var u = typeof input === 'string' ? input : (input && input.url) || '';
+    if(P && (m==='PUT'||m==='POST') && u.indexOf('/api/')!==-1){
+      var h = init.headers;
+      if(typeof Headers!=='undefined' && h instanceof Headers){ h.set('X-Edit-Pass', P); }
+      else { init.headers = Object.assign({}, h||{}, {'X-Edit-Pass': P}); }
+    }
+    return of(input, init);
+  };
+  window.unlockEdit = function(){
+    if(!P){ var pw = prompt('🔒 Zadej edit heslo:'); if(!pw) return false; window.__setEditPass(pw); }
+    window.__IS_ADMIN = true;
+    if(document.body){ document.body.classList.add('is-admin'); document.body.classList.remove('not-admin'); }
+    if(typeof window.__onUnlock==='function'){ try{ window.__onUnlock(); }catch(e){} }
+    return true;
+  };
+  function apply(){
+    document.body.classList.add(window.__IS_ADMIN ? 'is-admin' : 'not-admin');
+    if(window.__IS_ADMIN && typeof window.__onUnlock==='function'){ try{ window.__onUnlock(); }catch(e){} }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', apply);
+  else apply();
+})();
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0b0f;--panel:#13151f;--panel2:#171a26;--line:rgba(255,255,255,.08);--txt:#e0e2ea;--dim:#8b92a6;--faint:#5a6173;--accent:#4f8eff;--gold:#f5c04a}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh}
+.glass-bg{display:none;position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center;filter:brightness(.5)}
+body.glass-on{background:transparent}
+body.glass-on .glass-bg{display:block}
+.wrap{max-width:1320px;margin:0 auto;padding:22px 24px 60px}
+.admin-only{display:none}
+body.is-admin .admin-only{display:inline-flex}
+
+/* sidebar */
+#sidePanel{position:fixed;top:0;left:0;height:100vh;z-index:90;display:flex;align-items:stretch;transform:translateX(-244px);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+#sidePanel:hover,#sidePanel.pinned{transform:translateX(0)}
+.sp-body{width:244px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;padding:14px 12px 12px}
+.sp-handle{width:34px;background:var(--panel2);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:16px;padding-top:20px;cursor:pointer;color:var(--dim)}
+.sp-handle:hover{color:var(--accent)}
+.sp-handle .sp-htext{writing-mode:vertical-rl;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint)}
+.sp-logo{display:flex;align-items:center;justify-content:center;gap:9px;padding:4px 0 14px}
+.sp-logo svg{width:26px;height:26px}
+.sp-logo .sp-lname{font-size:15px;font-weight:800;color:#fff}
+.sp-logo .sp-lname span{color:var(--accent)}
+#spNav{flex:1;display:flex;flex-direction:column;min-height:0}
+.sp-bottom{margin-top:auto}
+.sp-item{display:flex;align-items:center;gap:11px;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);color:var(--dim);font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;margin-bottom:6px;transition:background .13s,border-color .13s,color .13s}
+.sp-item:hover{color:var(--txt);background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14)}
+.sp-item.active{color:#fff;font-weight:700;border-color:rgba(79,142,255,.5);background:linear-gradient(90deg,rgba(79,142,255,.32),rgba(79,142,255,.1))}
+.sp-item svg{width:17px;height:17px;flex:0 0 auto;color:var(--faint)}
+.sp-item.active svg{color:#bcd4ff}
+.sp-item>span:not(.sp-badge){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-item .sp-badge{margin-left:auto;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:20px;padding:2px 7px;flex:0 0 auto}
+.sp-head{font-size:12.5px;color:#c3cad8;font-weight:700;padding:16px 4px 8px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+.sp-season{display:flex;align-items:center;gap:7px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700;padding:6px 8px 5px}
+.sp-season::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+body.glass-on .sp-body{background:rgba(12,16,28,.40);backdrop-filter:blur(20px) saturate(165%)}
+body.glass-on .sp-handle{background:rgba(12,16,28,.34);backdrop-filter:blur(20px)}
+
+/* panel + table */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+.panel-title{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.head-r{display:flex;align-items:center;gap:12px}
+.meta{font-size:11px;color:var(--dim)}
+.btn{background:rgba(255,255,255,.06);border:1px solid var(--line);color:#cdd3e0;border-radius:7px;font-size:12px;font-weight:600;padding:6px 11px;cursor:pointer}
+.btn:hover{background:rgba(255,255,255,.1)}
+.btn.accent{color:#8fb8ff;border-color:rgba(79,142,255,.4);background:rgba(79,142,255,.1)}
+.filters{display:flex;gap:9px;flex-wrap:wrap;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.filters input{background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:7px 10px;outline:none;min-width:180px;flex:1}
+.chk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);cursor:pointer}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.tabgrp{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);align-self:center;margin:0 2px 0 6px}
+.tab{font-size:12px;color:var(--dim);background:#0e1018;border:1px solid var(--line);border-radius:7px;padding:6px 10px;cursor:pointer}
+.tab.on{color:#fff;background:linear-gradient(90deg,rgba(79,142,255,.32),rgba(79,142,255,.1));border-color:rgba(79,142,255,.5)}
+table.lb{width:100%;border-collapse:collapse;font-size:13px}
+table.lb th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:10px 14px;border-bottom:1px solid var(--line);text-align:left}
+table.lb th.c{text-align:center}table.lb th.r{text-align:right}
+table.lb td{padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.04)}
+table.lb td.rk{text-align:center;color:var(--dim);font-weight:700;width:54px}
+table.lb td.v{text-align:right;font-weight:700;color:#cdd3e0}
+table.lb tr:hover td{background:rgba(255,255,255,.03)}
+tr.g1 td{background:rgba(245,192,74,.06)}tr.g2 td{background:rgba(200,210,225,.05)}tr.g3 td{background:rgba(205,127,80,.06)}
+.pname{font-weight:600;cursor:pointer}
+.altbadge{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--dim);border-radius:20px;padding:1px 6px;font-size:10px;margin-left:5px}
+.dormant .pname{filter:grayscale(1);opacity:.72}
+.wrr{font-size:11px;color:var(--dim)}.wrr b{color:#cdd3e0}
+.pager{display:flex;align-items:center;justify-content:center;gap:14px;padding:12px;border-top:1px solid var(--line);background:var(--panel2)}
+.pager button{background:rgba(255,255,255,.06);border:1px solid var(--line);color:#cdd3e0;border-radius:6px;font-size:13px;padding:5px 12px;cursor:pointer}
+.pager button:disabled{opacity:.4;cursor:default}
+.loading{text-align:center;padding:44px 20px;color:var(--faint)}
+h1.title{font-size:22px;font-weight:800;color:#fff;margin-bottom:2px}
+.sub{font-size:12px;color:var(--dim);margin-bottom:18px}
+#prog{display:none;align-items:center;gap:10px;font-size:12px;color:#8fb8ff}
+#prog .bar{width:160px;height:6px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden}
+#prog .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+
+/* player card modal */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center;padding:20px}
+.ov.open{display:flex}
+.pc{width:440px;max-width:100%;max-height:90vh;overflow-y:auto;background:var(--panel);border:1px solid rgba(255,255,255,.12);border-radius:14px}
+.pc-h{display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.pc-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+.pc-b{padding:14px 18px}
+.pc-lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:2px 0 9px}
+.pc-row{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px}
+.pc-row span{flex:1;color:#cdd3e0}
+.pc-row b{font-weight:700}
+.pc-row i{font-style:normal;font-size:12px;font-weight:700;color:var(--faint);width:42px;text-align:right}
+.pc-row i.gold{color:var(--gold)}
+.chip{font-size:11px;color:var(--dim);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:2px 8px}
+.alt{font-size:12px;font-weight:600;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:4px 9px}
+.mclose{background:none;border:none;color:var(--faint);font-size:22px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="glass-bg" id="glassBg"></div>
+
+<div id="sidePanel">
+  <div class="sp-body">
+    <div class="sp-logo"><svg viewBox="0 0 24 24" fill="#e8536b"><path d="M12 2c1.5 2.5 4 3 6 3-1 3-1 6-6 15C7 11 7 8 6 5c2 0 4.5-.5 6-3z"/></svg><span class="sp-lname">Rapid<span>Evolution</span></span></div>
+    <div id="spNav"></div>
+  </div>
+  <div class="sp-handle" onclick="document.getElementById('sidePanel').classList.toggle('pinned')"><span class="sp-htext">Menu</span></div>
+</div>
+
+<div class="wrap">
+  <h1 class="title">Leaderboard</h1>
+  <div class="sub">Guild žebříčky · Rapid Evolution EU</div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-title">Žebříčky</span>
+      <div class="head-r">
+        <span class="meta" id="lbMeta">Načítám…</span>
+        <div id="prog"><span id="progTxt"></span><span class="bar"><i id="progBar"></i></span></div>
+        <button class="btn accent admin-only" onclick="rebuild()">⟳ Přebudovat</button>
+      </div>
+    </div>
+    <div class="filters">
+      <input id="q" placeholder="Hledat hráče (main nebo alt)…" oninput="render()">
+      <label class="chk"><input type="checkbox" id="activeOnly" onchange="render()"> jen aktivní</label>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div id="body"><div class="loading">Načítám žebříčky…</div></div>
+  </div>
+</div>
+
+<div class="ov" id="pcOv" onclick="if(event.target===this)closePc()">
+  <div class="pc" id="pcCard"></div>
+</div>
+
+<script>
+const API_BASE='https://raidguide-api.filip-tesarik1.workers.dev';
+const GH_RAW='https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/';
+const CLASS_COLORS={'Warrior':'#C69B6D','Paladin':'#F48CBA','Hunter':'#AAD372','Rogue':'#FFF468','Priest':'#FFFFFF','Death Knight':'#C41E3A','Shaman':'#0070DD','Mage':'#3FC7EB','Warlock':'#8788EE','Monk':'#00FF98','Druid':'#FF7C0A','Demon Hunter':'#A330C9','Evoker':'#33937F'};
+const CATS=[
+ {g:'Collections',items:[
+   {k:'mounts',label:'Mounts',agg:'max'},{k:'pets',label:'Pets',agg:'max'},{k:'toys',label:'Toys',agg:'max'},
+   {k:'heirlooms',label:'Heirlooms',agg:'max'},{k:'titles',label:'Titles',agg:'max'},{k:'repsExalted',label:'Exalted Reps',agg:'max'}]},
+ {g:'Achievements',items:[
+   {k:'achPoints',label:'Achievement Points',agg:'max'},{k:'achCount',label:'Achievements',agg:'max'}]},
+ {g:'Performance',items:[
+   {k:'io',label:'M+ IO',agg:'max',wrr:true},{k:'ilvl',label:'Item Level',agg:'max'},
+   {k:'hk',label:'Honorable Kills',agg:'sum'},{k:'quests',label:'Quests',agg:'sum'},{k:'honorLevel',label:'Honor Level',agg:'max'}]},
+ {g:'Hall of Shame',items:[
+   {k:'deaths',label:'Total Deaths',agg:'sum'},{k:'deathsFall',label:'Falling Deaths',agg:'sum'},
+   {k:'deathsEnv',label:'Environment Deaths',agg:'sum'},{k:'goldSpent',label:'Gold Spent',agg:'sum'},
+   {k:'duelsLost',label:'Duels Lost',agg:'sum'},{k:'junkFished',label:'Junk Fished',agg:'sum'},
+   {k:'hearths',label:'Hearths',agg:'sum'},{k:'flightPaths',label:'Flight Paths',agg:'sum'}]},
+];
+const ALL_CATS=CATS.flatMap(g=>g.items);
+function escH(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmt(n){return (n||0).toLocaleString('cs-CZ');}
+
+let _raw={chars:{}}, _altMap={}, _dormant={}, _rankNames={}, _seasons=[], _discord='';
+let _players=[], _ranks={}, _curCat='mounts', _page=1;
+
+function rootMain(name){let c=name,g=0;while(_altMap[c]&&g<12){c=_altMap[c];g++;}return c;}
+function rankLabel(n){const m=_rankNames[String(n)]||{};return m.name||(n===0?'Guild Master':('Rank '+n));}
+
+/* ---- sidebar ---- */
+const SP={home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',roster:'<circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.3 3.2-5.2 6.5-5.2s6.5 1.9 6.5 5.2"/><path d="M17 5.6a3.2 3.2 0 010 5.4"/>',lb:'<rect x="4" y="10" width="4" height="9" rx="1"/><rect x="10" y="4" width="4" height="15" rx="1"/><rect x="16" y="13" width="4" height="6" rx="1"/>',raid:'<path d="M5 4h12a1 1 0 011 1v15l-4-2-4 2-4-2V4z"/><path d="M9 4v12.5"/>',discord:'<path d="M8 5.5c-2 .3-3.7 1-4.8 2.4C1.4 11 1.4 15.6 2.4 17.6c1 .9 2.2 1.5 3.2 1.7L6.8 18"/><path d="M16 5.5c2 .3 3.7 1 4.8 2.4 1.8 3.1 1.8 7.7.8 9.7-1 .9-2.2 1.5-3.2 1.7L17.2 18"/><circle cx="9" cy="12.5" r="1.3"/><circle cx="15" cy="12.5" r="1.3"/>'};
+function svgI(n){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SP[n]||SP.raid}</svg>`;}
+function renderSidePanel(){
+  let guides='';
+  _seasons.forEach((se,i)=>{const rs=(se.raids||[]);if(!rs.length)return;guides+=`<div class="sp-season">${escH(se.name||('Season '+(i+1)))}</div>`+rs.map(r=>`<a class="sp-item" href="raid.html?raid=${encodeURIComponent(r.slug)}">${svgI('raid')}<span>${escH(r.name)}</span></a>`).join('');});
+  document.getElementById('spNav').innerHTML=`
+    <a class="sp-item" href="index.html">${svgI('home')}<span>Home</span></a>
+    <a class="sp-item" href="roster.html">${svgI('roster')}<span>Roster</span></a>
+    <a class="sp-item active" href="leaderboard.html">${svgI('lb')}<span>Leaderboard</span></a>
+    <div class="sp-head">Guides</div>${guides||'<div class="sp-season">Zatím žádné raidy</div>'}
+    <div class="sp-bottom"><div class="sp-head">External Links</div>
+    <a class="sp-item" href="${_discord?escH(_discord):'#'}" ${_discord?'target="_blank" rel="noopener"':''}>${svgI('discord')}<span>Discord</span></a></div>`;
+}
+
+/* ---- theme ---- */
+function applyTheme(m){document.body.classList.toggle('glass-on',m==='glass');const bg=document.getElementById('glassBg');if(bg&&!bg.style.backgroundImage)bg.style.backgroundImage=`url('${GH_RAW}Images/Roster/Index_Background.jpg?v=3')`;}
+
+/* ---- load ---- */
+async function loadAll(){
+  try{applyTheme(localStorage.getItem('indexTheme')||'classic');}catch(e){}
+  const [cfg,ra,raw]=await Promise.all([
+    fetch(API_BASE+'/api/roster/index-cfg?_='+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(API_BASE+'/api/roster/roster-alts?_='+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null),
+    fetch(API_BASE+'/api/lb/raw?_='+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null),
+  ]);
+  if(cfg){ if(cfg.theme)applyTheme(cfg.theme); if(cfg.rankNames)_rankNames=cfg.rankNames; if(Array.isArray(cfg.seasons))_seasons=cfg.seasons; if(cfg.discordUrl)_discord=cfg.discordUrl; }
+  if(ra){ if(ra.altMap)_altMap=ra.altMap; if(ra.dormant)_dormant=ra.dormant; }
+  if(raw&&raw.chars)_raw=raw;
+  renderSidePanel(); aggregate(); renderTabs(); render();
+}
+
+/* ---- aggregate per player ---- */
+function aggregate(){
+  const chars=Object.values(_raw.chars||{});
+  const byName={}; chars.forEach(c=>byName[c.name]=c);
+  const groups={}; chars.forEach(c=>{const root=rootMain(c.name);(groups[root]=groups[root]||[]).push(c);});
+  _players=Object.keys(groups).map(root=>{
+    const cs=groups[root];
+    const rep=byName[root]||cs.slice().sort((a,b)=>(b.level||0)-(a.level||0))[0];
+    const stats={};
+    ALL_CATS.forEach(cat=>{const vals=cs.map(c=>(c.s&&c.s[cat.k])||0);stats[cat.k]=cat.agg==='sum'?vals.reduce((a,b)=>a+b,0):Math.max(0,...vals);});
+    const ioC=cs.slice().sort((a,b)=>((b.s&&b.s.io)||0)-((a.s&&a.s.io)||0))[0];
+    const wrr=ioC&&ioC.s?{w:ioC.s.ioW||0,r:ioC.s.ioR||0,realm:ioC.s.ioRealm||0}:{w:0,r:0,realm:0};
+    return {name:rep.name,className:rep.className,rank:rep.rank,dormant:!!_dormant[root]||!!_dormant[rep.name],alts:cs.map(c=>c.name),stats,wrr};
+  });
+  _ranks={};
+  ALL_CATS.forEach(cat=>{
+    const sorted=_players.filter(p=>p.stats[cat.k]>0).sort((a,b)=>b.stats[cat.k]-a.stats[cat.k]);
+    const m={}; sorted.forEach((p,i)=>{m[p.name]={rank:i+1,val:p.stats[cat.k]};}); _ranks[cat.k]=m;
+  });
+  const built=chars.length;
+  document.getElementById('lbMeta').textContent=`${_players.length} hráčů · doplněno ${built}/${_raw.total||built}`+(_raw.updatedAt?` · ${new Date(_raw.updatedAt).toLocaleDateString('cs-CZ')}`:'');
+}
+
+function renderTabs(){
+  document.getElementById('tabs').innerHTML=CATS.map(g=>
+    `<span class="tabgrp">${g.g}</span>`+g.items.map(c=>`<span class="tab${c.k===_curCat?' on':''}" onclick="setCat('${c.k}')">${escH(c.label)}</span>`).join('')
+  ).join('');
+}
+function setCat(k){_curCat=k;_page=1;renderTabs();render();}
+
+function render(){
+  if(!_players.length){document.getElementById('body').innerHTML='<div class="loading">Zatím žádná data. '+(window.__IS_ADMIN?'Klikni na „⟳ Přebudovat".':'Admin musí spustit build.')+'</div>';return;}
+  const cat=ALL_CATS.find(c=>c.k===_curCat)||ALL_CATS[0];
+  const q=(document.getElementById('q').value||'').trim().toLowerCase();
+  const activeOnly=document.getElementById('activeOnly').checked;
+  let rows=_players.filter(p=>p.stats[cat.k]>0);
+  if(activeOnly) rows=rows.filter(p=>!p.dormant);
+  if(q) rows=rows.filter(p=>p.name.toLowerCase().includes(q)||p.alts.some(a=>a.toLowerCase().includes(q)));
+  rows.sort((a,b)=>b.stats[cat.k]-a.stats[cat.k]);
+  const per=25,total=rows.length,pages=Math.max(1,Math.ceil(total/per));
+  if(_page>pages)_page=pages;
+  const shown=rows.slice((_page-1)*per,(_page-1)*per+per);
+  const medal=['🥇','🥈','🥉'];
+  const body=`<table class="lb"><thead><tr><th class="c">#</th><th>Hráč</th><th>Třída</th>${cat.wrr?'<th class="c">W · R · Realm</th>':''}<th class="r">${escH(cat.label)}</th></tr></thead><tbody>${
+    shown.map((p,i)=>{const idx=(_page-1)*per+i;const col=CLASS_COLORS[p.className]||'#cdd3e0';const alt=p.alts.length>1?`<span class="altbadge">+${p.alts.length-1}</span>`:'';
+      const wrrCell=cat.wrr?`<td class="c wrr">${p.wrr.w?`<b>${fmt(p.wrr.w)}</b>`:'—'} · ${p.wrr.r?fmt(p.wrr.r):'—'} · ${p.wrr.realm?fmt(p.wrr.realm):'—'}</td>`:'';
+      return `<tr class="${idx<3?'g'+(idx+1):''}${p.dormant?' dormant':''}"><td class="rk">${idx<3?medal[idx]:(idx+1)}</td>
+        <td><span class="pname" style="color:${col}" onclick="openPc('${encodeURIComponent(p.name)}')">${escH(p.name)}</span>${alt}</td>
+        <td style="color:${col}">${escH(p.className||'—')}</td>${wrrCell}
+        <td class="v">${fmt(p.stats[cat.k])}</td></tr>`;}).join('')
+  }</tbody></table>
+  <div class="pager"><button onclick="_page--;render()" ${_page<=1?'disabled':''}>‹</button><span style="font-size:12px;color:var(--dim)">${_page} / ${pages} · ${total} hráčů</span><button onclick="_page++;render()" ${_page>=pages?'disabled':''}>›</button></div>`;
+  document.getElementById('body').innerHTML=total?body:'<div class="loading">Nikdo v této kategorii.</div>';
+}
+
+/* ---- player card ---- */
+function openPc(enc){
+  const name=decodeURIComponent(enc);const p=_players.find(x=>x.name===name);if(!p)return;
+  const col=CLASS_COLORS[p.className]||'#cdd3e0';
+  const rows=ALL_CATS.map(cat=>{const r=(_ranks[cat.k]||{})[p.name];if(!r)return '';return `<div class="pc-row"><span>${escH(cat.label)}</span><b style="color:${col}">${fmt(r.val)}</b><i class="${r.rank===1?'gold':''}">#${r.rank}</i></div>`;}).join('');
+  document.getElementById('pcCard').innerHTML=`
+    <div class="pc-h" style="background:linear-gradient(120deg,${col}22,transparent)">
+      <div class="pc-av" style="background:${col}22;border:1px solid ${col}66;color:${col}">${escH(p.name.slice(0,2))}</div>
+      <div style="flex:1"><div style="font-size:17px;font-weight:800;color:${col}">${escH(p.name)} <span style="color:var(--faint);font-size:12px;font-weight:500">${escH(p.className||'')}</span></div>
+        <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap"><span class="chip">${escH(rankLabel(p.rank))}</span>${p.stats.ilvl?`<span class="chip">iLvl ${p.stats.ilvl}</span>`:''}${p.stats.io?`<span class="chip">IO ${fmt(p.stats.io)}</span>`:''}</div></div>
+      <button class="mclose" onclick="closePc()">×</button>
+    </div>
+    <div class="pc-b">
+      <div class="pc-lbl">Umístění v žebříčcích</div>${rows||'<div style="color:var(--faint);font-size:12px">Zatím žádná data.</div>'}
+      <div class="pc-lbl" style="margin-top:14px">Postavy (${p.alts.length})</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${p.alts.map(a=>{const cc=CLASS_COLORS[(_raw.chars[Object.keys(_raw.chars).find(k=>_raw.chars[k].name===a)]||{}).className]||'#cdd3e0';return `<span class="alt" style="color:${cc}">${escH(a)}</span>`;}).join('')}</div>
+      <div style="margin-top:16px"><a href="roster.html" style="display:block;text-align:center;font-size:12px;color:#8fb8ff;background:rgba(79,142,255,.12);border:1px solid rgba(79,142,255,.4);border-radius:8px;padding:9px;text-decoration:none">Zobrazit v rosteru →</a></div>
+    </div>`;
+  document.getElementById('pcOv').classList.add('open');
+}
+function closePc(){document.getElementById('pcOv').classList.remove('open');}
+
+/* ---- rebuild (admin, dávkově) ---- */
+async function rebuild(){
+  if(!window.__IS_ADMIN){ if(!window.unlockEdit()) return; }
+  const prog=document.getElementById('prog'),bar=document.getElementById('progBar'),txt=document.getElementById('progTxt');
+  prog.style.display='flex';
+  let offset=0,total=0,guard=0;
+  try{
+    do{
+      const r=await fetch(`${API_BASE}/api/lb/build?offset=${offset}&batch=3`,{headers:{'X-Edit-Pass':window.__getEditPass()}});
+      const d=await r.json();
+      if(!r.ok){ txt.textContent='Chyba: '+(d.error||r.status); break; }
+      total=d.total||total; offset=d.next;
+      const pct=total?Math.round(offset/total*100):100;
+      bar.style.width=Math.min(100,pct)+'%'; txt.textContent=`Stahuji ${Math.min(offset,total)}/${total}…`;
+      if(d.done) break;
+      guard++;
+    }while(guard<600);
+    txt.textContent='Hotovo ✓';
+  }catch(e){ txt.textContent='Chyba: '+e.message; }
+  // reload
+  const raw=await fetch(API_BASE+'/api/lb/raw?_='+Date.now()).then(r=>r.json()).catch(()=>null);
+  if(raw&&raw.chars){_raw=raw;aggregate();render();}
+  setTimeout(()=>{prog.style.display='none';bar.style.width='0';},2500);
+}
+window.__onUnlock=function(){ render(); };
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePc();});
+loadAll();
+</script>
+</body>
+</html>

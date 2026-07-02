@@ -29,7 +29,7 @@ const CORS_HEADERS = {
 const PROTECTED_STATIC = new Set([
   'main', 'index-cfg', 'trial-roster', 'roster-sheets', 'loot-archive',
   'wcl-cfg', 'wcl-creds', 'blizz-specs', 'blizz-ach', 'blizz-token',
-  'group-templates',
+  'group-templates', 'lb-raw',
 ]);
 
 async function guideMainKeys(env) {
@@ -175,6 +175,68 @@ async function blizzGet(token, region, path, params = {}) {
   const res = await fetch(u.toString(), { headers: { 'Authorization': 'Bearer ' + token } });
   if (!res.ok) { const e = new Error('Blizzard ' + res.status + ' ' + path); e.status = res.status; throw e; }
   return res.json();
+}
+
+/* ---------------- Leaderboard: staty per postava ---------------- */
+function flattenStats(statsJson) {
+  const out = {};
+  const walk = (cat) => {
+    if (!cat) return;
+    (cat.statistics || []).forEach(s => { if (s && s.name) out[String(s.name).toLowerCase()] = (s.quantity || 0); });
+    (cat.sub_categories || []).forEach(walk);
+  };
+  ((statsJson && statsJson.categories) || []).forEach(walk);
+  return out;
+}
+function sumStats(flat, pred) { let t = 0; for (const k in flat) { if (pred(k)) t += flat[k]; } return Math.round(t); }
+function firstStat(flat, names) {
+  for (const n of names) { if (flat[n] != null) return Math.round(flat[n]); }
+  for (const k in flat) { if (names.some(n => k.includes(n))) return Math.round(flat[k]); }
+  return 0;
+}
+async function fetchCharLB(token, region, realm, nameRaw) {
+  const name = encodeURIComponent(String(nameRaw || '').toLowerCase());
+  const base = `/profile/wow/character/${realm}/${name}`;
+  const g = (p) => blizzGet(token, region, base + p).catch(() => null);
+  const [ach, stats, mounts, pets, toys, heirlooms, titles, reps, pvp, summary] = await Promise.all([
+    g('/achievements'), g('/achievements/statistics'),
+    g('/collections/mounts'), g('/collections/pets'), g('/collections/toys'), g('/collections/heirlooms'),
+    g('/titles'), g('/reputations'), g('/pvp-summary'), g(''),
+  ]);
+  const flat = flattenStats(stats);
+  let io = 0, ioW = 0, ioR = 0, ioRealm = 0;
+  try {
+    const rioUrl = `https://raider.io/api/v1/characters/profile?region=${region}&realm=${realm}&name=${name}&fields=mythic_plus_scores_by_season:current,mythic_plus_ranks`;
+    const rio = await fetch(rioUrl).then(r => r.ok ? r.json() : null).catch(() => null);
+    const s = (rio && rio.mythic_plus_scores_by_season || [])[0];
+    io = (s && s.scores && Math.round(s.scores.all)) || 0;
+    const rk = rio && rio.mythic_plus_ranks && rio.mythic_plus_ranks.overall;
+    if (rk) { ioW = rk.world || 0; ioR = rk.region || 0; ioRealm = rk.realm || 0; }
+  } catch (e) {}
+  const repsExalted = (((reps && reps.reputations) || []).filter(r => r && r.standing && r.standing.name === 'Exalted')).length;
+  return {
+    achPoints: (ach && ach.total_points) || 0,
+    achCount: (ach && ach.total_quantity) || 0,
+    mounts: ((mounts && mounts.mounts) || []).length,
+    pets: ((pets && pets.pets) || []).length,
+    toys: ((toys && toys.toys) || []).length,
+    heirlooms: ((heirlooms && heirlooms.heirlooms) || []).length,
+    titles: ((titles && titles.titles) || []).length,
+    repsExalted,
+    ilvl: Math.round((summary && (summary.equipped_item_level || summary.average_item_level)) || 0),
+    io, ioW, ioR, ioRealm,
+    honorLevel: (pvp && pvp.honor_level) || 0,
+    quests: firstStat(flat, ['quests completed']),
+    hk: firstStat(flat, ['total honorable kills', 'honorable kills']),
+    deaths: firstStat(flat, ['total deaths']),
+    deathsFall: sumStats(flat, k => k.includes('death') && k.includes('fall')),
+    deathsEnv: sumStats(flat, k => k.includes('death') && (k.includes('drown') || k.includes('lava') || k.includes('fire') || k.includes('fatigue'))),
+    goldSpent: sumStats(flat, k => k.includes('gold spent')),
+    duelsLost: firstStat(flat, ['duels lost']),
+    junkFished: sumStats(flat, k => k.includes('junk') && k.includes('fish')),
+    hearths: sumStats(flat, k => k.includes('hearthstone')),
+    flightPaths: sumStats(flat, k => k.includes('flight path')),
+  };
 }
 
 async function buildGuild(env, guild) {
@@ -473,6 +535,51 @@ export default {
         return json(rec);
       } catch (e) {
         return json({ brackets: [], error: String(e && e.message || e) });
+      }
+    }
+
+    /* ----- Leaderboard: čtení raw dat (public) ----- */
+    if (request.method === 'GET' && pathname === '/api/lb/raw') {
+      const raw = await env.ROSTERS.get('lb-raw');
+      if (!raw) return json({ chars: {}, updatedAt: null, total: 0 });
+      return new Response(raw, { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
+    }
+
+    /* ----- Leaderboard: dávkový build (admin) ----- */
+    if (request.method === 'GET' && pathname === '/api/lb/build') {
+      if (!(await editAuthOK(request, env))) return json({ error: 'locked', locked: true }, 403);
+      const guild = {
+        realm: url.searchParams.get('realm') || GUILD_DEFAULT.realm,
+        nameSlug: url.searchParams.get('name') || GUILD_DEFAULT.nameSlug,
+        region: url.searchParams.get('region') || GUILD_DEFAULT.region,
+      };
+      const batch = Math.min(4, Math.max(1, parseInt(url.searchParams.get('batch') || '3', 10) || 3));
+      const offset = Math.max(0, parseInt(url.searchParams.get('offset') || '0', 10) || 0);
+      try {
+        let members;
+        const gcache = await env.ROSTERS.get(`blizz-guild:${guild.region}:${guild.realm}:${guild.nameSlug}`, { type: 'json' });
+        if (gcache && Array.isArray(gcache.members)) members = gcache.members;
+        else { const gd = await buildGuild(env, guild); members = gd.members; }
+        members = members.slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        const total = members.length;
+        const slice = members.slice(offset, offset + batch);
+        const token = await getBlizzToken(env);
+        const raw = (await env.ROSTERS.get('lb-raw', { type: 'json' })) || { chars: {} };
+        if (!raw.chars) raw.chars = {};
+        for (const m of slice) {
+          const key = `${m.realmSlug}:${String(m.name).toLowerCase()}`;
+          try {
+            const s = await fetchCharLB(token, guild.region, m.realmSlug, m.name);
+            raw.chars[key] = { name: m.name, realmSlug: m.realmSlug, className: m.className, raceName: m.raceName, level: m.level, rank: m.rank, t: Date.now(), s };
+          } catch (e) {}
+        }
+        raw.region = guild.region; raw.realm = guild.realm; raw.total = total;
+        raw.updatedAt = new Date().toISOString();
+        await env.ROSTERS.put('lb-raw', JSON.stringify(raw));
+        const next = offset + batch;
+        return json({ done: next >= total, next, total, processed: slice.length, updatedAt: raw.updatedAt });
+      } catch (e) {
+        return json({ error: String(e && e.message || e) }, 500);
       }
     }
 
