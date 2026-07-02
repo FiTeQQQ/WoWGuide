@@ -112,6 +112,9 @@ a{text-decoration:none;color:inherit}
 .ffield{display:flex;flex-direction:column;gap:4px;min-width:140px;flex:1}
 .ffield label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
 .ffield select{background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:7px 9px;outline:none;cursor:pointer}
+.ffield input{background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:7px 9px;outline:none;width:100%}
+.ffield input:focus{border-color:rgba(79,142,255,.5)}
+.ffield input::placeholder{color:var(--faint)}
 .ffield select option,.ffield select optgroup{background:#13151f;color:#e0e2ea}
 select option{background:#13151f;color:#e0e2ea}
 .ffield select:focus{border-color:rgba(79,142,255,.5)}
@@ -132,16 +135,22 @@ table.roster tr:hover td{background:rgba(255,255,255,.03)}
 .rank-gm{color:var(--gold);font-weight:800}
 .lvl{font-weight:700;color:#cdd3e0}
 .alt-badge{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--dim);border-radius:20px;padding:1px 7px;font-size:10px;margin-left:6px;font-weight:600}
+.dorm-badge{font-size:11px;margin-left:5px;opacity:.75;filter:grayscale(.3)}
 table.roster tr.main-row:hover td{background:rgba(255,255,255,.03)}
-table.roster tr.alt-row td{background:rgba(0,0,0,.16)}
-table.roster tr.alt-row:hover td{background:rgba(255,255,255,.03)}
+table.roster tr.alt-row td{background:rgba(96,120,180,.055)}
+table.roster tr.alt-row td:first-child{box-shadow:inset 3px 0 0 rgba(120,150,215,.32)}
+table.roster tr.alt-row:hover td{background:rgba(120,150,215,.1)}
+table.roster tr.dormant td{opacity:.45}
+table.roster tr.dormant:hover td{opacity:.7}
+.roster.editable tr.main-row,.roster.editable tr.alt-row{cursor:grab}
+.roster-lock{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--dim);border-radius:7px;font-size:13px;padding:3px 8px;cursor:pointer;line-height:1}
+.roster-lock.on{color:var(--accent);border-color:rgba(79,142,255,.4)}
 .roster-ctx{position:fixed;z-index:200;display:none;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px;min-width:230px;box-shadow:0 12px 30px rgba(0,0,0,.5)}
 .roster-ctx .rc-title{font-size:11px;color:var(--faint);padding:2px 4px 7px;border-bottom:1px solid var(--line);margin-bottom:7px}
 .roster-ctx input{width:100%;background:#0e1018;border:1px solid var(--line);border-radius:6px;color:var(--txt);font-size:12px;padding:6px 8px;outline:none;margin-bottom:7px}
 .roster-ctx button{display:block;width:100%;text-align:left;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--txt);border-radius:6px;font-size:12px;padding:6px 9px;cursor:pointer;margin-bottom:5px}
 .roster-ctx button:hover{background:rgba(255,255,255,.09)}
 .roster-ctx button.danger{color:#e0716f}
-body.is-admin table.roster tr.main-row,body.is-admin table.roster tr.alt-row{cursor:grab}
 table.roster tr.drop-hi td{background:rgba(79,142,255,.16) !important;box-shadow:inset 0 2px 0 var(--accent),inset 0 -2px 0 var(--accent)}
 .alt-dropzone{border:1px dashed var(--line);border-radius:9px;padding:9px 12px;margin:10px 14px 4px;font-size:11.5px;color:var(--faint);text-align:center;background:rgba(255,255,255,.02)}
 .alt-dropzone.drop-hi{border-color:var(--accent);color:var(--accent);background:rgba(79,142,255,.1)}
@@ -333,6 +342,7 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
     <button class="btn btn-ghost" onclick="openRankEditor()">🏷 Přejmenovat ranky</button>
     <button class="btn btn-ghost" onclick="openColEditor()">▦ Sloupce</button>
     <button class="btn btn-ghost" onclick="openIoEditor()">🎨 IO barvy</button>
+    <button class="btn btn-ghost" onclick="setRosterPass()">🔑 Roster heslo</button>
   </div>
 
 
@@ -364,8 +374,15 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
     <!-- LEFT: roster table -->
     <div>
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">Guild Roster</span><span id="rosterCount" style="font-size:11px;color:var(--dim)"></span></div>
+        <div class="panel-head"><span class="panel-title">Guild Roster</span>
+          <span style="display:flex;align-items:center;gap:10px">
+            <span id="rosterCount" style="font-size:11px;color:var(--dim)"></span>
+            <button id="rosterLock" class="roster-lock" onclick="rosterLockToggle()" title="Upravit alty (heslo)">🔒</button>
+          </span>
+        </div>
         <div class="filters">
+          <div class="ffield" style="flex:1;min-width:150px"><label>Hledat postavu</label>
+            <input id="fSearch" oninput="onFilterChange()" placeholder="jméno maina nebo alta…" autocomplete="off"></div>
           <div class="ffield"><label>Řazení</label>
             <select id="fSort" onchange="onFilterChange()">
               <option value="rank">Guild Rank</option>
@@ -542,7 +559,10 @@ const GLASS_BG = GH_RAW + 'Images/Roster/Index_Background.jpg';
 let themeMode = 'classic';
 let _cfgLoaded = false;
 let _rankNames = {};   // { "0": {name:"Guild Master", color:"#f5c04a"}, "1": {...} } — překlad API ranků do řeči guildy (cloud: index-cfg)
-let _altMap = {};      // { "AltName": "MainName" } — párování altů na maina (cloud: index-cfg)
+let _altMap = {};      // { "AltName": "MainName" } — párování altů na maina (cloud: roster-alts)
+let _dormant = {};     // { "CharName": true } — neaktivní/dormant postavy (cloud: roster-alts)
+let _rosterUnlocked = false;  // odemčený roster zámek (párování altů) — nezávislý na globálním editu
+let _rosterPass = '';         // roster heslo (sessionStorage)
 let _rio = {};         // { "charnamelower": {ilvl, io, color} } — Raider.IO cache (runtime)
 let _expanded = {};    // { "MainName": true } — které mainy mají rozbalené alty (runtime)
 let _colCfg = null;    // [{key,hidden}] pořadí + viditelnost sloupců rosteru (cloud: index-cfg)
@@ -599,7 +619,6 @@ async function loadCfg(){
       if(m && m.theme){ applyTheme(m.theme); try{ localStorage.setItem('indexTheme', m.theme); }catch(e){} }
       if(m && m.progGrad){ _progGrad = m.progGrad; try{ localStorage.setItem('indexProgGrad', m.progGrad); }catch(e){} applyProgGradient(); }
       if(m && m.rankNames && typeof m.rankNames==='object'){ _rankNames = m.rankNames; }
-      if(m && m.altMap && typeof m.altMap==='object'){ _altMap = m.altMap; }
       if(m && Array.isArray(m.rosterCols)){ _colCfg = m.rosterCols; }
       if(m && (m.ioMode==='brackets'||m.ioMode==='api')){ _ioMode = m.ioMode; }
       if(m && Array.isArray(m.cutoffs)){ _cutoffs = m.cutoffs.slice().sort((a,b)=>b.min-a.min); }
@@ -621,16 +640,73 @@ async function saveCfg(){
   try{
     await fetch(API_BASE + '/api/roster/' + CFG_KEY, {
       method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, rankNames: _rankNames, altMap: _altMap, rosterCols: _cols(), ioMode: _ioMode, cutoffs: _cutoffs, cutSeason: _cutSeason, seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
+      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, rankNames: _rankNames, rosterCols: _cols(), ioMode: _ioMode, cutoffs: _cutoffs, cutSeason: _cutSeason, seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
     });
   }catch(e){}
 }
 
 /* ---------- init ---------- */
 async function init(){
+  try{ _rosterPass = sessionStorage.getItem('rosterPass') || ''; }catch(e){}
+  if(_rosterPass) _rosterUnlocked = true;
   loadCfg();
   loadGuild();
+  loadRosterAlts();
   loadRankings();
+}
+
+/* ---------- roster-alts (párování + dormant) — vlastní cloud klíč, vlastní heslo ---------- */
+function rosterEditable(){ return _rosterUnlocked || !!window.__IS_ADMIN; }
+async function loadRosterAlts(){
+  try{
+    const r = await fetch(API_BASE + '/api/roster/roster-alts?_=' + Date.now());
+    if(r.ok){ const d = await r.json(); if(d){
+      if(d.altMap && typeof d.altMap==='object') _altMap = d.altMap;
+      if(d.dormant && typeof d.dormant==='object') _dormant = d.dormant;
+    } }
+  }catch(e){}
+  try{ renderRoster(); }catch(e){}
+}
+let _raSaveT = null;
+function saveRosterAltsSoon(){ clearTimeout(_raSaveT); _raSaveT = setTimeout(saveRosterAlts, 500); }
+async function saveRosterAlts(){
+  try{
+    const r = await fetch(API_BASE + '/api/roster/roster-alts', {
+      method:'PUT',
+      headers:{ 'Content-Type':'application/json', 'X-Roster-Pass': _rosterPass || '' },
+      body: JSON.stringify({ altMap:_altMap, dormant:_dormant, updatedAt:new Date().toISOString() })
+    });
+    if(r.status===403){ alert('Roster je zamčený nebo špatné heslo — změna se neuložila. Odemkni zámek v hlavičce rosteru.'); return false; }
+    return r.ok;
+  }catch(e){ return false; }
+}
+function rosterLockToggle(){
+  if(rosterEditable() && _rosterUnlocked){ _rosterUnlocked=false; _rosterPass=''; try{ sessionStorage.removeItem('rosterPass'); }catch(e){} renderRoster(); return; }
+  if(window.__IS_ADMIN && !_rosterUnlocked){ /* admin edituje i bez roster hesla */ _rosterUnlocked=true; renderRoster(); return; }
+  rosterUnlock();
+}
+async function setRosterPass(){
+  const next = prompt('Nové roster heslo (pro párování altů členy). Prázdné = vypnout zámek rosteru:');
+  if(next===null) return;
+  try{
+    const r = await fetch(API_BASE + '/api/roster-pass', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ next }) });
+    const d = await r.json().catch(()=>({}));
+    if(r.ok){ alert(d.configured ? 'Roster heslo nastaveno ✓' : 'Roster zámek vypnutý.'); }
+    else alert('Nepovedlo se nastavit: ' + (d.error || ('HTTP '+r.status)));
+  }catch(e){ alert('Chyba: ' + e.message); }
+}
+async function rosterUnlock(){
+  let configured=false;
+  try{ const r=await fetch(API_BASE+'/api/haspass-roster'); const d=await r.json(); configured=!!d.configured; }catch(e){}
+  if(!configured){ _rosterUnlocked=true; _rosterPass=''; renderRoster(); return; }
+  const p = prompt('Heslo pro úpravu rosteru (párování altů, dormant):');
+  if(p==null) return;
+  try{
+    const r=await fetch(API_BASE+'/api/roster-pass/verify',{ method:'POST', headers:{'X-Roster-Pass':p} });
+    const d=await r.json();
+    if(d.ok){ _rosterPass=p; _rosterUnlocked=true; try{ sessionStorage.setItem('rosterPass',p); }catch(e){} renderRoster(); }
+    else alert('Špatné heslo.');
+  }catch(e){ alert('Chyba ověření hesla.'); }
 }
 
 async function loadGuild(){
@@ -739,28 +815,30 @@ function _cellHTML(m, key, isAlt){
 }
 function _nameCellHTML(m, opts){
   const col = CLASS_COLORS[m.className] || '#cdd3e0';
+  const dormBadge = _dormant[m.name] ? ' <span class="dorm-badge" title="Neaktivní / dormant">💤</span>' : '';
   if(opts.alt){
-    return `<td style="padding-left:32px"><span style="color:var(--faint);opacity:.6;margin-right:4px">↳</span><span class="pname" style="color:${col};font-weight:500;font-size:12.5px">${escH(m.name)}</span> <span style="color:var(--faint);font-size:10.5px">${escH(m.raceName||'')}</span></td>`;
+    return `<td style="padding-left:32px"><span style="color:var(--faint);opacity:.6;margin-right:4px">↳</span><span class="pname" style="color:${col};font-weight:500;font-size:12.5px">${escH(m.name)}</span> <span style="color:var(--faint);font-size:10.5px">${escH(m.raceName||'')}</span>${dormBadge}</td>`;
   }
   const chev = opts.altCount>0
     ? `<span class="rexp" style="display:inline-block;width:16px;color:var(--dim);transform:${opts.expanded?'rotate(90deg)':'none'};transition:transform .15s">▸</span>`
     : '<span style="display:inline-block;width:16px"></span>';
   const badge = opts.altCount>0 ? ` <span class="alt-badge">+${opts.altCount}</span>` : '';
-  return `<td>${chev}<span class="pname" style="color:${col}">${escH(m.name)}</span> <span style="color:var(--faint);font-size:11px">${escH(m.raceName||'')}</span>${badge}</td>`;
+  return `<td>${chev}<span class="pname" style="color:${col}">${escH(m.name)}</span> <span style="color:var(--faint);font-size:11px">${escH(m.raceName||'')}</span>${badge}${dormBadge}</td>`;
 }
 function charRowHTML(m, opts){
   opts = opts || {};
   const nm = escJs(m.name);
-  const ctx = ` oncontextmenu="rosterCtx(event,'${nm}')"`;   // párování řešíme uvnitř (guard na admina)
-  const dnd = window.__IS_ADMIN
+  const ctx = ` oncontextmenu="rosterCtx(event,'${nm}')"`;   // párování řešíme uvnitř (guard rosterEditable)
+  const dnd = rosterEditable()
     ? ` draggable="true" ondragstart="rDragStart(event,'${nm}')" ondragend="rDragEnd(event)" ondragover="rDragOver(event)" ondragleave="rDragLeave(event)" ondrop="rDrop(event,'${nm}')"`
     : '';
+  const dorm = _dormant[m.name] ? ' dormant' : '';
   const cells = _nameCellHTML(m,opts) + _visCols().map(k=>_cellHTML(m,k,!!opts.alt)).join('');
   if(opts.alt){
-    return `<tr class="alt-row" data-main="${escH(opts.mainName||'')}"${opts.hidden?' style="display:none"':''}${ctx}${dnd}>${cells}</tr>`;
+    return `<tr class="alt-row${dorm}" data-main="${escH(opts.mainName||'')}"${opts.hidden?' style="display:none"':''}${ctx}${dnd}>${cells}</tr>`;
   }
   const clickable = opts.altCount>0 ? ` onclick="toggleExpand('${nm}')" style="cursor:pointer"` : '';
-  return `<tr class="main-row"${clickable}${ctx}${dnd}>${cells}</tr>`;
+  return `<tr class="main-row${dorm}"${clickable}${ctx}${dnd}>${cells}</tr>`;
 }
 
 function _sortMembers(rows, sort){
@@ -780,8 +858,10 @@ function renderRoster(){
   const fr = document.getElementById('fRole').value;
   const per = parseInt(document.getElementById('fPer').value, 10) || 25;
   const view = (document.getElementById('fView')||{}).value || 'grouped';
+  const ql = ((document.getElementById('fSearch')||{}).value || '').trim().toLowerCase();
   const members = _guild.members;
   const byName = {}; members.forEach(m=>{ byName[m.name]=m; });
+  const nameHit = (n)=> String(n||'').toLowerCase().includes(ql);
 
   const head = `<thead><tr><th>Jméno</th>${_visCols().map(k=>`<th${ROSTER_COLS[k].c?' class="c"':''}>${ROSTER_COLS[k].label}</th>`).join('')}</tr></thead>`;
   const pager = (pages)=>`<div class="pager">
@@ -796,6 +876,7 @@ function renderRoster(){
     let rows = members.slice();
     if(fc) rows = rows.filter(m=>m.className===fc);
     if(fr) rows = rows.filter(m=>m.role===fr);
+    if(ql) rows = rows.filter(m=>nameHit(m.name));
     _sortMembers(rows, sort);
     total = rows.length; pages = Math.max(1, Math.ceil(total/per));
     if(_page>pages) _page=pages;
@@ -810,6 +891,8 @@ function renderRoster(){
     let mains = members.filter(m=> _rootMain(byName,m.name)===m.name );
     if(fc) mains = mains.filter(m=>m.className===fc);
     if(fr) mains = mains.filter(m=>m.role===fr);
+    // hledání: ukaž celou strukturu (main + alti), když sedí kterékoli jméno ve skupině
+    if(ql) mains = mains.filter(m=> nameHit(m.name) || (altsOf[m.name]||[]).some(a=>nameHit(a.name)) );
     _sortMembers(mains, sort);
     total = mains.length; pages = Math.max(1, Math.ceil(total/per));
     if(_page>pages) _page=pages;
@@ -817,7 +900,7 @@ function renderRoster(){
     const vis = [];
     rowsHTML = shown.map(m=>{
       const alts = (altsOf[m.name]||[]).slice().sort((a,b)=>(b.level-a.level));
-      const exp = !!_expanded[m.name];
+      const exp = ql ? true : !!_expanded[m.name];
       vis.push(m);
       let h = charRowHTML(m,{altCount:alts.length, expanded:exp});
       if(view==='grouped'){ h += alts.map(a=>charRowHTML(a,{alt:true, mainName:m.name, hidden:!exp})).join(''); if(exp) alts.forEach(a=>vis.push(a)); }
@@ -828,12 +911,15 @@ function renderRoster(){
   }
 
   document.getElementById('rosterCount').textContent = countTxt;
-  const dropZone = window.__IS_ADMIN
-    ? `<div id="altDropZone" class="alt-dropzone" ondragover="altZoneOver(event)" ondragleave="altZoneLeave(event)" ondrop="unassignAltDrop(event)">↩ Sem přetáhni postavu pro <b>zrušení altu</b> (udělat main) · nebo přetáhni postavu na maina pro přiřazení</div>`
+  const editable = rosterEditable();
+  const dropZone = editable
+    ? `<div id="altDropZone" class="alt-dropzone" ondragover="altZoneOver(event)" ondragleave="altZoneLeave(event)" ondrop="unassignAltDrop(event)">↩ Sem přetáhni postavu pro <b>zrušení altu</b> (udělat main) · nebo přetáhni postavu na maina pro přiřazení · pravý klik = víc možností</div>`
     : '';
   document.getElementById('rosterBody').innerHTML = total
-    ? dropZone + `<table class="roster">${head}<tbody>${rowsHTML}</tbody></table>${pager(pages)}`
+    ? dropZone + `<table class="roster${editable?' editable':''}">${head}<tbody>${rowsHTML}</tbody></table>${pager(pages)}`
     : dropZone + '<div class="loading">Žádné postavy</div>';
+  const lk = document.getElementById('rosterLock');
+  if(lk){ lk.textContent = editable ? '🔓' : '🔒'; lk.classList.toggle('on', editable); lk.title = editable ? 'Zamknout úpravy rosteru' : 'Odemknout úpravy rosteru (heslo)'; }
   fetchRioBatch(_lastVisible);
 }
 
@@ -878,17 +964,19 @@ function _fillCharNames(){
   dl.innerHTML = _guild.members.map(m=>`<option value="${escH(m.name)}">`).join('');
 }
 function rosterCtx(ev, name){
-  if(!window.__IS_ADMIN) return;
+  if(!rosterEditable()) return;
   ev.preventDefault(); ev.stopPropagation();
   _ctxName = name;
   _fillCharNames();
   const cur = _altMap[name];
+  const dorm = !!_dormant[name];
   const box = document.getElementById('rosterCtx');
   box.innerHTML = `
     <div class="rc-title">Postava: <b style="color:var(--txt)">${escH(name)}</b>${cur?` · alt „${escH(cur)}"`:''}</div>
     <input id="ctxMain" list="charNames" placeholder="Jméno hlavní postavy…" value="${escH(cur||'')}">
     <button onclick="setAlt()">✓ Označit jako alt</button>
     ${cur?`<button class="danger" onclick="clearAlt()">↺ Zrušit alt (udělat main)</button>`:''}
+    <button onclick="toggleDormant()">${dorm?'☀ Označit jako aktivní':'💤 Označit jako neaktivní (dormant)'}</button>
     <button onclick="hideRosterCtx()">Zavřít</button>`;
   const x = Math.min(ev.clientX, window.innerWidth-250);
   const y = Math.min(ev.clientY, window.innerHeight-180);
@@ -906,32 +994,33 @@ function setAlt(){
   const root=_rootMain(byName, main);
   if(root===name){ alert('To by vytvořilo kruh (main je alt této postavy).'); return; }
   _altMap[name]=root;
-  hideRosterCtx(); renderRoster(); saveCfgSoon();
+  hideRosterCtx(); renderRoster(); saveRosterAltsSoon();
 }
-function clearAlt(){ if(_ctxName){ delete _altMap[_ctxName]; } hideRosterCtx(); renderRoster(); saveCfgSoon(); }
+function clearAlt(){ if(_ctxName){ delete _altMap[_ctxName]; } hideRosterCtx(); renderRoster(); saveRosterAltsSoon(); }
+function toggleDormant(){ const n=_ctxName; if(!n) return; if(_dormant[n]) delete _dormant[n]; else _dormant[n]=true; hideRosterCtx(); renderRoster(); saveRosterAltsSoon(); }
 
 /* ---------- párování drag & drop (přetáhni postavu na maina) ---------- */
 let _dragName = null;
-function rDragStart(ev, name){ if(!window.__IS_ADMIN){ ev.preventDefault(); return; } _dragName=name; ev.dataTransfer.effectAllowed='move'; try{ ev.dataTransfer.setData('text/plain', name); }catch(e){} }
-function rDragOver(ev){ if(!window.__IS_ADMIN || !_dragName) return; ev.preventDefault(); ev.dataTransfer.dropEffect='move'; const tr=ev.currentTarget; if(tr) tr.classList.add('drop-hi'); }
+function rDragStart(ev, name){ if(!rosterEditable()){ ev.preventDefault(); return; } _dragName=name; ev.dataTransfer.effectAllowed='move'; try{ ev.dataTransfer.setData('text/plain', name); }catch(e){} }
+function rDragOver(ev){ if(!rosterEditable() || !_dragName) return; ev.preventDefault(); ev.dataTransfer.dropEffect='move'; const tr=ev.currentTarget; if(tr) tr.classList.add('drop-hi'); }
 function rDragLeave(ev){ if(ev.currentTarget) ev.currentTarget.classList.remove('drop-hi'); }
 function rDragEnd(){ _dragName=null; document.querySelectorAll('.drop-hi').forEach(e=>e.classList.remove('drop-hi')); }
 function rDrop(ev, targetName){
   ev.preventDefault(); if(ev.currentTarget) ev.currentTarget.classList.remove('drop-hi');
-  if(!window.__IS_ADMIN) return;
+  if(!rosterEditable()) return;
   const src=_dragName; _dragName=null;
   if(!src || src===targetName) return;
   const byName={}; _guild.members.forEach(m=>byName[m.name]=m);
   const root=_rootMain(byName, targetName);       // přetažení na alta = přiřadí pod jeho maina
   if(root===src){ alert('To by vytvořilo kruh (cíl je alt přetahované postavy).'); return; }
-  _altMap[src]=root; renderRoster(); saveCfgSoon();
+  _altMap[src]=root; renderRoster(); saveRosterAltsSoon();
 }
 function unassignAltDrop(ev){
   ev.preventDefault(); const z=document.getElementById('altDropZone'); if(z) z.classList.remove('drop-hi');
-  if(!window.__IS_ADMIN) return; const src=_dragName; _dragName=null;
-  if(src && _altMap[src]){ delete _altMap[src]; renderRoster(); saveCfgSoon(); }
+  if(!rosterEditable()) return; const src=_dragName; _dragName=null;
+  if(src && _altMap[src]){ delete _altMap[src]; renderRoster(); saveRosterAltsSoon(); }
 }
-function altZoneOver(ev){ if(window.__IS_ADMIN && _dragName){ ev.preventDefault(); const z=document.getElementById('altDropZone'); if(z) z.classList.add('drop-hi'); } }
+function altZoneOver(ev){ if(rosterEditable() && _dragName){ ev.preventDefault(); const z=document.getElementById('altDropZone'); if(z) z.classList.add('drop-hi'); } }
 function altZoneLeave(ev){ const z=document.getElementById('altDropZone'); if(z) z.classList.remove('drop-hi'); }
 document.addEventListener('click', function(e){ const b=document.getElementById('rosterCtx'); if(b && b.style.display==='block' && !b.contains(e.target)) hideRosterCtx(); });
 

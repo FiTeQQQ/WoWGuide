@@ -17,7 +17,7 @@
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Edit-Pass',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Edit-Pass, X-Roster-Pass',
 };
 
 /* ---------------- Edit lock (soft) ----------------
@@ -67,6 +67,21 @@ async function editAuthOK(request, env) {
   const pass = await getConfiguredPass(env);
   if (!pass) return true;                               // zámek vypnutý dokud heslo není
   return (request.headers.get('X-Edit-Pass') || '') === pass;
+}
+
+/* Samostatné roster heslo (jen pro párování altů / dormant) — klíč 'roster-pass'.
+ * Zápis do 'roster-alts' projde s X-Roster-Pass NEBO s admin X-Edit-Pass. */
+async function getRosterPass(env) {
+  try { const kv = await env.ROSTERS.get('roster-pass'); if (kv != null && kv !== '') return kv; } catch (e) {}
+  return '';
+}
+async function rosterAuthOK(request, env) {
+  const rpass = await getRosterPass(env);
+  if (!rpass) return true;                              // roster zámek vypnutý dokud heslo není
+  if ((request.headers.get('X-Roster-Pass') || '') === rpass) return true;
+  const apass = await getConfiguredPass(env);           // admin override
+  if (apass && (request.headers.get('X-Edit-Pass') || '') === apass) return true;
+  return false;
 }
 
 // Default guild identity (overridable via ?realm=&name=&region= query params)
@@ -323,6 +338,30 @@ export default {
       return json({ ok: true, configured: true });
     }
 
+    /* ----- Roster heslo: stav ----- */
+    if (request.method === 'GET' && pathname === '/api/haspass-roster') {
+      return json({ configured: !!(await getRosterPass(env)) });
+    }
+    /* ----- Roster heslo: ověření zadaného ----- */
+    if (request.method === 'POST' && pathname === '/api/roster-pass/verify') {
+      const rpass = await getRosterPass(env);
+      if (!rpass) return json({ ok: true, configured: false });
+      const supplied = request.headers.get('X-Roster-Pass') || '';
+      return json({ ok: supplied === rpass, configured: true });
+    }
+    /* ----- Roster heslo: nastavení / změna (autorizuje admin edit-pass NEBO stávající roster heslo) ----- */
+    if (request.method === 'POST' && pathname === '/api/roster-pass') {
+      let body; try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+      const cur = await getRosterPass(env);
+      const admOK = await editAuthOK(request, env) && (await getConfiguredPass(env));
+      const rosterOK = !cur || (request.headers.get('X-Roster-Pass') || '') === cur || (body.current != null && body.current === cur);
+      if (!admOK && !rosterOK) return json({ error: 'bad-current' }, 403);
+      const next = (body.next == null ? '' : String(body.next));
+      if (!next) { await env.ROSTERS.delete('roster-pass'); return json({ ok: true, configured: false }); }
+      await env.ROSTERS.put('roster-pass', next);
+      return json({ ok: true, configured: true });
+    }
+
     /* ----- Blizzard guild ----- */
     if (request.method === 'GET' && pathname === '/api/blizz/guild') {
       const guild = {
@@ -495,7 +534,9 @@ export default {
     const matchPut = pathname.match(/^\/api\/roster\/([a-z0-9-]+)$/);
     if (request.method === 'PUT' && matchPut) {
       const id = matchPut[1];
-      if (await isProtectedKey(env, id) && !(await editAuthOK(request, env))) {
+      if (id === 'roster-alts') {
+        if (!(await rosterAuthOK(request, env))) return json({ error: 'locked', locked: true }, 403);
+      } else if (await isProtectedKey(env, id) && !(await editAuthOK(request, env))) {
         return json({ error: 'locked', locked: true }, 403);
       }
       const existing = await env.ROSTERS.get(id);
