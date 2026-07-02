@@ -307,21 +307,24 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
 .sp-logo svg{width:26px;height:26px;flex:0 0 auto}
 .sp-logo .sp-lname{font-size:15px;font-weight:800;letter-spacing:.02em;color:#fff}
 .sp-logo .sp-lname span{color:var(--accent)}
-.sp-item{display:flex;align-items:center;gap:10px;padding:6px 11px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.008));color:var(--dim);font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;margin-bottom:4px;transition:background .15s,border-color .15s,color .15s}
-.sp-item:hover{color:var(--txt);border-color:rgba(255,255,255,.14);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02))}
-.sp-item.active{color:#fff;font-weight:700;border-color:rgba(79,142,255,.45);background:linear-gradient(90deg,rgba(79,142,255,.34),rgba(79,142,255,.06))}
+#spNav{flex:1;display:flex;flex-direction:column;min-height:0}
+.sp-bottom{margin-top:auto}
+.sp-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;border:none;background:transparent;color:var(--dim);font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;margin-bottom:2px;transition:background .13s,color .13s}
+.sp-item:hover{color:var(--txt);background:rgba(255,255,255,.05)}
+.sp-item.active{color:#fff;font-weight:700;background:rgba(79,142,255,.15);box-shadow:inset 2px 0 0 var(--accent)}
 .sp-item svg{width:17px;height:17px;flex:0 0 auto;color:var(--faint)}
 .sp-item:hover svg{color:var(--dim)}
-.sp-item.active svg{color:#bcd4ff}
+.sp-item.active svg{color:var(--accent)}
 .sp-item>span:not(.sp-badge){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sp-item .sp-badge{margin-left:auto;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:20px;padding:2px 7px;flex:0 0 auto}
-.sp-head{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:12px 8px 9px;margin-top:6px;border-top:1px solid var(--line)}
-.sp-season{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);opacity:.75;padding:2px 8px 5px}
+.sp-head{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:800;padding:14px 8px 8px;margin-top:8px;border-top:1px solid var(--line)}
+.sp-season{display:flex;align-items:center;gap:7px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700;padding:6px 8px 5px}
+.sp-season::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent);flex:0 0 auto}
 body.glass-on .sp-body{background:rgba(12,16,28,.40) !important;backdrop-filter:blur(20px) saturate(165%);-webkit-backdrop-filter:blur(20px) saturate(165%);border-right-color:rgba(255,255,255,.12)}
 body.glass-on .sp-handle{background:rgba(12,16,28,.34) !important;backdrop-filter:blur(20px) saturate(165%);-webkit-backdrop-filter:blur(20px) saturate(165%);border-right-color:rgba(255,255,255,.12)}
-body.glass-on .sp-item{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02)) !important;border-color:rgba(255,255,255,.14) !important}
-body.glass-on .sp-item:hover{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05)) !important}
-body.glass-on .sp-item.active{background:linear-gradient(90deg,rgba(79,142,255,.4),rgba(79,142,255,.1)) !important;border-color:rgba(79,142,255,.55) !important}
+body.glass-on .sp-item{background:transparent !important}
+body.glass-on .sp-item:hover{background:rgba(255,255,255,.09) !important}
+body.glass-on .sp-item.active{background:rgba(79,142,255,.2) !important}
 
 /* editor modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:20px}
@@ -720,8 +723,10 @@ function renderSidePanel(){
     <a class="sp-item" href="#" onclick="return spLeaderboard(event)">${svgI('leaderboard')}<span>Leaderboard</span><span class="sp-badge">brzy</span></a>
     <div class="sp-head">Guides</div>
     ${guides || '<div class="sp-season">Zatím žádné raidy</div>'}
-    <div class="sp-head">External Links</div>
-    <a class="sp-item" id="spDiscord" href="${_discordUrl?escH(_discordUrl):'#'}" ${_discordUrl?'target="_blank" rel="noopener"':'onclick="return spDiscord(event)"'}>${svgI('discord')}<span>Discord</span></a>`;
+    <div class="sp-bottom">
+      <div class="sp-head">External Links</div>
+      <a class="sp-item" id="spDiscord" href="${_discordUrl?escH(_discordUrl):'#'}" ${_discordUrl?'target="_blank" rel="noopener"':'onclick="return spDiscord(event)"'}>${svgI('discord')}<span>Discord</span></a>
+    </div>`;
 }
 function spTogglePin(){ const p=document.getElementById('sidePanel'); if(p) p.classList.toggle('pinned'); }
 function spLeaderboard(e){ e.preventDefault(); alert('Leaderboard — přidáme brzy 🙂'); return false; }
