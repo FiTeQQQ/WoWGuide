@@ -564,6 +564,7 @@ let _cfgLoaded = false;
 let _rankNames = {};   // { "0": {name:"Guild Master", color:"#f5c04a"}, "1": {...} } — překlad API ranků do řeči guildy (cloud: index-cfg)
 let _altMap = {};      // { "AltName": "MainName" } — párování altů na maina (cloud: roster-alts)
 let _dormant = {};     // { "CharName": true } — neaktivní/dormant postavy (cloud: roster-alts)
+let _altOrder = {};    // { "MainName": ["Alt1","Alt2",...] } — ruční pořadí altů ve skupině (cloud: roster-alts)
 let _rosterUnlocked = false;  // odemčený roster zámek (párování altů) — nezávislý na globálním editu
 let _rosterPass = '';         // roster heslo (sessionStorage)
 let _rio = {};         // { "charnamelower": {ilvl, io, color} } — Raider.IO cache (runtime)
@@ -670,6 +671,7 @@ async function loadRosterAlts(){
     if(r.ok){ const d = await r.json(); if(d){
       if(d.altMap && typeof d.altMap==='object') _altMap = d.altMap;
       if(d.dormant && typeof d.dormant==='object') _dormant = d.dormant;
+      if(d.altOrder && typeof d.altOrder==='object') _altOrder = d.altOrder;
     } }
   }catch(e){}
   try{ renderRoster(); }catch(e){}
@@ -681,7 +683,7 @@ async function saveRosterAlts(){
     const r = await fetch(API_BASE + '/api/roster/roster-alts', {
       method:'PUT',
       headers:{ 'Content-Type':'application/json', 'X-Roster-Pass': _rosterPass || '' },
-      body: JSON.stringify({ altMap:_altMap, dormant:_dormant, updatedAt:new Date().toISOString() })
+      body: JSON.stringify({ altMap:_altMap, dormant:_dormant, altOrder:_altOrder, updatedAt:new Date().toISOString() })
     });
     if(r.status===403){ alert('Roster je zamčený nebo špatné heslo — změna se neuložila. Odemkni zámek v hlavičce rosteru.'); return false; }
     return r.ok;
@@ -795,6 +797,12 @@ function numCell(v,color){ return (v&&v>0)?`<span style="font-weight:600;color:$
 function rioOf(name){ return _rio[String(name||'').toLowerCase()] || {}; }
 // jednotné jméno maina pro postavu (rozbalí řetěz altů, ochrana proti cyklu)
 function _rootMain(byName, name){ let c=name, g=0; while(_altMap[c] && byName[_altMap[c]] && g<12){ c=_altMap[c]; g++; } return c; }
+// seřaď alty: nejdřív podle ručního pořadí (_altOrder), zbytek podle iLvl/levelu
+function orderedAlts(main, alts){
+  const ord = _altOrder[main] || [];
+  const idx = n => { const i = ord.indexOf(n); return i<0 ? 1e9 : i; };
+  return alts.slice().sort((a,b)=>{ const d = idx(a.name)-idx(b.name); if(d) return d; return (b.level-a.level); });
+}
 
 // ---- konfigurace sloupců (mimo vždy-přítomné "Jméno") ----
 const ROSTER_COLS = { class:{label:'Třída'}, role:{label:'Role',c:true}, ilvl:{label:'iLvl',c:true}, io:{label:'M+ IO',c:true}, level:{label:'Lvl',c:true}, rank:{label:'Guild Rank'} };
@@ -906,7 +914,7 @@ function renderRoster(){
     const shown = mains.slice((_page-1)*per, (_page-1)*per+per);
     const vis = [];
     rowsHTML = shown.map(m=>{
-      const alts = (altsOf[m.name]||[]).slice().sort((a,b)=>(b.level-a.level));
+      const alts = orderedAlts(m.name, altsOf[m.name]||[]);
       const exp = ql ? true : !!_expanded[m.name];
       vis.push(m);
       let h = charRowHTML(m,{altCount:alts.length, expanded:exp});
@@ -1029,9 +1037,25 @@ function rDrop(ev, targetName){
   const src=_dragName; _dragName=null;
   if(!src || src===targetName) return;
   const byName={}; _guild.members.forEach(m=>byName[m.name]=m);
-  const root=_rootMain(byName, targetName);       // přetažení na alta = přiřadí pod jeho maina
-  if(root===src){ alert('To by vytvořilo kruh (cíl je alt přetahované postavy).'); return; }
-  _altMap[src]=root; renderRoster(); saveRosterAltsSoon();
+  const srcRoot=_rootMain(byName, src);
+  const tgtRoot=_rootMain(byName, targetName);
+  const srcIsAlt = srcRoot!==src, tgtIsAlt = tgtRoot!==targetName;
+  // stejná skupina + oba alty → jen přeuspořádat pořadí (vlož před cíl)
+  if(srcIsAlt && tgtIsAlt && srcRoot===tgtRoot){ reorderAlt(srcRoot, src, targetName); return; }
+  // jinak přepárování pod cílového maina (cíl je alt → jeho main)
+  if(tgtRoot===src){ alert('To by vytvořilo kruh (cíl je alt přetahované postavy).'); return; }
+  _altMap[src]=tgtRoot;
+  if(_altOrder[tgtRoot]) _altOrder[tgtRoot]=_altOrder[tgtRoot].filter(n=>n!==src).concat(src); // na konec skupiny
+  renderRoster(); saveRosterAlts();
+}
+function reorderAlt(root, srcName, targetName){
+  const byName={}; _guild.members.forEach(m=>byName[m.name]=m);
+  const alts=_guild.members.filter(m=>_rootMain(byName,m.name)===root && m.name!==root);
+  let names=orderedAlts(root, alts).map(a=>a.name).filter(n=>n!==srcName);
+  const ti=names.indexOf(targetName);
+  if(ti<0) names.push(srcName); else names.splice(ti,0,srcName);  // vlož src PŘED target
+  _altOrder[root]=names;
+  renderRoster(); saveRosterAlts();
 }
 function unassignAltDrop(ev){
   ev.preventDefault(); const z=document.getElementById('altDropZone'); if(z) z.classList.remove('drop-hi');
