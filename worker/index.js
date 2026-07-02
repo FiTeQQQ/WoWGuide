@@ -545,6 +545,26 @@ export default {
       }
     }
 
+    /* ----- Spec ikona podle ID (z Blizzard media, cache) — funguje i pro nové specy ----- */
+    const smMatch = pathname.match(/^\/api\/spec-icon\/(\d+)$/);
+    if (request.method === 'GET' && smMatch) {
+      const id = smMatch[1];
+      const region = (url.searchParams.get('region') || GUILD_DEFAULT.region).toLowerCase();
+      const cacheKey = `specicon:${id}`;
+      try {
+        let iconUrl = await env.ROSTERS.get(cacheKey);
+        if (!iconUrl) {
+          const token = await getBlizzToken(env);
+          const media = await blizzGet(token, region, `/data/wow/media/playable-specialization/${id}`, { namespace: `static-${region}` }).catch(() => null);
+          const asset = ((media && media.assets) || []).find(a => a.key === 'icon');
+          iconUrl = (asset && asset.value) || '';
+          if (iconUrl) await env.ROSTERS.put(cacheKey, iconUrl, { expirationTtl: 30 * 24 * 60 * 60 });
+        }
+        if (!iconUrl) return new Response('', { status: 404, headers: CORS_HEADERS });
+        return Response.redirect(iconUrl, 302);
+      } catch (e) { return new Response('', { status: 404, headers: CORS_HEADERS }); }
+    }
+
     /* ----- Leaderboard: čtení raw dat (public) ----- */
     if (request.method === 'GET' && pathname === '/api/lb/raw') {
       const raw = await env.ROSTERS.get('lb-raw');
