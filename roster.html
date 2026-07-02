@@ -335,8 +335,8 @@
   .lpug{color:#fb923c;font-size:10px;font-weight:800;border:1px solid #fb923c55;border-radius:4px;padding:0 4px;margin-left:6px}
   .lroll{font-size:10px;font-weight:800;border:1px solid;border-radius:4px;padding:0 5px;margin-left:2px;vertical-align:middle}
   .lslot{display:inline-block;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:10px;padding:0 7px;font-size:10px;color:var(--text-mid);margin:1px 2px;white-space:nowrap}
-  table.loot.lsubtab{width:auto;margin:0}
-  table.loot.lsubtab td{padding:6px 22px 6px 0;white-space:nowrap}
+  table.loot.lsubtab{width:100%;margin:0;table-layout:fixed}
+  table.loot.lsubtab td{padding:6px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
   table.loot.lsubtab td:first-child{padding-left:30px}
   .lwk{display:inline-block;background:rgba(79,142,255,.16);color:#9cc4ff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:800}
   .q4{color:#a335ee}.q5{color:#ff8000}.q3{color:#0070dd}.q2{color:#1eff00}.q1{color:#fff}
@@ -2065,7 +2065,7 @@ function _lootByPlayer(all){
       <td>${slots}</td></tr>`;
     if(exp){
       h+=`<tr class="lsub"><td colspan="6" style="padding:0"><table class="loot lsubtab"><tbody>`;
-      items.forEach(e=>{ h+=`<tr><td><span class="lslot">${esc(e.slot)}</span></td><td>${_itemHTML(e)}${_rollChip(e.roll)}</td><td style="color:var(--text-dim)">${esc(e.boss)}</td><td style="color:var(--text-dim)">${_lootDate(e.ts)}</td></tr>`; });
+      items.forEach(e=>{ h+=`<tr><td title="${esc(e.name||'')}">${_itemHTML(e)}${_rollChip(e.roll)}</td><td style="width:96px"><span class="lslot">${esc(e.slot)}</span></td><td style="width:200px;color:var(--text-dim)" title="${esc(e.boss||'')}">${esc(e.boss)}</td><td style="width:190px;color:var(--text-dim)" title="${esc(e.raid||'')}">${esc(e.raid)}</td><td style="width:120px;color:var(--text-dim);text-align:right">${_lootDate(e.ts)}</td></tr>`; });
       h+=`</tbody></table></td></tr>`;
     }
   });
