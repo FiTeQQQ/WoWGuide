@@ -533,17 +533,21 @@ function _rzH(key){ if(!editMode) return ''; return `<span class="colresize" dra
 function _defAlign(key){ if(String(key).indexOf('z:')===0) return 'left'; const d={name:'left',note:'left',h:'center',m:'center',hc:'center',mc:'center'}; if(d[key]) return d[key]; const c=customCols.find(x=>x.id===key); if(c) return (c.type==='number'||c.type==='checkbox'||c.type==='status')?'center':'left'; return 'left'; }
 function _align(key){ return (colAlign&&colAlign[key])||_defAlign(key); }
 function setColAlign(key,a){ colAlign=colAlign||{}; if(a===_defAlign(key)) delete colAlign[key]; else colAlign[key]=a; save(); flushCloud(); render(); }
-function _alignBtns(key){
-  if(!editMode) return '';
-  const cur=_align(key);
-  const L='<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><rect x="1" y="2" width="14" height="1.6"/><rect x="1" y="6" width="9" height="1.6"/><rect x="1" y="10" width="12" height="1.6"/><rect x="1" y="14" width="7" height="1.6"/></svg>';
-  const C='<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><rect x="1" y="2" width="14" height="1.6"/><rect x="3.5" y="6" width="9" height="1.6"/><rect x="2" y="10" width="12" height="1.6"/><rect x="4.5" y="14" width="7" height="1.6"/></svg>';
-  const R='<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><rect x="1" y="2" width="14" height="1.6"/><rect x="6" y="6" width="9" height="1.6"/><rect x="3" y="10" width="12" height="1.6"/><rect x="8" y="14" width="7" height="1.6"/></svg>';
-  const mk=(a,svg,ttl)=>`<button class="albtn${cur===a?' on':''}" title="${ttl}" onclick="event.stopPropagation();setColAlign('${key}','${a}')">${svg}</button>`;
-  return `<div class="albar">${mk('left',L,'Vlevo')}${mk('center',C,'Na střed')}${mk('right',R,'Vpravo')}</div>`;
+// Sdílené jádro zarovnání — použitelné pro VŠECHNY tabulky (roster, sheety, budoucí) i budoucí sloupce.
+const _ALSVG={
+  left:'<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><rect x="1" y="2" width="14" height="1.6"/><rect x="1" y="6" width="9" height="1.6"/><rect x="1" y="10" width="12" height="1.6"/><rect x="1" y="14" width="7" height="1.6"/></svg>',
+  center:'<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><rect x="1" y="2" width="14" height="1.6"/><rect x="3.5" y="6" width="9" height="1.6"/><rect x="2" y="10" width="12" height="1.6"/><rect x="4.5" y="14" width="7" height="1.6"/></svg>',
+  right:'<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor"><rect x="1" y="2" width="14" height="1.6"/><rect x="6" y="6" width="9" height="1.6"/><rect x="3" y="10" width="12" height="1.6"/><rect x="8" y="14" width="7" height="1.6"/></svg>'
+};
+function _albar(cur,fnName,key){
+  const mk=(a,ttl)=>`<button class="albtn${cur===a?' on':''}" title="${ttl}" onclick="event.stopPropagation();${fnName}('${key}','${a}')">${_ALSVG[a]}</button>`;
+  return `<div class="albar">${mk('left','Vlevo')}${mk('center','Na střed')}${mk('right','Vpravo')}</div>`;
 }
+function _alignBtns(key){ return editMode?_albar(_align(key),'setColAlign',key):''; }
 function _tagTd(key,html){ return html.replace('<td','<td data-colkey="'+key+'"'); }
-function _alignStyleTag(cols){ const css=(cols||[]).filter(k=>colAlign&&colAlign[k]).map(k=>`#tableWrap th[data-colkey="${k}"],#tableWrap td[data-colkey="${k}"]{text-align:${colAlign[k]} !important}`).join(''); return css?`<style>${css}</style>`:''; }
+// Generický injektor stylu zarovnání pro libovolnou tabulku (scope = id wrapperu, pairs = [{key,align}]).
+function _alignStyle(scope,pairs){ const css=(pairs||[]).filter(p=>p&&p.align).map(p=>`${scope} th[data-colkey="${p.key}"],${scope} td[data-colkey="${p.key}"]{text-align:${p.align} !important}`).join(''); return css?`<style>${css}</style>`:''; }
+function _alignStyleTag(cols){ return _alignStyle('#tableWrap',(cols||[]).map(k=>({key:k,align:colAlign&&colAlign[k]}))); }
 let _rz=null;
 function colResizeStart(e,key){
   if(!editMode) return;
@@ -1780,16 +1784,17 @@ function _sheetBag(s,rowKey){
   const r=(s.rows||[]).find(x=>x.id===rowKey); return r?(r.cells=r.cells||{}):{};
 }
 function sheetHead(s,col){
-  if(!editMode) return `<th>${esc(col.name)}</th>`;
+  if(!editMode) return `<th data-colkey="${col.id}">${esc(col.name)}</th>`;
   const to=(t,l)=>`<option value="${t}" ${col.type===t?'selected':''}>${l}</option>`;
   const wcl=(s.kind==='players')?[['d-h','WCL: Účast H'],['d-m','WCL: Účast M'],['d-hc','WCL: Počet H'],['d-mc','WCL: Počet M'],['d-prog','WCL: Progress (raid)'],['d-parse','WCL: Parse % (raid)'],['d-ilvl','WCL: iLvl'],['d-mplus','WCL: M+ score'],['d-rank','WCL: Guild rank'],['d-note','WCL: Poznámka']].map(([t,l])=>to(t,l)).join(''):'';
   const zoneSel=(col.type==='d-prog'||col.type==='d-parse')?`<select class="ctype" style="margin-top:3px" onchange="setSheetColZone('${col.id}',this.value)"><option value="">— raid —</option>${progZones().map(z=>`<option value="${z.id}" ${String(col.zone)===String(z.id)?'selected':''}>${esc(z.name)}</option>`).join('')}</select>`:'';
-  return `<th class="cedit">
+  return `<th class="cedit" data-colkey="${col.id}">
     <div class="cedit-top"><button class="cdel" onclick="delSheetCol('${col.id}')" title="Smazat sloupec">✕</button></div>
     <input class="cname" value="${esc(col.name)}" onchange="renameSheetCol('${col.id}',this.value)">
     <select class="ctype" onchange="setSheetColType('${col.id}',this.value)"><optgroup label="Vlastní">${to('text','Text')}${to('number','Číslo')}${to('select','Dropdown')}${to('checkbox','Checkbox ✓/☐/?')}${to('status','Stav')}</optgroup>${wcl?`<optgroup label="WCL data">${wcl}</optgroup>`:''}</select>
     ${zoneSel}
     ${col.type==='select'?`<input class="copts" value="${esc((col.options||[]).join(', '))}" placeholder="volby, čárkou" onchange="setSheetColOptions('${col.id}',this.value)">`:''}
+    ${_sheetAlignBtns(col)}
   </th>`;
 }
 function sheetCell(s,rowKey,col){
@@ -1827,6 +1832,11 @@ function renameSheetCol(colId,v){ const s=_curSheet(); if(!s)return; const c=s.c
 function setSheetColType(colId,t){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.type=t; if(t==='select'&&!Array.isArray(c.options))c.options=[]; if((t==='d-prog'||t==='d-parse')&&!c.zone){ const z=progZones()[0]; if(z)c.zone=String(z.id); } saveSheets(); render(); } }
 function setSheetColZone(colId,zid){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.zone=zid; saveSheets(); render(); } }
 function setSheetColOptions(colId,v){ const s=_curSheet(); if(!s)return; const c=s.columns.find(x=>x.id===colId); if(c){ c.options=String(v||'').split(',').map(x=>x.trim()).filter(Boolean); saveSheets(); render(); } }
+// Zarovnání sloupců sheetu (ukládá se na col.align → jede se sheetem do cloudu; platí i pro budoucí listy/sloupce)
+function _sDefAlign(col){ const t=String(col&&col.type||''); if(t==='number'||t==='checkbox'||t==='status'||t==='d-h'||t==='d-m'||t==='d-hc'||t==='d-mc'||t==='d-parse'||t==='d-ilvl'||t==='d-mplus') return 'center'; return 'left'; }
+function _sAlign(col){ return (col&&col.align)||_sDefAlign(col); }
+function setSheetColAlign(colId,a){ const s=_curSheet(); if(!s)return; const c=(s.columns||[]).find(x=>x.id===colId); if(!c)return; if(a===_sDefAlign(c)) delete c.align; else c.align=a; saveSheets(); render(); }
+function _sheetAlignBtns(col){ return editMode?_albar(_sAlign(col),'setSheetColAlign',col.id):''; }
 function addSheetRow(){ const s=_curSheet(); if(!s||s.kind!=='free')return; s.rows.push({id:uid(),label:'',cells:{}}); saveSheets(); render(); }
 function delSheetRow(rowId){ const s=_curSheet(); if(!s)return; s.rows=(s.rows||[]).filter(r=>r.id!==rowId); saveSheets(); render(); }
 function setSheetRowLabel(rowId,v){ const s=_curSheet(); if(!s)return; const r=(s.rows||[]).find(x=>x.id===rowId); if(r){ r.label=v; saveSheets(); } }
@@ -1839,19 +1849,20 @@ function renderSheet(){
   const addColHead=editMode?`<th style="width:46px"><button class="iconbtn" onclick="addSheetCol()" title="Přidat sloupec">+ sl.</button></th>`:'';
   const labelHead=s.kind==='players'?'Hráč':'Položka';
   const colSpan=cols.length+2;
-  let html=`<div class="sheet-meta">${esc(s.name)} · ${s.kind==='players'?'napojeno na roster (řádky = hráči)':'samostatný list'}${editMode?' · <span class="sheet-hint">edit mód: uprav sloupce'+(s.kind==='free'?' a řádky':'')+'</span>':' · <span class="sheet-hint">klikni ✏ Edit pro úpravy</span>'}</div>`;
+  let html=_alignStyle('#sheetWrap',cols.map(c=>({key:c.id,align:c.align})));
+  html+=`<div class="sheet-meta">${esc(s.name)} · ${s.kind==='players'?'napojeno na roster (řádky = hráči)':'samostatný list'}${editMode?' · <span class="sheet-hint">edit mód: uprav sloupce'+(s.kind==='free'?' a řádky':'')+'</span>':' · <span class="sheet-hint">klikni ✏ Edit pro úpravy</span>'}</div>`;
   html+=`<table><thead><tr><th>${labelHead}</th>${cols.map(c=>sheetHead(s,c)).join('')}${addColHead}${(s.kind==='free'&&editMode)?'<th style="width:34px"></th>':''}</tr></thead><tbody>`;
   if(s.kind==='players'){
     if(!people.length){ html+=`<tr><td colspan="${colSpan}" class="empty">Roster je prázdný — přidej hráče v Main Roster.</td></tr>`; }
     people.forEach(p=>{
       const cc=(typeof CC!=='undefined'&&CC[p.cls])?CC[p.cls]:'var(--text)';
       const ico=p.specIcon?`<img class="spec-ic" src="${esc(p.specIcon)}" onerror="this.style.display='none'">`:'';
-      html+=`<tr><td style="white-space:nowrap">${ico}<span style="font-weight:700;color:${cc}">${esc(p.name)}</span>${rankChip(p.rank)}</td>${cols.map(c=>sheetCell(s,p.id,c)).join('')}${addColHead?'<td></td>':''}</tr>`;
+      html+=`<tr><td style="white-space:nowrap">${ico}<span style="font-weight:700;color:${cc}">${esc(p.name)}</span>${rankChip(p.rank)}</td>${cols.map(c=>_tagTd(c.id,sheetCell(s,p.id,c))).join('')}${addColHead?'<td></td>':''}</tr>`;
     });
   } else {
     if(!s.rows.length){ html+=`<tr><td colspan="${colSpan}" class="empty">Žádné řádky.${editMode?' Přidej přes „+ řádek" níž.':''}</td></tr>`; }
     s.rows.forEach(r=>{
-      html+=`<tr><td><input class="note-in" value="${esc(r.label||'')}" placeholder="název…" onchange="setSheetRowLabel('${r.id}',this.value)"></td>${cols.map(c=>sheetCell(s,r.id,c)).join('')}${addColHead?'<td></td>':''}${editMode?`<td><button class="iconbtn del" onclick="delSheetRow('${r.id}')" title="Smazat řádek">✕</button></td>`:''}</tr>`;
+      html+=`<tr><td><input class="note-in" value="${esc(r.label||'')}" placeholder="název…" onchange="setSheetRowLabel('${r.id}',this.value)"></td>${cols.map(c=>_tagTd(c.id,sheetCell(s,r.id,c))).join('')}${addColHead?'<td></td>':''}${editMode?`<td><button class="iconbtn del" onclick="delSheetRow('${r.id}')" title="Smazat řádek">✕</button></td>`:''}</tr>`;
     });
   }
   html+='</tbody></table>';
