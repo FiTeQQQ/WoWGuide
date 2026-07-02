@@ -335,9 +335,13 @@
   .lpug{color:#fb923c;font-size:10px;font-weight:800;border:1px solid #fb923c55;border-radius:4px;padding:0 4px;margin-left:6px}
   .lroll{font-size:10px;font-weight:800;border:1px solid;border-radius:4px;padding:0 5px;margin-left:2px;vertical-align:middle}
   .lslot{display:inline-block;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:10px;padding:0 7px;font-size:10px;color:var(--text-mid);margin:1px 2px;white-space:nowrap}
+  .lsub-panel{margin:0 12px 8px 30px;border-left:3px solid var(--accent);background:rgba(0,0,0,.22);border-radius:0 8px 8px 0;padding:4px 2px}
   table.loot.lsubtab{width:100%;margin:0;table-layout:fixed}
-  table.loot.lsubtab td{padding:6px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
-  table.loot.lsubtab td:first-child{padding-left:30px}
+  table.loot.lsubtab th{font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-dim);text-align:left;padding:5px 12px 4px;border-bottom:1px solid var(--border2);font-weight:700}
+  table.loot.lsubtab td{padding:6px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;border-bottom:none}
+  table.loot.lsubtab td.ldim{color:var(--text-dim)}
+  table.loot.lsubtab td:first-child,table.loot.lsubtab th:first-child{padding-left:16px}
+  .ldiff{font-size:9px;font-weight:800;border:1px solid;border-radius:4px;padding:0 4px;margin-left:3px;vertical-align:middle;letter-spacing:.02em}
   .lwk{display:inline-block;background:rgba(79,142,255,.16);color:#9cc4ff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:800}
   .q4{color:#a335ee}.q5{color:#ff8000}.q3{color:#0070dd}.q2{color:#1eff00}.q1{color:#fff}
   .filterbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
@@ -1950,6 +1954,7 @@ function _lootFiltered(){
   });
 }
 function _rollChip(r){ if(!r) return ''; const map={Need:'#4ade80',Greed:'#9ca3af',Transmog:'#a335ee',Disenchant:'#33937f',Bonus:'#f0c674',Personal:'#8b92a6',Pass:'#8b92a6'}; const c=map[r]||'#9ca3af'; return ` <span class="lroll" style="color:${c};border-color:${c}55">${esc(r)}</span>`; }
+function _diffChip(d){ if(!d) return ''; const m={N:['#9aa0ad','Normal'],H:['#4a90e2','Heroic'],M:['#ff8000','Mythic'],LFR:['#7d8a97','Raid Finder']}; const x=m[String(d).toUpperCase()]; if(!x) return ''; return ` <span class="ldiff" style="color:${x[0]};border-color:${x[0]}66" title="${x[1]}">${esc(String(d).toUpperCase())}</span>`; }
 function setLootView(v){ lootView=v; _lootPage=1; render(); }
 function setLootFilter(k,v){ lootFilter[k]=v; _lootPage=1; render(); }
 function toggleLootRow(p){ _lootExpanded[p]=!_lootExpanded[p]; render(); }
@@ -1962,7 +1967,7 @@ function doLootImport(){
     const arr=Array.isArray(j)?j:(Array.isArray(j.loot)?j.loot:[]);
     const seen=new Set(lootData.map(e=>e.ts+'|'+(e.player||'')+'|'+(e.itemID||0)+'|'+(e.name||'')));
     arr.forEach(e=>{
-      const rec={ ts:+e.ts||0, run:+e.run||+e.raidID||+e.instanceID||0, itemID:+e.itemID||0, name:e.name||e.itemName||'', quality:+e.quality||4, slot:e.slot||'—', boss:e.boss||'', raid:e.raid||'', player:e.player||e.looter||'', realm:e.realm||'', class:e.class||'', guilded:e.guilded!==false, roll:e.roll||'' };
+      const rec={ ts:+e.ts||0, run:+e.run||+e.raidID||+e.instanceID||0, itemID:+e.itemID||0, name:e.name||e.itemName||'', quality:+e.quality||4, slot:e.slot||'—', boss:e.boss||'', raid:e.raid||'', player:e.player||e.looter||'', realm:e.realm||'', class:e.class||'', guilded:e.guilded!==false, diff:e.diff||'', ilvl:+e.ilvl||0, roll:e.roll||'' };
       if(!rec.player||!rec.name) return;
       const key=rec.ts+'|'+rec.player+'|'+rec.itemID+'|'+rec.name;
       if(seen.has(key)) return; seen.add(key);
@@ -2064,9 +2069,9 @@ function _lootByPlayer(all){
       <td style="color:var(--text-dim)">${_lootDate(last.ts).split(' ')[0]}</td>
       <td>${slots}</td></tr>`;
     if(exp){
-      h+=`<tr class="lsub"><td colspan="6" style="padding:0"><table class="loot lsubtab"><tbody>`;
-      items.forEach(e=>{ h+=`<tr><td title="${esc(e.name||'')}">${_itemHTML(e)}${_rollChip(e.roll)}</td><td style="width:96px"><span class="lslot">${esc(e.slot)}</span></td><td style="width:200px;color:var(--text-dim)" title="${esc(e.boss||'')}">${esc(e.boss)}</td><td style="width:190px;color:var(--text-dim)" title="${esc(e.raid||'')}">${esc(e.raid)}</td><td style="width:120px;color:var(--text-dim);text-align:right">${_lootDate(e.ts)}</td></tr>`; });
-      h+=`</tbody></table></td></tr>`;
+      const dhead=`<tr><th>Item</th><th style="width:96px">Typ</th><th style="width:200px">Boss</th><th style="width:190px">Raid</th><th style="width:120px;text-align:right">Datum</th></tr>`;
+      const drows=items.map(e=>`<tr><td title="${esc(e.name||'')}">${_itemHTML(e)}${_diffChip(e.diff)}${_rollChip(e.roll)}</td><td><span class="lslot">${esc(e.slot)}</span></td><td class="ldim" title="${esc(e.boss||'')}">${esc(e.boss)}</td><td class="ldim" title="${esc(e.raid||'')}">${esc(e.raid)}</td><td class="ldim" style="text-align:right">${_lootDate(e.ts)}</td></tr>`).join('');
+      h+=`<tr class="lsub"><td colspan="6" style="padding:0;background:none"><div class="lsub-panel"><table class="loot lsubtab"><thead>${dhead}</thead><tbody>${drows}</tbody></table></div></td></tr>`;
     }
   });
   h+='</tbody></table>';
