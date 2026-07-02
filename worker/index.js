@@ -390,9 +390,14 @@ export default {
         if (!res.ok) return json({ ilvl: 0 });
         const d = await res.json();
         const gear = d.gear || {};
-        let mplus = 0;
-        try { const s = (d.mythic_plus_scores_by_season || [])[0]; mplus = (s && s.scores && Math.round(s.scores.all)) || 0; } catch (e) {}
-        const rec = { ilvl: gear.item_level_equipped || 0, ilvlTotal: gear.item_level_total || 0, spec: d.active_spec_name || '', mplus, _t: Date.now() };
+        let mplus = 0, mcolor = '';
+        try {
+          const s = (d.mythic_plus_scores_by_season || [])[0];
+          mplus = (s && s.scores && Math.round(s.scores.all)) || 0;
+          const seg = s && s.segments && s.segments.all;
+          mcolor = (seg && seg.color) || '';
+        } catch (e) {}
+        const rec = { ilvl: Math.round(gear.item_level_equipped || 0), ilvlTotal: Math.round(gear.item_level_total || 0), spec: d.active_spec_name || '', mplus, mcolor, _t: Date.now() };
         await env.ROSTERS.put(cacheKey, JSON.stringify(rec), { expirationTtl: 60 * 60 * 3 });
         return json(rec);
       } catch (e) {

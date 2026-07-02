@@ -112,6 +112,8 @@ a{text-decoration:none;color:inherit}
 .ffield{display:flex;flex-direction:column;gap:4px;min-width:140px;flex:1}
 .ffield label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
 .ffield select{background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:7px 9px;outline:none;cursor:pointer}
+.ffield select option,.ffield select optgroup{background:#13151f;color:#e0e2ea}
+select option{background:#13151f;color:#e0e2ea}
 .ffield select:focus{border-color:rgba(79,142,255,.5)}
 
 /* roster table */
@@ -325,6 +327,7 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
     <span class="eb-sep"></span>
     <span class="eb-label">Roster</span>
     <button class="btn btn-ghost" onclick="openRankEditor()">🏷 Přejmenovat ranky</button>
+    <button class="btn btn-ghost" onclick="openColEditor()">▦ Sloupce</button>
   </div>
 
 
@@ -466,6 +469,23 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
   </div>
 </div>
 
+<div class="modal-overlay" id="colModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Sloupce rosteru</span>
+      <button class="modal-close" onclick="closeColEditor()">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.5">
+      Zaškrtnutím zobrazíš/skryješ sloupec, šipkami změníš pořadí. Sloupec „Jméno" je vždy první.
+    </div>
+    <div id="colEditorBody"></div>
+    <div class="modal-footer">
+      <span style="flex:1;font-size:11px;color:var(--faint)">☁️ Ukládá se do cloudu (index-cfg) — vidí kdokoli</span>
+      <button class="btn btn-success" onclick="closeColEditor()">Hotovo</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API_BASE = 'https://raidguide-api.filip-tesarik1.workers.dev';
 const GH_RAW = 'https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/';
@@ -504,8 +524,9 @@ let themeMode = 'classic';
 let _cfgLoaded = false;
 let _rankNames = {};   // { "0": {name:"Guild Master", color:"#f5c04a"}, "1": {...} } — překlad API ranků do řeči guildy (cloud: index-cfg)
 let _altMap = {};      // { "AltName": "MainName" } — párování altů na maina (cloud: index-cfg)
-let _rio = {};         // { "charnamelower": {ilvl, io} } — Raider.IO cache (runtime)
+let _rio = {};         // { "charnamelower": {ilvl, io, color} } — Raider.IO cache (runtime)
 let _expanded = {};    // { "MainName": true } — které mainy mají rozbalené alty (runtime)
+let _colCfg = null;    // [{key,hidden}] pořadí + viditelnost sloupců rosteru (cloud: index-cfg)
 
 const PROG_GRADS = [
   {id:'epic',    label:'Epic → Legendary',    from:'#a335ee', to:'#ff8000'},
@@ -557,6 +578,7 @@ async function loadCfg(){
       if(m && m.progGrad){ _progGrad = m.progGrad; try{ localStorage.setItem('indexProgGrad', m.progGrad); }catch(e){} applyProgGradient(); }
       if(m && m.rankNames && typeof m.rankNames==='object'){ _rankNames = m.rankNames; }
       if(m && m.altMap && typeof m.altMap==='object'){ _altMap = m.altMap; }
+      if(m && Array.isArray(m.rosterCols)){ _colCfg = m.rosterCols; }
       if(m && Array.isArray(m.seasons) && m.seasons.length){ _manifest = { seasons: m.seasons }; }
       else if(m && Array.isArray(m.raids) && m.raids.length){ _manifest = { seasons:[{name:'Season 1',raids:m.raids}] }; }
     }
@@ -574,7 +596,7 @@ async function saveCfg(){
   try{
     await fetch(API_BASE + '/api/roster/' + CFG_KEY, {
       method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, rankNames: _rankNames, altMap: _altMap, seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
+      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, rankNames: _rankNames, altMap: _altMap, rosterCols: _cols(), seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
     });
   }catch(e){}
 }
@@ -664,37 +686,50 @@ function rioOf(name){ return _rio[String(name||'').toLowerCase()] || {}; }
 // jednotné jméno maina pro postavu (rozbalí řetěz altů, ochrana proti cyklu)
 function _rootMain(byName, name){ let c=name, g=0; while(_altMap[c] && byName[_altMap[c]] && g<12){ c=_altMap[c]; g++; } return c; }
 
-function charRowHTML(m, opts){
-  opts = opts || {};
+// ---- konfigurace sloupců (mimo vždy-přítomné "Jméno") ----
+const ROSTER_COLS = { class:{label:'Třída'}, role:{label:'Role',c:true}, ilvl:{label:'iLvl',c:true}, io:{label:'M+ IO',c:true}, level:{label:'Lvl',c:true}, rank:{label:'Guild Rank'} };
+const ROSTER_COL_ORDER = ['class','role','ilvl','io','level','rank'];
+function _cols(){
+  let cfg = Array.isArray(_colCfg) ? _colCfg.filter(c=>c && ROSTER_COLS[c.key]) : null;
+  if(!cfg || !cfg.length) cfg = ROSTER_COL_ORDER.map(k=>({key:k,hidden:false}));
+  ROSTER_COL_ORDER.forEach(k=>{ if(!cfg.some(c=>c.key===k)) cfg.push({key:k,hidden:false}); });
+  return cfg;
+}
+function _visCols(){ return _cols().filter(c=>!c.hidden).map(c=>c.key); }
+
+function _cellHTML(m, key, isAlt){
   const col = CLASS_COLORS[m.className] || '#cdd3e0';
-  const ci = classIcon(m.className);
-  const role = m.role||'?'; const ri = roleIcon(role);
-  const roleCell = ri ? `<img class="role-img" src="${ri}" title="${role}" alt="${role}">` : '<span class="role-unk role-badge" title="neznámé">?</span>';
-  const rio = rioOf(m.name); const ilvl = rio.ilvl||0, io = rio.io||0;
-  const ctx = window.__IS_ADMIN ? ` oncontextmenu="rosterCtx(event,'${escJs(m.name)}')"` : '';
+  const rio = rioOf(m.name); const ilvl = rio.ilvl||0, io = rio.io||0; const ioC = rio.color || ioColor(io);
+  switch(key){
+    case 'class': { const ci=classIcon(m.className); return `<td>${ci?`<img class="cls-ico" src="${ci}" alt="" onerror="this.style.display='none'">`:''}<span class="cls-pill" style="color:${col}${isAlt?';font-weight:500;font-size:12px':''}">${escH(m.className||'—')}</span></td>`; }
+    case 'role': { const role=m.role||'?'; const ri=roleIcon(role); return `<td class="c">${ri?`<img class="role-img" src="${ri}" title="${role}" alt="${role}">`:'<span class="role-unk role-badge" title="neznámé">?</span>'}</td>`; }
+    case 'ilvl': return `<td class="c">${numCell(ilvl, isAlt?'var(--dim)':undefined)}</td>`;
+    case 'io':   return `<td class="c">${numCell(io, ioC)}</td>`;
+    case 'level':return `<td class="c"><span class="lvl"${isAlt?' style="color:var(--dim);font-weight:500"':''}>${m.level||'—'}</span></td>`;
+    case 'rank': return isAlt ? `<td><span style="color:var(--faint);font-size:11px">alt</span></td>` : `<td>${rankCellHTML(m.rank)}</td>`;
+  }
+  return '';
+}
+function _nameCellHTML(m, opts){
+  const col = CLASS_COLORS[m.className] || '#cdd3e0';
   if(opts.alt){
-    return `<tr class="alt-row" data-main="${escH(opts.mainName||'')}"${opts.hidden?' style="display:none"':''}${ctx}>
-      <td style="padding-left:32px"><span style="color:var(--faint);opacity:.6;margin-right:4px">↳</span><span class="pname" style="color:${col};font-weight:500;font-size:12.5px">${escH(m.name)}</span> <span style="color:var(--faint);font-size:10.5px">${escH(m.raceName||'')}</span></td>
-      <td>${ci?`<img class="cls-ico" src="${ci}" onerror="this.style.display='none'">`:''}<span class="cls-pill" style="color:${col};font-weight:500;font-size:12px">${escH(m.className||'—')}</span></td>
-      <td class="c">${roleCell}</td>
-      <td class="c">${numCell(ilvl,'var(--dim)')}</td>
-      <td class="c">${numCell(io,ioColor(io))}</td>
-      <td class="c"><span class="lvl" style="color:var(--dim);font-weight:500">${m.level||'—'}</span></td>
-      <td><span style="color:var(--faint);font-size:11px">alt</span></td></tr>`;
+    return `<td style="padding-left:32px"><span style="color:var(--faint);opacity:.6;margin-right:4px">↳</span><span class="pname" style="color:${col};font-weight:500;font-size:12.5px">${escH(m.name)}</span> <span style="color:var(--faint);font-size:10.5px">${escH(m.raceName||'')}</span></td>`;
   }
   const chev = opts.altCount>0
     ? `<span class="rexp" style="display:inline-block;width:16px;color:var(--dim);transform:${opts.expanded?'rotate(90deg)':'none'};transition:transform .15s">▸</span>`
     : '<span style="display:inline-block;width:16px"></span>';
   const badge = opts.altCount>0 ? ` <span class="alt-badge">+${opts.altCount}</span>` : '';
+  return `<td>${chev}<span class="pname" style="color:${col}">${escH(m.name)}</span> <span style="color:var(--faint);font-size:11px">${escH(m.raceName||'')}</span>${badge}</td>`;
+}
+function charRowHTML(m, opts){
+  opts = opts || {};
+  const ctx = ` oncontextmenu="rosterCtx(event,'${escJs(m.name)}')"`;   // párování řešíme uvnitř (guard na admina)
+  const cells = _nameCellHTML(m,opts) + _visCols().map(k=>_cellHTML(m,k,!!opts.alt)).join('');
+  if(opts.alt){
+    return `<tr class="alt-row" data-main="${escH(opts.mainName||'')}"${opts.hidden?' style="display:none"':''}${ctx}>${cells}</tr>`;
+  }
   const clickable = opts.altCount>0 ? ` onclick="toggleExpand('${escJs(m.name)}')" style="cursor:pointer"` : '';
-  return `<tr class="main-row"${clickable}${ctx}>
-      <td>${chev}<span class="pname" style="color:${col}">${escH(m.name)}</span> <span style="color:var(--faint);font-size:11px">${escH(m.raceName||'')}</span>${badge}</td>
-      <td>${ci?`<img class="cls-ico" src="${ci}" alt="" onerror="this.style.display='none'">`:''}<span class="cls-pill" style="color:${col}">${escH(m.className||'—')}</span></td>
-      <td class="c">${roleCell}</td>
-      <td class="c">${numCell(ilvl)}</td>
-      <td class="c">${numCell(io,ioColor(io))}</td>
-      <td class="c"><span class="lvl">${m.level||'—'}</span></td>
-      <td>${rankCellHTML(m.rank)}</td></tr>`;
+  return `<tr class="main-row"${clickable}${ctx}>${cells}</tr>`;
 }
 
 function _sortMembers(rows, sort){
@@ -717,9 +752,7 @@ function renderRoster(){
   const members = _guild.members;
   const byName = {}; members.forEach(m=>{ byName[m.name]=m; });
 
-  const head = `<thead><tr>
-      <th>Jméno</th><th>Třída</th><th class="c">Role</th><th class="c">iLvl</th><th class="c">M+ IO</th><th class="c">Lvl</th><th>Guild Rank</th>
-    </tr></thead>`;
+  const head = `<thead><tr><th>Jméno</th>${_visCols().map(k=>`<th${ROSTER_COLS[k].c?' class="c"':''}>${ROSTER_COLS[k].label}</th>`).join('')}</tr></thead>`;
   const pager = (pages)=>`<div class="pager">
       <button onclick="gotoPage(${_page-1})" ${_page<=1?'disabled':''}>‹ Předchozí</button>
       <span class="pinfo">${_page} / ${pages}</span>
@@ -777,10 +810,10 @@ const RIO_TTL = 6*3600*1000;
 let _rioInflight = {}, _rioRenderT = null, _lastVisible = [];
 function _loadRioCache(){
   try{ const c=JSON.parse(localStorage.getItem('rioCache2')||'null'); if(c&&typeof c==='object'){ const now=Date.now();
-    for(const k in c){ if(c[k] && now-(c[k].t||0)<RIO_TTL){ _rio[k]={ilvl:c[k].ilvl||0, io:c[k].io||0}; } } } }catch(e){}
+    for(const k in c){ if(c[k] && now-(c[k].t||0)<RIO_TTL){ _rio[k]={ilvl:Math.round(c[k].ilvl||0), io:c[k].io||0, color:c[k].color||''}; } } } }catch(e){}
 }
 function _saveRioCache(){
-  try{ const c={}; for(const k in _rio){ c[k]={ilvl:_rio[k].ilvl||0, io:_rio[k].io||0, t:Date.now()}; } localStorage.setItem('rioCache2', JSON.stringify(c)); }catch(e){}
+  try{ const c={}; for(const k in _rio){ c[k]={ilvl:_rio[k].ilvl||0, io:_rio[k].io||0, color:_rio[k].color||'', t:Date.now()}; } localStorage.setItem('rioCache2', JSON.stringify(c)); }catch(e){}
 }
 function _rioRerenderSoon(){ clearTimeout(_rioRenderT); _rioRenderT=setTimeout(()=>{ renderRoster(); _saveRioCache(); }, 400); }
 async function fetchRioBatch(chars){
@@ -794,9 +827,9 @@ async function fetchRioBatch(chars){
       const m=todo[i++]; const k=m.name.toLowerCase(); _rioInflight[k]=true;
       try{
         const r=await fetch(`${API_BASE}/api/rio-char?region=${encodeURIComponent(region)}&realm=${encodeURIComponent(m.realmSlug||'')}&name=${encodeURIComponent(m.name)}`);
-        if(r.ok){ const j=await r.json(); _rio[k]={ilvl:+j.ilvl||0, io:+j.mplus||0}; }
-        else _rio[k]={ilvl:0, io:0};
-      }catch(e){ _rio[k]={ilvl:0, io:0}; }
+        if(r.ok){ const j=await r.json(); _rio[k]={ilvl:Math.round(+j.ilvl||0), io:+j.mplus||0, color:j.mcolor||''}; }
+        else _rio[k]={ilvl:0, io:0, color:''};
+      }catch(e){ _rio[k]={ilvl:0, io:0, color:''}; }
       delete _rioInflight[k];
       _rioRerenderSoon();
     }
@@ -995,6 +1028,23 @@ function renderRankEditor(){
     </div>`;
   }).join('');
 }
+/* ---------- editor sloupců rosteru ---------- */
+function openColEditor(){ renderColEditor(); document.getElementById('colModal').classList.add('open'); }
+function closeColEditor(){ document.getElementById('colModal').classList.remove('open'); }
+function renderColEditor(){
+  const cfg=_cols();
+  document.getElementById('colEditorBody').innerHTML = cfg.map((c,i)=>`
+    <div class="ed-row" style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+      <label style="flex:1;display:flex;align-items:center;gap:9px;font-size:13px;cursor:pointer">
+        <input type="checkbox" ${c.hidden?'':'checked'} onchange="toggleCol('${c.key}')"> ${ROSTER_COLS[c.key].label}
+      </label>
+      <button class="btn btn-ghost" onclick="moveCol(${i},-1)" ${i===0?'disabled':''} style="padding:4px 10px">▲</button>
+      <button class="btn btn-ghost" onclick="moveCol(${i},1)" ${i===cfg.length-1?'disabled':''} style="padding:4px 10px">▼</button>
+    </div>`).join('');
+}
+function toggleCol(key){ const cfg=_cols(); const c=cfg.find(x=>x.key===key); if(c)c.hidden=!c.hidden; _colCfg=cfg; renderColEditor(); renderRoster(); saveCfgSoon(); }
+function moveCol(i,dir){ const cfg=_cols(); const j=i+dir; if(j<0||j>=cfg.length)return; const t=cfg[i];cfg[i]=cfg[j];cfg[j]=t; _colCfg=cfg; renderColEditor(); renderRoster(); saveCfgSoon(); }
+
 function _ensureRank(n){ const k=String(n); if(!_rankNames[k]) _rankNames[k]={}; return _rankNames[k]; }
 function setRankName(n,v){ v=(v||'').trim(); const r=_ensureRank(n); if(v) r.name=v; else delete r.name; if(!r.name && !r.color) delete _rankNames[String(n)]; renderRoster(); saveCfgSoon(); }
 function setRankColor(n,v){ _ensureRank(n).color=v; renderRoster(); saveCfgSoon(); }
