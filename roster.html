@@ -1891,7 +1891,7 @@ const LOOT_KEY='loot-archive';
 let lootData=[];
 let _lootTimer=null;
 let lootView='players';
-let lootFilter={ week:'', player:'', boss:'', guild:'', roll:'' };
+let lootFilter={ runs:'', week:'', player:'', boss:'', guild:'', roll:'' };
 let _lootExpanded={};
 let _lootPage=1;
 let _lootLoaded=false;
@@ -1910,6 +1910,22 @@ function _lootWeekKey(ts){ return Math.floor(_lootWeekStart(ts).getTime()/1000);
 function _lootWeekLabel(ts){ const s=_lootWeekStart(ts); const e=new Date(s); e.setDate(e.getDate()+6); const f=x=>x.getDate()+'.'+(x.getMonth()+1)+'.'; return f(s)+'–'+f(e); }
 const _LOOT_CUR_WEEK=_lootWeekKey(Math.floor(Date.now()/1000));
 function _lootDate(ts){ const d=new Date(ts*1000); return ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'. '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+// ── RUN = jedna raid session. Zatím odvozeno z časových shluků (mezera > 6 h = nový run).
+//    Budoucí custom addon může posílat explicitní ID runu (e.run / e.raidID / e.instanceID) → použije se přednostně.
+function _lootRunId(e){ return (e&&(e.run||e.raidID||e.instanceID))||null; }
+function _lootRuns(list){
+  const arr=(list||lootData).slice().sort((a,b)=>b.ts-a.ts); // newest-first
+  const GAP=6*3600; const runs=[]; let cur=null;
+  arr.forEach(e=>{
+    const id=_lootRunId(e), ts=+e.ts||0;
+    const same=cur && ((id!=null&&id===cur.id)||(id==null&&cur.id==null&&(cur.lastTs-ts)<=GAP));
+    if(same){ cur.entries.push(e); cur.lastTs=ts; }
+    else { cur={id:id,firstTs:ts,lastTs:ts,entries:[e]}; runs.push(cur); }
+  });
+  runs.forEach((r,i)=>{ r.idx=i+1; r.startTs=r.lastTs; r.endTs=r.firstTs; }); // idx 1 = nejnovější run
+  return runs;
+}
+function _lootRunMap(){ const m=new Map(); _lootRuns(lootData).forEach(r=>r.entries.forEach(e=>m.set(e,r.idx))); return m; }
 function _itemHTML(e){ const q='q'+(e.quality||4);
   if(e.itemID&&e.itemID>0) return `<a href="https://www.wowhead.com/item=${e.itemID}" data-wowhead="item=${e.itemID}" target="_blank" rel="noopener" class="${q}">${esc(e.name||'?')}</a>`;
   return `<a href="https://www.wowhead.com/search?q=${encodeURIComponent(e.name||'')}" target="_blank" rel="noopener" class="${q}">${esc(e.name||'?')}</a>`;
@@ -1919,7 +1935,10 @@ function _lootClass(e){ return _lootClsMap[(e.player||'').toLowerCase()] || (e.c
 function _classColor(cls){ return CC[(cls||'').toLowerCase()]||'var(--text)'; }
 
 function _lootFiltered(){
+  let allowed=null;
+  if(lootFilter.runs){ const n=+lootFilter.runs||0; if(n>0){ allowed=new Set(); _lootRuns(lootData).slice(0,n).forEach(r=>r.entries.forEach(e=>allowed.add(e))); } }
   return lootData.filter(e=>{
+    if(allowed && !allowed.has(e)) return false;
     if(lootFilter.week==='cur' && _lootWeekKey(e.ts)!==_LOOT_CUR_WEEK) return false;
     if(lootFilter.week && lootFilter.week!=='cur' && String(_lootWeekKey(e.ts))!==lootFilter.week) return false;
     if(lootFilter.player && (e.player||'')!==lootFilter.player) return false;
@@ -1975,7 +1994,10 @@ function _lootBars(){
   const bopt=`<option value="">Všichni bossové</option>`+bosses.map(b=>`<option ${lootFilter.boss===b?'selected':''}>${esc(b)}</option>`).join('');
   const rolls=[...new Set(lootData.map(e=>e.roll).filter(Boolean))];
   const ropt=`<option value="">Need/Greed/Bonus…</option>`+rolls.map(r=>`<option ${lootFilter.roll===r?'selected':''}>${esc(r)}</option>`).join('');
+  const runCount=_lootRuns(lootData).length;
+  const rnopt=`<option value="">Všechny runy</option>`+[1,3,5,10].filter(n=>n<runCount).map(n=>`<option value="${n}" ${lootFilter.runs===String(n)?'selected':''}>Poslední ${n===1?'run':(n<5?n+' runy':n+' runů')}</option>`).join('');
   return `<div class="loot-bar">
+    ${runCount>1?`<select onchange="setLootFilter('runs',this.value)" title="Zobrazit jen posledních N raid runů">${rnopt}</select>`:''}
     <select onchange="setLootFilter('week',this.value)">${wopt}</select>
     <select onchange="setLootFilter('player',this.value)">${popt}</select>
     <select onchange="setLootFilter('boss',this.value)">${bopt}</select>
@@ -1983,6 +2005,7 @@ function _lootBars(){
     <button class="btn btn-ghost" onclick="toggleLootImport()" style="padding:6px 10px;font-size:12px">⬇ Import</button>
     <div class="loot-views">
       <button class="${lootView==='players'?'on':''}" onclick="setLootView('players')">Podle hráče</button>
+      <button class="${lootView==='runs'?'on':''}" onclick="setLootView('runs')">Podle runu</button>
       <button class="${lootView==='weeks'?'on':''}" onclick="setLootView('weeks')">Podle týdne</button>
       <button class="${lootView==='log'?'on':''}" onclick="setLootView('log')">Vše</button>
     </div>
@@ -2011,6 +2034,7 @@ function renderLoot(){
   if(!lootData.length) html+='<div class="empty" style="padding:30px">Zatím žádný loot. Klikni ⬇ Import a vlož JSON z FifakLoot.</div>';
   else if(!all.length) html+='<div class="empty" style="padding:30px">Filtru nic neodpovídá.</div>';
   else if(lootView==='players') html+=_lootByPlayer(all);
+  else if(lootView==='runs') html+=_lootByRun(all);
   else if(lootView==='weeks') html+=_lootByWeek(all);
   else html+=_lootLog(all);
   html+='</div>';
@@ -2021,10 +2045,13 @@ function renderLoot(){
 function _lootByPlayer(all){
   const by={}; all.forEach(e=>{ (by[e.player]=by[e.player]||[]).push(e); });
   const players=Object.keys(by).sort((a,b)=>by[b].length-by[a].length);
-  let h=`<table class="loot"><thead><tr><th>Hráč</th><th style="width:70px;text-align:center">Celkem</th><th style="width:90px;text-align:center">Tento týden</th><th style="width:90px">Poslední</th><th>Sloty</th></tr></thead><tbody>`;
+  const rmap=_lootRunMap();
+  let h=`<table class="loot"><thead><tr><th>Hráč</th><th style="width:70px;text-align:center">Celkem</th><th style="width:60px;text-align:center" title="V kolika runech hráč něco lootnul">Runů</th><th style="width:90px;text-align:center">Tento týden</th><th style="width:90px">Poslední</th><th>Sloty</th></tr></thead><tbody>`;
   players.forEach(p=>{
     const items=by[p].slice().sort((a,b)=>b.ts-a.ts);
     const wk=items.filter(e=>_lootWeekKey(e.ts)===_LOOT_CUR_WEEK).length;
+    const runsN=new Set(items.map(e=>rmap.get(e)).filter(x=>x!=null)).size;
+    const lucky=items.length>=3 && runsN>0 && items.length>=2*runsN; // hodně kusů na málo runů
     const last=items[0];
     const slotCount={}; items.forEach(e=>{ slotCount[e.slot]=(slotCount[e.slot]||0)+1; });
     const slots=Object.keys(slotCount).sort((a,b)=>slotCount[b]-slotCount[a]).map(s=>`<span class="lslot">${esc(s)} ×${slotCount[s]}</span>`).join('');
@@ -2032,18 +2059,35 @@ function _lootByPlayer(all){
     const pid=esc(p).replace(/'/g,"&#39;");
     h+=`<tr class="lpar" onclick="toggleLootRow('${pid}')">
       <td><span class="expand">${exp?'▾':'▸'}</span> <b style="color:${_classColor(_lootClass(last))}">${esc(p)}</b></td>
-      <td style="text-align:center;font-weight:700">${items.length}</td>
+      <td style="text-align:center;font-weight:700">${items.length}${lucky?' <span title="Štěstí: hodně kusů na málo runů">🍀</span>':''}</td>
+      <td style="text-align:center;color:var(--text-dim)">${runsN||'—'}</td>
       <td style="text-align:center">${wk?`<span class="lwk">${wk}</span>`:'<span style="color:var(--text-dim)">0</span>'}</td>
       <td style="color:var(--text-dim)">${_lootDate(last.ts).split(' ')[0]}</td>
       <td>${slots}</td></tr>`;
     if(exp){
-      h+=`<tr class="lsub"><td colspan="5" style="padding:0"><table class="loot lsubtab"><tbody>`;
+      h+=`<tr class="lsub"><td colspan="6" style="padding:0"><table class="loot lsubtab"><tbody>`;
       items.forEach(e=>{ h+=`<tr><td><span class="lslot">${esc(e.slot)}</span></td><td>${_itemHTML(e)}${_rollChip(e.roll)}</td><td style="color:var(--text-dim)">${esc(e.boss)}</td><td style="color:var(--text-dim)">${_lootDate(e.ts)}</td></tr>`; });
       h+=`</tbody></table></td></tr>`;
     }
   });
   h+='</tbody></table>';
   return h;
+}
+function _lootByRun(all){
+  const set=new Set(all);
+  const runs=_lootRuns(lootData); // stabilní číslování runů z celého datasetu
+  let h='';
+  runs.forEach(r=>{
+    const items=r.entries.filter(e=>set.has(e)).sort((a,b)=>b.ts-a.ts);
+    if(!items.length) return;
+    const dateLbl=_lootDate(r.endTs).split(' ')[0];
+    const nPlayers=new Set(items.map(e=>e.player)).size;
+    h+=`<div style="padding:10px 14px;border-bottom:1px solid var(--border2);background:var(--surface2);font-weight:800;font-size:12px">Run #${r.idx} · ${dateLbl} <span style="color:var(--text-dim);font-weight:400">· ${items.length} kusů · ${nPlayers} hráčů${_lootWeekKey(r.endTs)===_LOOT_CUR_WEEK?' · tento týden':''}</span></div>`;
+    h+=`<table class="loot"><tbody>`;
+    items.forEach(e=>{ h+=`<tr><td style="width:90px"><span class="lslot">${esc(e.slot)}</span></td><td>${_itemHTML(e)}${_rollChip(e.roll)}</td><td style="width:150px"><b style="color:${_classColor(_lootClass(e))}">${esc(e.player)}</b></td><td style="color:var(--text-dim)">${esc(e.boss)}</td><td style="width:120px;color:var(--text-dim);text-align:right">${_lootDate(e.ts)}</td></tr>`; });
+    h+='</tbody></table>';
+  });
+  return h||'<div class="empty" style="padding:30px">Filtru nic neodpovídá.</div>';
 }
 function _lootByWeek(all){
   const by={}; all.forEach(e=>{ const k=_lootWeekKey(e.ts); (by[k]=by[k]||[]).push(e); });
