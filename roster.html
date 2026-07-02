@@ -2051,7 +2051,6 @@ function _lootByPlayer(all){
     const items=by[p].slice().sort((a,b)=>b.ts-a.ts);
     const wk=items.filter(e=>_lootWeekKey(e.ts)===_LOOT_CUR_WEEK).length;
     const runsN=new Set(items.map(e=>rmap.get(e)).filter(x=>x!=null)).size;
-    const lucky=items.length>=3 && runsN>0 && items.length>=2*runsN; // hodně kusů na málo runů
     const last=items[0];
     const slotCount={}; items.forEach(e=>{ slotCount[e.slot]=(slotCount[e.slot]||0)+1; });
     const slots=Object.keys(slotCount).sort((a,b)=>slotCount[b]-slotCount[a]).map(s=>`<span class="lslot">${esc(s)} ×${slotCount[s]}</span>`).join('');
@@ -2059,7 +2058,7 @@ function _lootByPlayer(all){
     const pid=esc(p).replace(/'/g,"&#39;");
     h+=`<tr class="lpar" onclick="toggleLootRow('${pid}')">
       <td><span class="expand">${exp?'▾':'▸'}</span> <b style="color:${_classColor(_lootClass(last))}">${esc(p)}</b></td>
-      <td style="text-align:center;font-weight:700">${items.length}${lucky?' <span title="Štěstí: hodně kusů na málo runů">🍀</span>':''}</td>
+      <td style="text-align:center;font-weight:700">${items.length}</td>
       <td style="text-align:center;color:var(--text-dim)">${runsN||'—'}</td>
       <td style="text-align:center">${wk?`<span class="lwk">${wk}</span>`:'<span style="color:var(--text-dim)">0</span>'}</td>
       <td style="color:var(--text-dim)">${_lootDate(last.ts).split(' ')[0]}</td>
