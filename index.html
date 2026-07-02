@@ -141,6 +141,10 @@ table.roster tr.alt-row:hover td{background:rgba(255,255,255,.03)}
 .roster-ctx button{display:block;width:100%;text-align:left;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--txt);border-radius:6px;font-size:12px;padding:6px 9px;cursor:pointer;margin-bottom:5px}
 .roster-ctx button:hover{background:rgba(255,255,255,.09)}
 .roster-ctx button.danger{color:#e0716f}
+body.is-admin table.roster tr.main-row,body.is-admin table.roster tr.alt-row{cursor:grab}
+table.roster tr.drop-hi td{background:rgba(79,142,255,.16) !important;box-shadow:inset 0 2px 0 var(--accent),inset 0 -2px 0 var(--accent)}
+.alt-dropzone{border:1px dashed var(--line);border-radius:9px;padding:9px 12px;margin:10px 14px 4px;font-size:11.5px;color:var(--faint);text-align:center;background:rgba(255,255,255,.02)}
+.alt-dropzone.drop-hi{border-color:var(--accent);color:var(--accent);background:rgba(79,142,255,.1)}
 .showmore{display:block;width:100%;padding:12px;background:var(--panel2);border:none;border-top:1px solid var(--line);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer}
 .showmore:hover{background:rgba(79,142,255,.1)}
 
@@ -723,13 +727,17 @@ function _nameCellHTML(m, opts){
 }
 function charRowHTML(m, opts){
   opts = opts || {};
-  const ctx = ` oncontextmenu="rosterCtx(event,'${escJs(m.name)}')"`;   // párování řešíme uvnitř (guard na admina)
+  const nm = escJs(m.name);
+  const ctx = ` oncontextmenu="rosterCtx(event,'${nm}')"`;   // párování řešíme uvnitř (guard na admina)
+  const dnd = window.__IS_ADMIN
+    ? ` draggable="true" ondragstart="rDragStart(event,'${nm}')" ondragend="rDragEnd(event)" ondragover="rDragOver(event)" ondragleave="rDragLeave(event)" ondrop="rDrop(event,'${nm}')"`
+    : '';
   const cells = _nameCellHTML(m,opts) + _visCols().map(k=>_cellHTML(m,k,!!opts.alt)).join('');
   if(opts.alt){
-    return `<tr class="alt-row" data-main="${escH(opts.mainName||'')}"${opts.hidden?' style="display:none"':''}${ctx}>${cells}</tr>`;
+    return `<tr class="alt-row" data-main="${escH(opts.mainName||'')}"${opts.hidden?' style="display:none"':''}${ctx}${dnd}>${cells}</tr>`;
   }
-  const clickable = opts.altCount>0 ? ` onclick="toggleExpand('${escJs(m.name)}')" style="cursor:pointer"` : '';
-  return `<tr class="main-row"${clickable}${ctx}>${cells}</tr>`;
+  const clickable = opts.altCount>0 ? ` onclick="toggleExpand('${nm}')" style="cursor:pointer"` : '';
+  return `<tr class="main-row"${clickable}${ctx}${dnd}>${cells}</tr>`;
 }
 
 function _sortMembers(rows, sort){
@@ -797,9 +805,12 @@ function renderRoster(){
   }
 
   document.getElementById('rosterCount').textContent = countTxt;
+  const dropZone = window.__IS_ADMIN
+    ? `<div id="altDropZone" class="alt-dropzone" ondragover="altZoneOver(event)" ondragleave="altZoneLeave(event)" ondrop="unassignAltDrop(event)">↩ Sem přetáhni postavu pro <b>zrušení altu</b> (udělat main) · nebo přetáhni postavu na maina pro přiřazení</div>`
+    : '';
   document.getElementById('rosterBody').innerHTML = total
-    ? `<table class="roster">${head}<tbody>${rowsHTML}</tbody></table>${pager(pages)}`
-    : '<div class="loading">Žádné postavy</div>';
+    ? dropZone + `<table class="roster">${head}<tbody>${rowsHTML}</tbody></table>${pager(pages)}`
+    : dropZone + '<div class="loading">Žádné postavy</div>';
   fetchRioBatch(_lastVisible);
 }
 
@@ -875,6 +886,30 @@ function setAlt(){
   hideRosterCtx(); renderRoster(); saveCfgSoon();
 }
 function clearAlt(){ if(_ctxName){ delete _altMap[_ctxName]; } hideRosterCtx(); renderRoster(); saveCfgSoon(); }
+
+/* ---------- párování drag & drop (přetáhni postavu na maina) ---------- */
+let _dragName = null;
+function rDragStart(ev, name){ if(!window.__IS_ADMIN){ ev.preventDefault(); return; } _dragName=name; ev.dataTransfer.effectAllowed='move'; try{ ev.dataTransfer.setData('text/plain', name); }catch(e){} }
+function rDragOver(ev){ if(!window.__IS_ADMIN || !_dragName) return; ev.preventDefault(); ev.dataTransfer.dropEffect='move'; const tr=ev.currentTarget; if(tr) tr.classList.add('drop-hi'); }
+function rDragLeave(ev){ if(ev.currentTarget) ev.currentTarget.classList.remove('drop-hi'); }
+function rDragEnd(){ _dragName=null; document.querySelectorAll('.drop-hi').forEach(e=>e.classList.remove('drop-hi')); }
+function rDrop(ev, targetName){
+  ev.preventDefault(); if(ev.currentTarget) ev.currentTarget.classList.remove('drop-hi');
+  if(!window.__IS_ADMIN) return;
+  const src=_dragName; _dragName=null;
+  if(!src || src===targetName) return;
+  const byName={}; _guild.members.forEach(m=>byName[m.name]=m);
+  const root=_rootMain(byName, targetName);       // přetažení na alta = přiřadí pod jeho maina
+  if(root===src){ alert('To by vytvořilo kruh (cíl je alt přetahované postavy).'); return; }
+  _altMap[src]=root; renderRoster(); saveCfgSoon();
+}
+function unassignAltDrop(ev){
+  ev.preventDefault(); const z=document.getElementById('altDropZone'); if(z) z.classList.remove('drop-hi');
+  if(!window.__IS_ADMIN) return; const src=_dragName; _dragName=null;
+  if(src && _altMap[src]){ delete _altMap[src]; renderRoster(); saveCfgSoon(); }
+}
+function altZoneOver(ev){ if(window.__IS_ADMIN && _dragName){ ev.preventDefault(); const z=document.getElementById('altDropZone'); if(z) z.classList.add('drop-hi'); } }
+function altZoneLeave(ev){ const z=document.getElementById('altDropZone'); if(z) z.classList.remove('drop-hi'); }
 document.addEventListener('click', function(e){ const b=document.getElementById('rosterCtx'); if(b && b.style.display==='block' && !b.contains(e.target)) hideRosterCtx(); });
 
 /* ---------- charts ---------- */
@@ -1034,12 +1069,13 @@ function closeColEditor(){ document.getElementById('colModal').classList.remove(
 function renderColEditor(){
   const cfg=_cols();
   document.getElementById('colEditorBody').innerHTML = cfg.map((c,i)=>`
-    <div class="ed-row" style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
-      <label style="flex:1;display:flex;align-items:center;gap:9px;font-size:13px;cursor:pointer">
-        <input type="checkbox" ${c.hidden?'':'checked'} onchange="toggleCol('${c.key}')"> ${ROSTER_COLS[c.key].label}
-      </label>
-      <button class="btn btn-ghost" onclick="moveCol(${i},-1)" ${i===0?'disabled':''} style="padding:4px 10px">▲</button>
-      <button class="btn btn-ghost" onclick="moveCol(${i},1)" ${i===cfg.length-1?'disabled':''} style="padding:4px 10px">▼</button>
+    <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;margin-bottom:7px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.02)">
+      <input type="checkbox" id="colck_${c.key}" ${c.hidden?'':'checked'} onchange="toggleCol('${c.key}')" style="width:16px;height:16px;flex:0 0 auto;cursor:pointer;accent-color:var(--accent)">
+      <label for="colck_${c.key}" style="flex:1;font-size:13px;cursor:pointer;color:${c.hidden?'var(--faint)':'var(--txt)'}">${ROSTER_COLS[c.key].label}</label>
+      <div style="display:flex;gap:5px;flex:0 0 auto">
+        <button class="btn btn-ghost" onclick="moveCol(${i},-1)" ${i===0?'disabled':''} style="padding:4px 9px">▲</button>
+        <button class="btn btn-ghost" onclick="moveCol(${i},1)" ${i===cfg.length-1?'disabled':''} style="padding:4px 9px">▼</button>
+      </div>
     </div>`).join('');
 }
 function toggleCol(key){ const cfg=_cols(); const c=cfg.find(x=>x.key===key); if(c)c.hidden=!c.hidden; _colCfg=cfg; renderColEditor(); renderRoster(); saveCfgSoon(); }
@@ -1091,7 +1127,7 @@ function setCloud(si,ri,bi){ const b=_manifest.seasons[si].raids[ri].bosses[bi];
 function downloadManifest(){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(_manifest,null,2)],{type:'application/json'})); a.download='manifest.json';a.click(); }
 
 init();
-window.__onUnlock = function(){ try{ renderRaids(); }catch(e){} var eb=document.getElementById('editBar'); if(eb && !eb.classList.contains('open') && typeof toggleEdit==='function') toggleEdit(); };
+window.__onUnlock = function(){ try{ renderRaids(); }catch(e){} try{ renderRoster(); }catch(e){} var eb=document.getElementById('editBar'); if(eb && !eb.classList.contains('open') && typeof toggleEdit==='function') toggleEdit(); };
 function idxEdit(){ if(!window.__IS_ADMIN){ window.unlockEdit(); } else if(typeof toggleEdit==='function'){ toggleEdit(); } }
 </script>
 </body>
