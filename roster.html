@@ -1962,7 +1962,7 @@ function doLootImport(){
     const arr=Array.isArray(j)?j:(Array.isArray(j.loot)?j.loot:[]);
     const seen=new Set(lootData.map(e=>e.ts+'|'+(e.player||'')+'|'+(e.itemID||0)+'|'+(e.name||'')));
     arr.forEach(e=>{
-      const rec={ ts:+e.ts||0, itemID:+e.itemID||0, name:e.name||e.itemName||'', quality:+e.quality||4, slot:e.slot||'—', boss:e.boss||'', raid:e.raid||'', player:e.player||e.looter||'', realm:e.realm||'', class:e.class||'', guilded:e.guilded!==false };
+      const rec={ ts:+e.ts||0, run:+e.run||+e.raidID||+e.instanceID||0, itemID:+e.itemID||0, name:e.name||e.itemName||'', quality:+e.quality||4, slot:e.slot||'—', boss:e.boss||'', raid:e.raid||'', player:e.player||e.looter||'', realm:e.realm||'', class:e.class||'', guilded:e.guilded!==false, roll:e.roll||'' };
       if(!rec.player||!rec.name) return;
       const key=rec.ts+'|'+rec.player+'|'+rec.itemID+'|'+rec.name;
       if(seen.has(key)) return; seen.add(key);
