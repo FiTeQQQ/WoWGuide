@@ -309,22 +309,22 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
 .sp-logo .sp-lname span{color:var(--accent)}
 #spNav{flex:1;display:flex;flex-direction:column;min-height:0}
 .sp-bottom{margin-top:auto}
-.sp-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;border:none;background:transparent;color:var(--dim);font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;margin-bottom:2px;transition:background .13s,color .13s}
-.sp-item:hover{color:var(--txt);background:rgba(255,255,255,.05)}
-.sp-item.active{color:#fff;font-weight:700;background:rgba(79,142,255,.15);box-shadow:inset 2px 0 0 var(--accent)}
+.sp-item{display:flex;align-items:center;gap:11px;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);color:var(--dim);font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;margin-bottom:6px;transition:background .13s,border-color .13s,color .13s}
+.sp-item:hover{color:var(--txt);background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14)}
+.sp-item.active{color:#fff;font-weight:700;border-color:rgba(79,142,255,.5);background:linear-gradient(90deg,rgba(79,142,255,.32),rgba(79,142,255,.1))}
 .sp-item svg{width:17px;height:17px;flex:0 0 auto;color:var(--faint)}
 .sp-item:hover svg{color:var(--dim)}
-.sp-item.active svg{color:var(--accent)}
+.sp-item.active svg{color:#bcd4ff}
 .sp-item>span:not(.sp-badge){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sp-item .sp-badge{margin-left:auto;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:20px;padding:2px 7px;flex:0 0 auto}
-.sp-head{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:800;padding:14px 8px 8px;margin-top:8px;border-top:1px solid var(--line)}
+.sp-head{font-size:12.5px;color:#c3cad8;font-weight:700;padding:16px 4px 8px;margin-bottom:8px;border-bottom:1px solid var(--line)}
 .sp-season{display:flex;align-items:center;gap:7px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700;padding:6px 8px 5px}
 .sp-season::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent);flex:0 0 auto}
 body.glass-on .sp-body{background:rgba(12,16,28,.40) !important;backdrop-filter:blur(20px) saturate(165%);-webkit-backdrop-filter:blur(20px) saturate(165%);border-right-color:rgba(255,255,255,.12)}
 body.glass-on .sp-handle{background:rgba(12,16,28,.34) !important;backdrop-filter:blur(20px) saturate(165%);-webkit-backdrop-filter:blur(20px) saturate(165%);border-right-color:rgba(255,255,255,.12)}
-body.glass-on .sp-item{background:transparent !important}
-body.glass-on .sp-item:hover{background:rgba(255,255,255,.09) !important}
-body.glass-on .sp-item.active{background:rgba(79,142,255,.2) !important}
+body.glass-on .sp-item{background:rgba(255,255,255,.05) !important;border-color:rgba(255,255,255,.12) !important}
+body.glass-on .sp-item:hover{background:rgba(255,255,255,.11) !important}
+body.glass-on .sp-item.active{background:linear-gradient(90deg,rgba(79,142,255,.38),rgba(79,142,255,.12)) !important;border-color:rgba(79,142,255,.55) !important}
 
 /* editor modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:20px}
