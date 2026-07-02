@@ -70,7 +70,7 @@ a{text-decoration:none;color:inherit}
 .wrap{max-width:1320px;margin:0 auto;padding:0 24px 80px}
 
 /* header bar */
-.site-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;max-width:1320px;margin:0 auto}
+.site-header{display:flex;align-items:center;justify-content:flex-end;padding:18px 24px;max-width:1320px;margin:0 auto}
 .site-logo{font-size:17px;font-weight:800;letter-spacing:.04em;color:#fff}
 .site-logo span{color:var(--accent)}
 
@@ -129,6 +129,16 @@ table.roster tr:hover td{background:rgba(255,255,255,.03)}
 .rank-cell{color:var(--dim);font-weight:600}
 .rank-gm{color:var(--gold);font-weight:800}
 .lvl{font-weight:700;color:#cdd3e0}
+.alt-badge{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--dim);border-radius:20px;padding:1px 7px;font-size:10px;margin-left:6px;font-weight:600}
+table.roster tr.main-row:hover td{background:rgba(255,255,255,.03)}
+table.roster tr.alt-row td{background:rgba(0,0,0,.16)}
+table.roster tr.alt-row:hover td{background:rgba(255,255,255,.03)}
+.roster-ctx{position:fixed;z-index:200;display:none;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px;min-width:230px;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.roster-ctx .rc-title{font-size:11px;color:var(--faint);padding:2px 4px 7px;border-bottom:1px solid var(--line);margin-bottom:7px}
+.roster-ctx input{width:100%;background:#0e1018;border:1px solid var(--line);border-radius:6px;color:var(--txt);font-size:12px;padding:6px 8px;outline:none;margin-bottom:7px}
+.roster-ctx button{display:block;width:100%;text-align:left;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--txt);border-radius:6px;font-size:12px;padding:6px 9px;cursor:pointer;margin-bottom:5px}
+.roster-ctx button:hover{background:rgba(255,255,255,.09)}
+.roster-ctx button.danger{color:#e0716f}
 .showmore{display:block;width:100%;padding:12px;background:var(--panel2);border:none;border-top:1px solid var(--line);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer}
 .showmore:hover{background:rgba(79,142,255,.1)}
 
@@ -297,7 +307,6 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
 <div class="glass-bg"></div>
 
 <header class="site-header">
-  <div class="site-logo">Rapid<span>Evolution</span></div>
   <button class="btn btn-ghost edit-trigger" id="editToggle" onclick="idxEdit()" title="Upravit (vyžaduje heslo)">✏ Upravit</button>
 </header>
 
@@ -313,6 +322,9 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
     <span class="eb-sep"></span>
     <span class="eb-label">Obsah</span>
     <button class="btn btn-ghost" onclick="openEditor()">⚙ Upravit raidy</button>
+    <span class="eb-sep"></span>
+    <span class="eb-label">Roster</span>
+    <button class="btn btn-ghost" onclick="openRankEditor()">🏷 Přejmenovat ranky</button>
   </div>
 
 
@@ -360,6 +372,12 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
               <option value="tank">Tank</option>
               <option value="healer">Healer</option>
               <option value="dps">DPS</option>
+            </select></div>
+          <div class="ffield"><label>Zobrazení</label>
+            <select id="fView" onchange="onFilterChange()">
+              <option value="grouped">Mainy + alty</option>
+              <option value="mains">Jen mainy</option>
+              <option value="flat">Všechny postavy</option>
             </select></div>
           <div class="ffield" style="max-width:110px"><label>Na stránku</label>
             <select id="fPer" onchange="onFilterChange()">
@@ -427,6 +445,27 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
   </div>
 </div>
 
+<div class="roster-ctx" id="rosterCtx"></div>
+<datalist id="charNames"></datalist>
+
+<div class="modal-overlay" id="rankModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Přejmenovat guild ranky</span>
+      <button class="modal-close" onclick="closeRankEditor()">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.5">
+      Armory vrací jen čísla ranků. Tady je „přeložíš" do řeči guildy — název i barva.
+      Prázdný název = výchozí (<span style="color:var(--faint)">Rank N</span>). Rank 0 = Guild Master.
+    </div>
+    <div id="rankEditorBody"></div>
+    <div class="modal-footer">
+      <span style="flex:1;font-size:11px;color:var(--faint)">☁️ Ukládá se do cloudu (index-cfg) — vidí kdokoli</span>
+      <button class="btn btn-success" onclick="closeRankEditor()">Hotovo</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API_BASE = 'https://raidguide-api.filip-tesarik1.workers.dev';
 const GH_RAW = 'https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/';
@@ -463,6 +502,10 @@ const CFG_KEY = 'index-cfg';              // index má svůj klíč; roster má 
 const GLASS_BG = GH_RAW + 'Images/Roster/Index_Background.jpg';
 let themeMode = 'classic';
 let _cfgLoaded = false;
+let _rankNames = {};   // { "0": {name:"Guild Master", color:"#f5c04a"}, "1": {...} } — překlad API ranků do řeči guildy (cloud: index-cfg)
+let _altMap = {};      // { "AltName": "MainName" } — párování altů na maina (cloud: index-cfg)
+let _rio = {};         // { "charnamelower": {ilvl, io} } — Raider.IO cache (runtime)
+let _expanded = {};    // { "MainName": true } — které mainy mají rozbalené alty (runtime)
 
 const PROG_GRADS = [
   {id:'epic',    label:'Epic → Legendary',    from:'#a335ee', to:'#ff8000'},
@@ -512,6 +555,8 @@ async function loadCfg(){
       const m = await r.json();
       if(m && m.theme){ applyTheme(m.theme); try{ localStorage.setItem('indexTheme', m.theme); }catch(e){} }
       if(m && m.progGrad){ _progGrad = m.progGrad; try{ localStorage.setItem('indexProgGrad', m.progGrad); }catch(e){} applyProgGradient(); }
+      if(m && m.rankNames && typeof m.rankNames==='object'){ _rankNames = m.rankNames; }
+      if(m && m.altMap && typeof m.altMap==='object'){ _altMap = m.altMap; }
       if(m && Array.isArray(m.seasons) && m.seasons.length){ _manifest = { seasons: m.seasons }; }
       else if(m && Array.isArray(m.raids) && m.raids.length){ _manifest = { seasons:[{name:'Season 1',raids:m.raids}] }; }
     }
@@ -529,7 +574,7 @@ async function saveCfg(){
   try{
     await fetch(API_BASE + '/api/roster/' + CFG_KEY, {
       method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
+      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, rankNames: _rankNames, altMap: _altMap, seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
     });
   }catch(e){}
 }
@@ -543,6 +588,7 @@ async function init(){
 
 async function loadGuild(){
   document.getElementById('heroBg').style.backgroundImage = `url('${HERO_BG}')`;
+  _loadRioCache();
   // klientská cache (10 min) — šetří KV operace ve workeru
   try{ const c=JSON.parse(localStorage.getItem('guildCache')||'null'); if(c&&c.d&&Date.now()-c.t<600000){ _guild=c.d; renderHero(); buildClassFilter(); renderRoster(); renderCharts(); renderAchievements(); return; } }catch(e){}
   try{
@@ -595,59 +641,208 @@ function buildClassFilter(){
   sel.innerHTML = '<option value="">Všechny třídy</option>' + present.map(c=>`<option value="${escH(c)}">${escH(c)}</option>`).join('');
 }
 
+// Překlad API ranku (číslo) → {name,color}. Fallback: GM pro 0, jinak "Rank N".
+function rankMeta(n){
+  const m = _rankNames[String(n)] || _rankNames[n];
+  const name = (m && m.name) ? m.name : (n===0 ? 'Guild Master' : ('Rank '+n));
+  const color = (m && m.color) ? m.color : (n===0 ? '' : '');
+  return { name, color, isGM: n===0 };
+}
+function rankCellHTML(n){
+  const r = rankMeta(n);
+  if(r.isGM) return `<span class="rank-gm"${r.color?` style="color:${escH(r.color)}"`:''}>${escH(r.name)}</span>`;
+  return `<span class="rank-cell"${r.color?` style="color:${escH(r.color)}"`:''}>${escH(r.name)}</span>`;
+}
+
 let _page = 1;
 function onFilterChange(){ _page = 1; renderRoster(); }
 function gotoPage(p){ _page = p; renderRoster(); document.getElementById('rosterBody').scrollIntoView({behavior:'smooth',block:'nearest'}); }
-function renderRoster(){
-  if(!_guild) return;
-  const sort = document.getElementById('fSort').value;
-  const fc = document.getElementById('fClass').value;
-  const fr = document.getElementById('fRole').value;
-  const per = parseInt(document.getElementById('fPer').value, 10) || 25;
-  let rows = _guild.members.slice();
-  if(fc) rows = rows.filter(m=>m.className===fc);
-  if(fr) rows = rows.filter(m=>m.role===fr);
-  rows.sort((a,b)=>{
+function escJs(s){ return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function ioColor(v){ return v>=3200?'#ff8000':v>=2800?'#a335ee':v>=2400?'#3b82f6':v>=2000?'#37d66a':'var(--dim)'; }
+function numCell(v,color){ return (v&&v>0)?`<span style="font-weight:600;color:${color||'#cdd3e0'}">${v}</span>`:'<span style="color:var(--faint)">—</span>'; }
+function rioOf(name){ return _rio[String(name||'').toLowerCase()] || {}; }
+// jednotné jméno maina pro postavu (rozbalí řetěz altů, ochrana proti cyklu)
+function _rootMain(byName, name){ let c=name, g=0; while(_altMap[c] && byName[_altMap[c]] && g<12){ c=_altMap[c]; g++; } return c; }
+
+function charRowHTML(m, opts){
+  opts = opts || {};
+  const col = CLASS_COLORS[m.className] || '#cdd3e0';
+  const ci = classIcon(m.className);
+  const role = m.role||'?'; const ri = roleIcon(role);
+  const roleCell = ri ? `<img class="role-img" src="${ri}" title="${role}" alt="${role}">` : '<span class="role-unk role-badge" title="neznámé">?</span>';
+  const rio = rioOf(m.name); const ilvl = rio.ilvl||0, io = rio.io||0;
+  const ctx = window.__IS_ADMIN ? ` oncontextmenu="rosterCtx(event,'${escJs(m.name)}')"` : '';
+  if(opts.alt){
+    return `<tr class="alt-row" data-main="${escH(opts.mainName||'')}"${opts.hidden?' style="display:none"':''}${ctx}>
+      <td style="padding-left:32px"><span style="color:var(--faint);opacity:.6;margin-right:4px">↳</span><span class="pname" style="color:${col};font-weight:500;font-size:12.5px">${escH(m.name)}</span> <span style="color:var(--faint);font-size:10.5px">${escH(m.raceName||'')}</span></td>
+      <td>${ci?`<img class="cls-ico" src="${ci}" onerror="this.style.display='none'">`:''}<span class="cls-pill" style="color:${col};font-weight:500;font-size:12px">${escH(m.className||'—')}</span></td>
+      <td class="c">${roleCell}</td>
+      <td class="c">${numCell(ilvl,'var(--dim)')}</td>
+      <td class="c">${numCell(io,ioColor(io))}</td>
+      <td class="c"><span class="lvl" style="color:var(--dim);font-weight:500">${m.level||'—'}</span></td>
+      <td><span style="color:var(--faint);font-size:11px">alt</span></td></tr>`;
+  }
+  const chev = opts.altCount>0
+    ? `<span class="rexp" style="display:inline-block;width:16px;color:var(--dim);transform:${opts.expanded?'rotate(90deg)':'none'};transition:transform .15s">▸</span>`
+    : '<span style="display:inline-block;width:16px"></span>';
+  const badge = opts.altCount>0 ? ` <span class="alt-badge">+${opts.altCount}</span>` : '';
+  const clickable = opts.altCount>0 ? ` onclick="toggleExpand('${escJs(m.name)}')" style="cursor:pointer"` : '';
+  return `<tr class="main-row"${clickable}${ctx}>
+      <td>${chev}<span class="pname" style="color:${col}">${escH(m.name)}</span> <span style="color:var(--faint);font-size:11px">${escH(m.raceName||'')}</span>${badge}</td>
+      <td>${ci?`<img class="cls-ico" src="${ci}" alt="" onerror="this.style.display='none'">`:''}<span class="cls-pill" style="color:${col}">${escH(m.className||'—')}</span></td>
+      <td class="c">${roleCell}</td>
+      <td class="c">${numCell(ilvl)}</td>
+      <td class="c">${numCell(io,ioColor(io))}</td>
+      <td class="c"><span class="lvl">${m.level||'—'}</span></td>
+      <td>${rankCellHTML(m.rank)}</td></tr>`;
+}
+
+function _sortMembers(rows, sort){
+  return rows.sort((a,b)=>{
     if(sort==='rank') return (a.rank-b.rank) || (b.level-a.level);
     if(sort==='level') return (b.level-a.level) || (a.rank-b.rank);
     if(sort==='name') return String(a.name).localeCompare(String(b.name));
     if(sort==='class') return String(a.className).localeCompare(String(b.className)) || (b.level-a.level);
     return 0;
   });
-  const total = rows.length;
-  const pages = Math.max(1, Math.ceil(total/per));
-  if(_page > pages) _page = pages;
-  const start = (_page-1)*per;
-  const shown = rows.slice(start, start+per);
-  document.getElementById('rosterCount').textContent = total + ' postav';
-  const body = `
-    <table class="roster">
-      <thead><tr>
-        <th>Jméno</th><th>Třída</th><th class="c">Role</th><th class="c">Level</th><th>Guild Rank</th>
-      </tr></thead>
-      <tbody>${shown.map(m=>{
-        const col = CLASS_COLORS[m.className] || '#cdd3e0';
-        const ci = classIcon(m.className);
-        const role = m.role||'?';
-        const ri = roleIcon(role);
-        const roleCell = ri ? `<img class="role-img" src="${ri}" title="${role}" alt="${role}">` : '<span class="role-unk role-badge" title="neznámé">?</span>';
-        const rankTxt = m.rank===0 ? '<span class="rank-gm">Guild Master</span>' : `<span class="rank-cell">Rank ${m.rank}</span>`;
-        return `<tr>
-          <td><span class="pname" style="color:${col}">${escH(m.name)}</span> <span style="color:var(--faint);font-size:11px">${escH(m.raceName)}</span></td>
-          <td>${ci?`<img class="cls-ico" src="${ci}" alt="" onerror="this.style.display='none'">`:''}<span class="cls-pill" style="color:${col}">${escH(m.className||'—')}</span></td>
-          <td class="c">${roleCell}</td>
-          <td class="c"><span class="lvl">${m.level||'—'}</span></td>
-          <td>${rankTxt}</td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table>
-    <div class="pager">
+}
+
+function renderRoster(){
+  if(!_guild) return;
+  const sort = document.getElementById('fSort').value;
+  const fc = document.getElementById('fClass').value;
+  const fr = document.getElementById('fRole').value;
+  const per = parseInt(document.getElementById('fPer').value, 10) || 25;
+  const view = (document.getElementById('fView')||{}).value || 'grouped';
+  const members = _guild.members;
+  const byName = {}; members.forEach(m=>{ byName[m.name]=m; });
+
+  const head = `<thead><tr>
+      <th>Jméno</th><th>Třída</th><th class="c">Role</th><th class="c">iLvl</th><th class="c">M+ IO</th><th class="c">Lvl</th><th>Guild Rank</th>
+    </tr></thead>`;
+  const pager = (pages)=>`<div class="pager">
       <button onclick="gotoPage(${_page-1})" ${_page<=1?'disabled':''}>‹ Předchozí</button>
       <span class="pinfo">${_page} / ${pages}</span>
       <button onclick="gotoPage(${_page+1})" ${_page>=pages?'disabled':''}>Další ›</button>
     </div>`;
-  document.getElementById('rosterBody').innerHTML = total ? body : '<div class="loading">Žádné postavy</div>';
+
+  let rowsHTML, total, pages, countTxt;
+
+  if(view==='flat'){
+    let rows = members.slice();
+    if(fc) rows = rows.filter(m=>m.className===fc);
+    if(fr) rows = rows.filter(m=>m.role===fr);
+    _sortMembers(rows, sort);
+    total = rows.length; pages = Math.max(1, Math.ceil(total/per));
+    if(_page>pages) _page=pages;
+    const shown = rows.slice((_page-1)*per, (_page-1)*per+per);
+    rowsHTML = shown.map(m=>charRowHTML(m,{})).join('');
+    _lastVisible = shown;
+    countTxt = total + ' postav';
+  } else {
+    // grouped / mains: agregace pod maina
+    const altsOf = {};
+    members.forEach(m=>{ const root=_rootMain(byName,m.name); if(root!==m.name){ (altsOf[root]=altsOf[root]||[]).push(m); } });
+    let mains = members.filter(m=> _rootMain(byName,m.name)===m.name );
+    if(fc) mains = mains.filter(m=>m.className===fc);
+    if(fr) mains = mains.filter(m=>m.role===fr);
+    _sortMembers(mains, sort);
+    total = mains.length; pages = Math.max(1, Math.ceil(total/per));
+    if(_page>pages) _page=pages;
+    const shown = mains.slice((_page-1)*per, (_page-1)*per+per);
+    const vis = [];
+    rowsHTML = shown.map(m=>{
+      const alts = (altsOf[m.name]||[]).slice().sort((a,b)=>(b.level-a.level));
+      const exp = !!_expanded[m.name];
+      vis.push(m);
+      let h = charRowHTML(m,{altCount:alts.length, expanded:exp});
+      if(view==='grouped'){ h += alts.map(a=>charRowHTML(a,{alt:true, mainName:m.name, hidden:!exp})).join(''); if(exp) alts.forEach(a=>vis.push(a)); }
+      return h;
+    }).join('');
+    _lastVisible = vis;
+    countTxt = total + ' mainů · ' + members.length + ' postav';
+  }
+
+  document.getElementById('rosterCount').textContent = countTxt;
+  document.getElementById('rosterBody').innerHTML = total
+    ? `<table class="roster">${head}<tbody>${rowsHTML}</tbody></table>${pager(pages)}`
+    : '<div class="loading">Žádné postavy</div>';
+  fetchRioBatch(_lastVisible);
 }
+
+function toggleExpand(name){ if(_expanded[name]) delete _expanded[name]; else _expanded[name]=true; renderRoster(); }
+
+/* ---------- Raider.IO (iLvl + M+ IO) ---------- */
+const RIO_TTL = 6*3600*1000;
+let _rioInflight = {}, _rioRenderT = null, _lastVisible = [];
+function _loadRioCache(){
+  try{ const c=JSON.parse(localStorage.getItem('rioCache2')||'null'); if(c&&typeof c==='object'){ const now=Date.now();
+    for(const k in c){ if(c[k] && now-(c[k].t||0)<RIO_TTL){ _rio[k]={ilvl:c[k].ilvl||0, io:c[k].io||0}; } } } }catch(e){}
+}
+function _saveRioCache(){
+  try{ const c={}; for(const k in _rio){ c[k]={ilvl:_rio[k].ilvl||0, io:_rio[k].io||0, t:Date.now()}; } localStorage.setItem('rioCache2', JSON.stringify(c)); }catch(e){}
+}
+function _rioRerenderSoon(){ clearTimeout(_rioRenderT); _rioRenderT=setTimeout(()=>{ renderRoster(); _saveRioCache(); }, 400); }
+async function fetchRioBatch(chars){
+  if(!_guild || !chars || !chars.length) return;
+  const region=(_guild.region||'eu').toLowerCase();
+  const todo=chars.filter(m=>{ const k=(m.name||'').toLowerCase(); return k && !_rio[k] && !_rioInflight[k]; });
+  if(!todo.length) return;
+  let i=0; const CONC=5;
+  async function work(){
+    while(i<todo.length){
+      const m=todo[i++]; const k=m.name.toLowerCase(); _rioInflight[k]=true;
+      try{
+        const r=await fetch(`${API_BASE}/api/rio-char?region=${encodeURIComponent(region)}&realm=${encodeURIComponent(m.realmSlug||'')}&name=${encodeURIComponent(m.name)}`);
+        if(r.ok){ const j=await r.json(); _rio[k]={ilvl:+j.ilvl||0, io:+j.mplus||0}; }
+        else _rio[k]={ilvl:0, io:0};
+      }catch(e){ _rio[k]={ilvl:0, io:0}; }
+      delete _rioInflight[k];
+      _rioRerenderSoon();
+    }
+  }
+  const ws=[]; for(let w=0;w<CONC;w++) ws.push(work()); await Promise.all(ws);
+}
+
+/* ---------- párování main → alt (edit mód, pravý klik) ---------- */
+let _ctxName = null;
+function _fillCharNames(){
+  const dl = document.getElementById('charNames'); if(!dl || !_guild) return;
+  dl.innerHTML = _guild.members.map(m=>`<option value="${escH(m.name)}">`).join('');
+}
+function rosterCtx(ev, name){
+  if(!window.__IS_ADMIN) return;
+  ev.preventDefault(); ev.stopPropagation();
+  _ctxName = name;
+  _fillCharNames();
+  const cur = _altMap[name];
+  const box = document.getElementById('rosterCtx');
+  box.innerHTML = `
+    <div class="rc-title">Postava: <b style="color:var(--txt)">${escH(name)}</b>${cur?` · alt „${escH(cur)}"`:''}</div>
+    <input id="ctxMain" list="charNames" placeholder="Jméno hlavní postavy…" value="${escH(cur||'')}">
+    <button onclick="setAlt()">✓ Označit jako alt</button>
+    ${cur?`<button class="danger" onclick="clearAlt()">↺ Zrušit alt (udělat main)</button>`:''}
+    <button onclick="hideRosterCtx()">Zavřít</button>`;
+  const x = Math.min(ev.clientX, window.innerWidth-250);
+  const y = Math.min(ev.clientY, window.innerHeight-180);
+  box.style.left = x+'px'; box.style.top = y+'px'; box.style.display='block';
+  setTimeout(()=>{ const i=document.getElementById('ctxMain'); if(i) i.focus(); },0);
+}
+function hideRosterCtx(){ const b=document.getElementById('rosterCtx'); if(b) b.style.display='none'; _ctxName=null; }
+function setAlt(){
+  const name=_ctxName; if(!name) return;
+  const main=(document.getElementById('ctxMain').value||'').trim();
+  const byName={}; _guild.members.forEach(m=>byName[m.name]=m);
+  if(!main){ alert('Vyplň jméno hlavní postavy.'); return; }
+  if(!byName[main]){ alert('Postava „'+main+'" není v rosteru.'); return; }
+  if(main===name){ alert('Postava nemůže být alt sama sebe.'); return; }
+  const root=_rootMain(byName, main);
+  if(root===name){ alert('To by vytvořilo kruh (main je alt této postavy).'); return; }
+  _altMap[name]=root;
+  hideRosterCtx(); renderRoster(); saveCfgSoon();
+}
+function clearAlt(){ if(_ctxName){ delete _altMap[_ctxName]; } hideRosterCtx(); renderRoster(); saveCfgSoon(); }
+document.addEventListener('click', function(e){ const b=document.getElementById('rosterCtx'); if(b && b.style.display==='block' && !b.contains(e.target)) hideRosterCtx(); });
 
 /* ---------- charts ---------- */
 function renderCharts(){
@@ -778,6 +973,32 @@ function renderRaids(){
 /* ---------- editor: seasons / raids / bosses ---------- */
 function openEditor(){ renderEditor(); document.getElementById('editorModal').classList.add('open'); }
 function closeEditor(){ document.getElementById('editorModal').classList.remove('open'); }
+
+/* ---------- rank překlad (editor) ---------- */
+let _cfgSaveT = null;
+function saveCfgSoon(){ clearTimeout(_cfgSaveT); _cfgSaveT = setTimeout(saveCfg, 600); }
+function openRankEditor(){ renderRankEditor(); document.getElementById('rankModal').classList.add('open'); }
+function closeRankEditor(){ document.getElementById('rankModal').classList.remove('open'); }
+function renderRankEditor(){
+  let ranks = _guild ? Array.from(new Set(_guild.members.map(m=>m.rank))).filter(n=>n!=null).sort((a,b)=>a-b) : [0];
+  if(!ranks.includes(0)) ranks.unshift(0);
+  document.getElementById('rankEditorBody').innerHTML = ranks.map(n=>{
+    const meta = _rankNames[String(n)] || {};
+    const ph = n===0 ? 'Guild Master' : ('Rank '+n);
+    const col = meta.color || (n===0 ? '#f5c04a' : '#8b92a6');
+    const cnt = _guild ? _guild.members.filter(m=>m.rank===n).length : 0;
+    return `<div class="ed-row" style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="width:96px;font-size:12px;color:var(--faint)">Rank ${n} <span style="color:var(--faint);opacity:.6">· ${cnt}</span></span>
+      <input class="ed-rowin" type="text" value="${escH(meta.name||'')}" placeholder="${ph}" oninput="setRankName(${n}, this.value)" style="flex:1">
+      <input type="color" value="${col}" oninput="setRankColor(${n}, this.value)" title="Barva textu" style="width:40px;height:34px;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer;padding:2px">
+      <button class="btn btn-ghost" onclick="resetRank(${n})" title="Výchozí" style="padding:6px 9px">↺</button>
+    </div>`;
+  }).join('');
+}
+function _ensureRank(n){ const k=String(n); if(!_rankNames[k]) _rankNames[k]={}; return _rankNames[k]; }
+function setRankName(n,v){ v=(v||'').trim(); const r=_ensureRank(n); if(v) r.name=v; else delete r.name; if(!r.name && !r.color) delete _rankNames[String(n)]; renderRoster(); saveCfgSoon(); }
+function setRankColor(n,v){ _ensureRank(n).color=v; renderRoster(); saveCfgSoon(); }
+function resetRank(n){ delete _rankNames[String(n)]; renderRankEditor(); renderRoster(); saveCfgSoon(); }
 function renderEditor(){
   _ensureSeasons();
   const seasons=_manifest.seasons;
