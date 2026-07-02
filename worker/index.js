@@ -334,6 +334,8 @@ async function attachSpecs(env, payload) {
     .filter(m => {
       const key = `${m.realmSlug}:${(m.name || '').toLowerCase()}`;
       const hit = cache[key];
+      // re-probe i když je role dosud neznámá ('?') a postava má spec (max level) — vyřeší nové specy
+      if (hit && hit.role === '?' && hit.specId) return true;
       return !hit || (now - (hit.ts || 0)) > SPEC_TTL;
     })
     .sort((a, b) => (b.level || 0) - (a.level || 0))
@@ -349,7 +351,15 @@ async function attachSpecs(env, payload) {
         `/profile/wow/character/${m.realmSlug}/${encodeURIComponent((m.name || '').toLowerCase())}`);
       const sp = prof.active_spec || null;
       const specId = sp && sp.id;
-      const role = SPEC_ROLE[specId] || '?';
+      let role = SPEC_ROLE[specId] || '?';
+      if (role === '?' && specId) {
+        // neznámý (nový) spec — dotáhni roli přímo z Blizzardu, ať nemusíme ručně updatovat mapu
+        try {
+          const spec = await blizzGet(token, region, `/data/wow/playable-specialization/${specId}`, { namespace: `static-${region}` });
+          const rt = spec && spec.role && spec.role.type;
+          role = rt === 'TANK' ? 'tank' : rt === 'HEALER' ? 'healer' : rt === 'DAMAGE' ? 'dps' : '?';
+        } catch (e) {}
+      }
       const rec = { specId: specId || null, specName: (sp && sp.name) || '', role, ts: now };
       cache[key] = rec;
       m.specId = rec.specId; m.specName = rec.specName; m.role = rec.role;
