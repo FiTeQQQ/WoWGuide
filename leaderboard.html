@@ -200,8 +200,7 @@ const CATS=[
    {k:'io',label:'M+ IO',agg:'max',wrr:true},{k:'hk',label:'Honorable Kills',agg:'sum'},
    {k:'quests',label:'Quests',agg:'sum'},{k:'honorLevel',label:'Honor Level',agg:'max'},
    {k:'deaths',label:'Total Deaths',agg:'sum'},{k:'deathsFall',label:'Falling Deaths',agg:'sum'},
-   {k:'deathsEnv',label:'Environment Deaths',agg:'sum'},{k:'goldSpent',label:'Gold Spent',agg:'sum'},
-   {k:'duelsLost',label:'Duels Lost',agg:'sum'},{k:'junkFished',label:'Junk Fished',agg:'sum'}]},
+   {k:'deathsEnv',label:'Environment Deaths',agg:'sum'},{k:'junkFished',label:'Junk Fished',agg:'sum'}]},
 ];
 const ALL_CATS=CATS.flatMap(g=>g.items);
 function escH(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}

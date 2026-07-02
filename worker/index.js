@@ -231,11 +231,7 @@ async function fetchCharLB(token, region, realm, nameRaw) {
     deaths: firstStat(flat, ['total deaths']),
     deathsFall: sumStats(flat, k => k.includes('death') && k.includes('fall')),
     deathsEnv: sumStats(flat, k => k.includes('death') && (k.includes('drown') || k.includes('lava') || k.includes('fire') || k.includes('fatigue'))),
-    goldSpent: sumStats(flat, k => (k.includes('gold') || k.includes('money')) && k.includes('spent')),
-    duelsLost: firstStat(flat, ['duels lost', 'total duels lost']) || sumStats(flat, k => k.includes('duel') && k.includes('lost')),
-    junkFished: sumStats(flat, k => k.includes('fish') && (k.includes('junk') || k.includes('useless'))),
-    hearths: sumStats(flat, k => k.includes('hearthstone')),
-    flightPaths: sumStats(flat, k => k.includes('flight path') || (k.includes('flight') && k.includes('taken'))),
+    junkFished: Math.max(0, firstStat(flat, ['fish and other things caught']) - firstStat(flat, ['fish caught'])),
   };
 }
 
