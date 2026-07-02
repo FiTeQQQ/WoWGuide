@@ -295,6 +295,36 @@ body.glass-on .boss-card{border-color:rgba(255,255,255,.12)}
 body.glass-on .raid-title{border-bottom-color:rgba(255,255,255,.12)}
 body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%)}
 
+/* ---- vysouvací side panel ---- */
+#sidePanel{position:fixed;top:0;left:0;height:100vh;z-index:90;display:flex;align-items:stretch;transform:translateX(-234px);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+#sidePanel:hover,#sidePanel.pinned{transform:translateX(0)}
+.sp-body{width:234px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;padding:16px 12px}
+.sp-handle{width:36px;background:var(--panel2);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:16px;padding-top:20px;cursor:pointer;color:var(--dim)}
+.sp-handle:hover{color:var(--accent)}
+.sp-handle .sp-hicon{font-size:18px}
+.sp-handle .sp-htext{writing-mode:vertical-rl;text-orientation:mixed;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint)}
+.sp-title{font-size:13px;font-weight:800;letter-spacing:.04em;color:#fff;padding:2px 8px 14px}
+.sp-title span{color:var(--accent)}
+.sp-item{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:9px;border:1px solid transparent;color:var(--txt);font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s;margin-bottom:3px}
+.sp-item:hover{background:rgba(79,142,255,.1);border-color:rgba(79,142,255,.4)}
+.sp-item .sp-ico{font-size:17px;width:20px;text-align:center;flex:0 0 auto}
+.sp-item .sp-sub{font-size:11px;color:var(--dim);font-weight:500}
+.sp-item .sp-caret{margin-left:auto;font-size:11px;color:var(--dim);transition:transform .15s}
+.sp-item.open .sp-caret{transform:rotate(90deg)}
+.sp-submenu{display:none;flex-direction:column;gap:1px;margin:1px 0 6px 12px;padding-left:10px;border-left:1px solid var(--line)}
+.sp-submenu.open{display:flex}
+.sp-season{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:8px 8px 3px}
+.sp-raid{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:7px;color:var(--dim);font-size:13px;font-weight:600;text-decoration:none}
+.sp-raid:hover{background:rgba(255,255,255,.05);color:var(--txt)}
+.sp-raid .sp-rsub{font-size:10px;color:var(--faint)}
+.sp-badge{margin-left:auto;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:20px;padding:2px 7px}
+.sp-pin{margin-top:auto;font-size:11px;color:var(--faint);padding:12px 8px 2px;cursor:pointer}
+.sp-pin:hover{color:var(--dim)}
+body.glass-on .sp-body{background:rgba(16,20,32,.82) !important;backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);border-right-color:rgba(255,255,255,.14)}
+body.glass-on .sp-handle{background:rgba(16,20,32,.68) !important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-right-color:rgba(255,255,255,.14)}
+body.glass-on .sp-item:hover{background:rgba(255,255,255,.12) !important;border-color:rgba(255,255,255,.2) !important}
+body.glass-on .sp-raid:hover{background:rgba(255,255,255,.1) !important}
+
 /* editor modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
@@ -324,6 +354,18 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
 <body>
 
 <div class="glass-bg"></div>
+
+<div id="sidePanel">
+  <div class="sp-body">
+    <div class="sp-title">Rapid<span>Evolution</span></div>
+    <div id="spNav"></div>
+    <div class="sp-pin" id="spPin" onclick="spTogglePin()">📌 Připnout</div>
+  </div>
+  <div class="sp-handle" onclick="spTogglePin()" title="Menu (najeď myší / klikni pro připnutí)">
+    <span class="sp-hicon">☰</span>
+    <span class="sp-htext">Menu</span>
+  </div>
+</div>
 
 <header class="site-header">
   <button class="btn btn-ghost edit-trigger" id="editToggle" onclick="idxEdit()" title="Upravit (vyžaduje heslo)">✏ Upravit</button>
@@ -370,10 +412,6 @@ body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:bl
           <div class="gstat"><span class="v">—</span><span class="l">Členů</span></div>
           <div class="gstat"><span class="v">—</span><span class="l">Založeno</span></div>
         </div>
-      </div>
-      <div class="hero-nav">
-        <a class="navbtn" href="roster.html"><span><span class="nt">Roster</span><br><span class="nd">Účast & progress</span></span></a>
-        <a class="navbtn" href="#raidsRoot" onclick="event.preventDefault();document.getElementById('raidsRoot').scrollIntoView({behavior:'smooth'})"><span><span class="nt">Guide</span><br><span class="nd">Vyber bosse níž</span></span></a>
       </div>
     </div>
   </section>
@@ -653,7 +691,32 @@ async function saveCfg(){
 }
 
 /* ---------- init ---------- */
+/* ---------- vysouvací side panel ---------- */
+function renderSidePanel(){
+  const nav=document.getElementById('spNav'); if(!nav) return;
+  const seasons=(_manifest && _manifest.seasons) || [];
+  const guideSub = seasons.map(se=>{
+    const raids=(se.raids||[]);
+    if(!raids.length) return '';
+    return `<div class="sp-season">${escH(se.name||'Season')}</div>` +
+      raids.map(r=>{ const n=(r.bosses||[]).length; return `<a class="sp-raid" href="raid.html?raid=${encodeURIComponent(r.slug)}">${escH(r.name)}<span class="sp-rsub">${n} boss${n===1?'':'ů'}</span></a>`; }).join('');
+  }).join('');
+  nav.innerHTML = `
+    <a class="sp-item" href="roster.html"><span class="sp-ico">📋</span><span>Roster<br><span class="sp-sub">Účast & progress</span></span></a>
+    <div class="sp-sec">
+      <div class="sp-item" id="spGuideBtn" onclick="spToggleGuide()"><span class="sp-ico">📖</span><span>Guide<br><span class="sp-sub">Sezóny & raidy</span></span><span class="sp-caret">▸</span></div>
+      <div class="sp-submenu" id="spGuideSub">${guideSub || '<div class="sp-season">Zatím žádné raidy</div>'}</div>
+    </div>
+    <a class="sp-item" href="#" onclick="return spLeaderboard(event)"><span class="sp-ico">🏆</span><span>Leaderboard<br><span class="sp-sub">Brzy</span></span><span class="sp-badge">brzy</span></a>`;
+  if(_spGuideOpen){ const b=document.getElementById('spGuideBtn'),s=document.getElementById('spGuideSub'); if(b)b.classList.add('open'); if(s)s.classList.add('open'); }
+}
+let _spGuideOpen=false;
+function spToggleGuide(){ _spGuideOpen=!_spGuideOpen; const b=document.getElementById('spGuideBtn'),s=document.getElementById('spGuideSub'); if(b)b.classList.toggle('open',_spGuideOpen); if(s)s.classList.toggle('open',_spGuideOpen); }
+function spTogglePin(){ const p=document.getElementById('sidePanel'); if(!p) return; const on=p.classList.toggle('pinned'); const t=document.getElementById('spPin'); if(t) t.textContent = on?'📌 Odepnout':'📌 Připnout'; }
+function spLeaderboard(e){ e.preventDefault(); alert('Leaderboard — přidáme brzy 🙂'); return false; }
+
 async function init(){
+  renderSidePanel();
   // roster se po refreshi vždy sám zamkne (heslo se neobnovuje z session)
   try{ sessionStorage.removeItem('rosterPass'); }catch(e){}
   _rosterPass=''; _rosterUnlocked=false;
@@ -1190,6 +1253,7 @@ function renderRaids(){
     }).join('') + `</div>`;
   }
   root.innerHTML = `<div class="season-tabs">${tabs}</div>${body}`;
+  renderSidePanel();
 }
 
 /* ---------- editor: seasons / raids / bosses ---------- */
