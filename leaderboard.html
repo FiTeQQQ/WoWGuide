@@ -203,6 +203,9 @@ const GH_RAW='https://raw.githubusercontent.com/fiteqqq/WoWGuide/main/';
 const CLASS_COLORS={'Warrior':'#C69B6D','Paladin':'#F48CBA','Hunter':'#AAD372','Rogue':'#FFF468','Priest':'#FFFFFF','Death Knight':'#C41E3A','Shaman':'#0070DD','Mage':'#3FC7EB','Warlock':'#8788EE','Monk':'#00FF98','Druid':'#FF7C0A','Demon Hunter':'#A330C9','Evoker':'#33937F'};
 const CLASS_ICON_KEY={'Warrior':'warrior','Paladin':'paladin','Hunter':'hunter','Rogue':'rogue','Priest':'priest','Death Knight':'deathknight','Shaman':'shaman','Mage':'mage','Warlock':'warlock','Monk':'monk','Druid':'druid','Demon Hunter':'demonhunter','Evoker':'evoker'};
 function classIcon(name){const k=CLASS_ICON_KEY[name];return k?`https://wow.zamimg.com/images/wow/icons/medium/classicon_${k}.jpg`:'';}
+const SPEC_ICON={250:'spell_deathknight_bloodpresence',251:'spell_deathknight_frostpresence',252:'spell_deathknight_unholypresence',577:'ability_demonhunter_specdps',581:'ability_demonhunter_spectank',102:'spell_nature_starfall',103:'ability_druid_catform',104:'ability_racial_bearform',105:'spell_nature_healingtouch',1467:'classicon_evoker_devastation',1468:'classicon_evoker_preservation',1473:'classicon_evoker_augmentation',253:'ability_hunter_bestialdiscipline',254:'ability_hunter_focusedaim',255:'ability_hunter_camouflage',62:'spell_holy_magicalsentry',63:'spell_fire_firebolt02',64:'spell_frost_frostbolt02',268:'spell_monk_brewmaster_spec',269:'spell_monk_windwalker_spec',270:'spell_monk_mistweaver_spec',65:'spell_holy_holybolt',66:'ability_paladin_shieldofthetemplar',70:'spell_holy_auraoflight',256:'spell_holy_powerwordshield',257:'spell_holy_guardianspirit',258:'spell_shadow_shadowwordpain',259:'ability_rogue_deadlybrew',260:'ability_rogue_waylay',261:'ability_stealth',262:'spell_nature_lightning',263:'spell_shaman_improvedstormstrike',264:'spell_nature_magicimmunity',265:'spell_shadow_deathcoil',266:'spell_shadow_metamorphosis',267:'spell_shadow_rainoffire',71:'ability_warrior_savageblow',72:'ability_warrior_innerrage',73:'ability_warrior_defensivestance'};
+function specIcon(id){const k=SPEC_ICON[id];return k?`https://wow.zamimg.com/images/wow/icons/medium/${k}.jpg`:'';}
+function rowIcon(className,specId){if(_iconType==='spec'&&specId){const s=specIcon(specId);if(s)return s;}return classIcon(className);}
 const CATS=[
  {g:'Achievements',items:[
    {k:'achPoints',label:'Achievement Points',agg:'max'},{k:'achCount',label:'Achievements',agg:'max'}]},
@@ -219,7 +222,7 @@ const ALL_CATS=CATS.flatMap(g=>g.items);
 function escH(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function fmt(n){return (n||0).toLocaleString('cs-CZ');}
 
-let _raw={chars:{}}, _altMap={}, _dormant={}, _rankNames={}, _seasons=[], _discord='', _ioMode='api', _cutoffs=[];
+let _raw={chars:{}}, _altMap={}, _dormant={}, _rankNames={}, _seasons=[], _discord='', _ioMode='api', _cutoffs=[], _iconType='class';
 function ioColor(v){return v>=3200?'#ff8000':v>=2800?'#a335ee':v>=2400?'#3b82f6':v>=2000?'#37d66a':'var(--dim)';}
 function bracketColor(score){if(!score||score<=0)return '';for(const b of _cutoffs){if(score>=b.min)return b.color||'#666666';}return '#666666';}
 function scoreColor(score){if(_ioMode==='brackets'&&_cutoffs.length)return bracketColor(score)||ioColor(score);return ioColor(score);}
@@ -256,7 +259,7 @@ async function loadAll(){
     fetch(API_BASE+'/api/roster/roster-alts?_='+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null),
     fetch(API_BASE+'/api/lb/raw?_='+Date.now()).then(r=>r.ok?r.json():null).catch(()=>null),
   ]);
-  if(cfg){ if(cfg.theme)applyTheme(cfg.theme); if(cfg.rankNames)_rankNames=cfg.rankNames; if(Array.isArray(cfg.seasons))_seasons=cfg.seasons; if(cfg.discordUrl)_discord=cfg.discordUrl; if(cfg.ioMode)_ioMode=cfg.ioMode; if(Array.isArray(cfg.cutoffs))_cutoffs=cfg.cutoffs.slice().sort((a,b)=>b.min-a.min); }
+  if(cfg){ if(cfg.theme)applyTheme(cfg.theme); if(cfg.rankNames)_rankNames=cfg.rankNames; if(Array.isArray(cfg.seasons))_seasons=cfg.seasons; if(cfg.discordUrl)_discord=cfg.discordUrl; if(cfg.ioMode)_ioMode=cfg.ioMode; if(Array.isArray(cfg.cutoffs))_cutoffs=cfg.cutoffs.slice().sort((a,b)=>b.min-a.min); if(cfg.iconType==='spec'||cfg.iconType==='class')_iconType=cfg.iconType; }
   if(ra){ if(ra.altMap)_altMap=ra.altMap; if(ra.dormant)_dormant=ra.dormant; }
   if(raw&&raw.chars)_raw=raw;
   renderSidePanel(); aggregate(); renderTabs(); render();
@@ -274,7 +277,7 @@ function aggregate(){
     ALL_CATS.forEach(cat=>{const vals=cs.map(c=>(c.s&&c.s[cat.k])||0);stats[cat.k]=cat.agg==='sum'?vals.reduce((a,b)=>a+b,0):Math.max(0,...vals);});
     const ioC=cs.slice().sort((a,b)=>((b.s&&b.s.io)||0)-((a.s&&a.s.io)||0))[0];
     const wrr=ioC&&ioC.s?{w:ioC.s.ioW||0,r:ioC.s.ioR||0,realm:ioC.s.ioRealm||0}:{w:0,r:0,realm:0};
-    return {name:rep.name,className:rep.className,rank:rep.rank,dormant:!!_dormant[root]||!!_dormant[rep.name],alts:cs.map(c=>c.name),stats,wrr};
+    return {name:rep.name,className:rep.className,specId:rep.specId||0,rank:rep.rank,dormant:!!_dormant[root]||!!_dormant[rep.name],alts:cs.map(c=>c.name),stats,wrr};
   });
   _ranks={};
   ALL_CATS.forEach(cat=>{
@@ -308,7 +311,7 @@ function render(){
   const shown=rows.slice((_page-1)*per,(_page-1)*per+per);
   const medal=['🥇','🥈','🥉'];
   const body=`<table class="lb"><thead><tr><th class="c">#</th><th>Hráč</th><th>Class</th>${cat.wrr?'<th class="c">Realm</th>':''}<th class="r">${escH(cat.label)}</th></tr></thead><tbody>${
-    shown.map((p,i)=>{const idx=(_page-1)*per+i;const col=CLASS_COLORS[p.className]||'#cdd3e0';const alt=p.alts.length>1?`<span class="altbadge">+${p.alts.length-1}</span>`:'';const ci=classIcon(p.className);
+    shown.map((p,i)=>{const idx=(_page-1)*per+i;const col=CLASS_COLORS[p.className]||'#cdd3e0';const alt=p.alts.length>1?`<span class="altbadge">+${p.alts.length-1}</span>`:'';const ci=rowIcon(p.className,p.specId);
       const wrrCell=cat.wrr?`<td class="c wrr">${p.wrr.realm?('#'+fmt(p.wrr.realm)):'—'}</td>`:'';
       const vcol=cat.k==='io'?scoreColor(p.stats.io):'#cdd3e0';
       return `<tr class="${idx<3?'g'+(idx+1):''}${p.dormant?' dormant':''}"><td class="rk"${idx>=3?` style="color:${rankColor(idx+1)}"`:''}>${idx<3?medal[idx]:(idx+1)}</td>
@@ -323,7 +326,7 @@ function render(){
 /* ---- player card ---- */
 function openPc(enc){
   const name=decodeURIComponent(enc);const p=_players.find(x=>x.name===name);if(!p)return;
-  const col=CLASS_COLORS[p.className]||'#cdd3e0';const ci=classIcon(p.className);
+  const col=CLASS_COLORS[p.className]||'#cdd3e0';const ci=rowIcon(p.className,p.specId);
   const rows=ALL_CATS.map(cat=>{const r=(_ranks[cat.k]||{})[p.name];if(!r)return '';return `<div class="pc-row"><span>${escH(cat.label)}</span><b style="color:${col}">${fmt(r.val)}</b><i style="color:${rankColor(r.rank)}">#${r.rank}</i></div>`;}).join('');
   document.getElementById('pcCard').innerHTML=`
     <div class="pc-h" style="background:linear-gradient(120deg,${col}22,transparent)">

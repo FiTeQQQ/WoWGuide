@@ -215,6 +215,7 @@ async function fetchCharLB(token, region, realm, nameRaw) {
   } catch (e) {}
   const repsExalted = (((reps && reps.reputations) || []).filter(r => r && r.standing && r.standing.name === 'Exalted')).length;
   return {
+    specId: (summary && summary.active_spec && summary.active_spec.id) || 0,
     achPoints: (ach && ach.total_points) || 0,
     achCount: (ach && ach.total_quantity) || 0,
     mounts: ((mounts && mounts.mounts) || []).length,
@@ -581,7 +582,7 @@ export default {
           const key = `${m.realmSlug}:${String(m.name).toLowerCase()}`;
           try {
             const s = await fetchCharLB(token, guild.region, m.realmSlug, m.name);
-            raw.chars[key] = { name: m.name, realmSlug: m.realmSlug, className: m.className, raceName: m.raceName, level: m.level, rank: m.rank, t: Date.now(), s };
+            raw.chars[key] = { name: m.name, realmSlug: m.realmSlug, className: m.className, raceName: m.raceName, level: m.level, rank: m.rank, specId: s.specId || 0, t: Date.now(), s };
           } catch (e) {}
         }
         raw.region = guild.region; raw.realm = guild.realm; raw.total = total;

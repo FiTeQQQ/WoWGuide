@@ -394,6 +394,10 @@ body.glass-on .sp-item.active{background:linear-gradient(90deg,rgba(79,142,255,.
     <button class="btn btn-ghost" onclick="setRosterPass()">🔑 Roster heslo</button>
     <button class="btn btn-ghost" onclick="setDiscordUrl()">🔗 Discord odkaz</button>
     <span class="eb-sep"></span>
+    <span class="eb-label">Ikony</span>
+    <select id="ebIcon" onchange="setIconType(this.value)" style="background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:6px 8px;outline:none;cursor:pointer">
+      <option value="class">Class ikona</option><option value="spec">Spec ikona</option>
+    </select>
     <span class="eb-label">Na stránku</span>
     <select id="ebPer" onchange="setPerPage(this.value)" style="background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:6px 8px;outline:none;cursor:pointer">
       <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
@@ -584,6 +588,9 @@ const CLASS_ICON_KEY = {
   'Druid':'druid','Demon Hunter':'demonhunter','Evoker':'evoker'
 };
 function classIcon(name){ const k = CLASS_ICON_KEY[name]; return k ? `https://wow.zamimg.com/images/wow/icons/medium/classicon_${k}.jpg` : ''; }
+const SPEC_ICON={250:'spell_deathknight_bloodpresence',251:'spell_deathknight_frostpresence',252:'spell_deathknight_unholypresence',577:'ability_demonhunter_specdps',581:'ability_demonhunter_spectank',102:'spell_nature_starfall',103:'ability_druid_catform',104:'ability_racial_bearform',105:'spell_nature_healingtouch',1467:'classicon_evoker_devastation',1468:'classicon_evoker_preservation',1473:'classicon_evoker_augmentation',253:'ability_hunter_bestialdiscipline',254:'ability_hunter_focusedaim',255:'ability_hunter_camouflage',62:'spell_holy_magicalsentry',63:'spell_fire_firebolt02',64:'spell_frost_frostbolt02',268:'spell_monk_brewmaster_spec',269:'spell_monk_windwalker_spec',270:'spell_monk_mistweaver_spec',65:'spell_holy_holybolt',66:'ability_paladin_shieldofthetemplar',70:'spell_holy_auraoflight',256:'spell_holy_powerwordshield',257:'spell_holy_guardianspirit',258:'spell_shadow_shadowwordpain',259:'ability_rogue_deadlybrew',260:'ability_rogue_waylay',261:'ability_stealth',262:'spell_nature_lightning',263:'spell_shaman_improvedstormstrike',264:'spell_nature_magicimmunity',265:'spell_shadow_deathcoil',266:'spell_shadow_metamorphosis',267:'spell_shadow_rainoffire',71:'ability_warrior_savageblow',72:'ability_warrior_innerrage',73:'ability_warrior_defensivestance'};
+function specIcon(id){ const k=SPEC_ICON[id]; return k?`https://wow.zamimg.com/images/wow/icons/medium/${k}.jpg`:''; }
+function rowIcon(className, specId){ if(_iconType==='spec' && specId){ const s=specIcon(specId); if(s) return s; } return classIcon(className); }
 const ROLE_ICON = { tank:'Icons/tank.svg', healer:'Icons/healer.svg', dps:'Icons/dps.svg' };
 function roleIcon(role){ return ROLE_ICON[role] ? (GH_RAW + ROLE_ICON[role]) : ''; }
 const RAID_NAMES = {
@@ -617,6 +624,7 @@ let _cutoffs = [];     // [{label,min,color}] sestupně podle min (cloud)
 let _cutSeason = 'season-mn-1';
 let _perPage = 25;     // počet na stránku (nastavuje admin, cloud: index-cfg)
 let _discordUrl = '';  // odkaz na Discord v side panelu (cloud: index-cfg)
+let _iconType = 'class'; // 'class' | 'spec' — jaká ikona u postavy (cloud: index-cfg)
 
 const PROG_GRADS = [
   {id:'epic',    label:'Epic → Legendary',    from:'#a335ee', to:'#ff8000'},
@@ -673,6 +681,7 @@ async function loadCfg(){
       if(m && m.cutSeason){ _cutSeason = m.cutSeason; }
       if(m && m.perPage){ _perPage = parseInt(m.perPage,10)||25; }
       if(m && typeof m.discordUrl==='string'){ _discordUrl = m.discordUrl; }
+      if(m && (m.iconType==='spec'||m.iconType==='class')){ _iconType = m.iconType; const ei=document.getElementById('ebIcon'); if(ei) ei.value=_iconType; }
       const ep=document.getElementById('ebPer'); if(ep) ep.value=String(_perPage);
       renderSidePanel();
       if(m && Array.isArray(m.seasons) && m.seasons.length){ _manifest = { seasons: m.seasons }; }
@@ -692,7 +701,7 @@ async function saveCfg(){
   try{
     await fetch(API_BASE + '/api/roster/' + CFG_KEY, {
       method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, rankNames: _rankNames, rosterCols: _cols(), ioMode: _ioMode, cutoffs: _cutoffs, cutSeason: _cutSeason, perPage: _perPage, discordUrl: _discordUrl, seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
+      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, rankNames: _rankNames, rosterCols: _cols(), ioMode: _ioMode, cutoffs: _cutoffs, cutSeason: _cutSeason, perPage: _perPage, discordUrl: _discordUrl, iconType: _iconType, seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
     });
   }catch(e){}
 }
@@ -900,7 +909,7 @@ function _cellHTML(m, key, isAlt){
   const col = CLASS_COLORS[m.className] || '#cdd3e0';
   const rio = rioOf(m.name); const ilvl = rio.ilvl||0, io = rio.io||0; const ioC = scoreColor(io, rio.color);
   switch(key){
-    case 'class': { const ci=classIcon(m.className); return `<td>${ci?`<img class="cls-ico" src="${ci}" alt="" onerror="this.style.display='none'">`:''}<span class="cls-pill" style="color:${col}${isAlt?';font-weight:500;font-size:12px':''}">${escH(m.className||'—')}</span></td>`; }
+    case 'class': { const ci=rowIcon(m.className, m.specId); return `<td>${ci?`<img class="cls-ico" src="${ci}" alt="" onerror="this.style.display='none'">`:''}<span class="cls-pill" style="color:${col}${isAlt?';font-weight:500;font-size:12px':''}">${escH(m.className||'—')}</span></td>`; }
     case 'role': { const role=m.role||'?'; const ri=roleIcon(role); return `<td class="c">${ri?`<img class="role-img" src="${ri}" title="${role}" alt="${role}">`:'<span class="role-unk role-badge" title="neznámé">?</span>'}</td>`; }
     case 'ilvl': return `<td class="c">${numCell(ilvl, isAlt?'var(--dim)':undefined)}</td>`;
     case 'io':   return `<td class="c">${numCell(io, ioC)}</td>`;
@@ -1021,6 +1030,7 @@ function renderRoster(){
 
 function toggleExpand(name){ if(_expanded[name]) delete _expanded[name]; else _expanded[name]=true; renderRoster(); }
 function setPerPage(v){ _perPage = parseInt(v,10)||25; _page=1; renderRoster(); saveCfgSoon(); }
+function setIconType(v){ _iconType = (v==='spec')?'spec':'class'; renderRoster(); saveCfgSoon(); }
 
 /* ---------- Raider.IO (iLvl + M+ IO) ---------- */
 const RIO_TTL = 6*3600*1000;
