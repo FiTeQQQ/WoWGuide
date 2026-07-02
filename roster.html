@@ -370,7 +370,7 @@
     <button class="btn btn-accent admin-only" onclick="openAdd()">+ Přidat hráče</button>
     <button class="btn btn-ghost admin-only" onclick="wclToggle()" title="Načíst účast (S námi H/M) a progress (kolik bossů H/M) z WarcraftLogs. Pustíš typicky po raidu.">📊 Načíst z logů</button>
     <button class="btn btn-ghost" id="editBtn" onclick="rosEdit()" title="Upravit ranky, sloupce a vzhled (vyžaduje heslo)">✏ Edit</button>
-    <button class="btn btn-ghost" id="saveBtn" onclick="flushCloud()" title="Uložit změny do cloudu (jinak se uloží samo po 8 s nebo při zavření)">✓ Uloženo</button>
+    <button class="btn btn-ghost" id="saveBtn" onclick="cloudSave()" title="Uložit změny do cloudu (jinak zůstanou jen lokálně; pojistka uloží i při zavření okna)">💾 Uložit</button>
     <input class="search" id="search" placeholder="Hledat hráče / poznámku…" oninput="render()">
     <span class="status" id="status"></span>
   </div>
@@ -878,16 +878,20 @@ function _updateSaveBtn(){
   const b=document.getElementById('saveBtn'); if(!b)return;
   if(_saving){ b.textContent='⏳ Ukládám…'; b.className='btn btn-ghost'; }
   else if(_dirty){ b.textContent='💾 Uložit změny'; b.className='btn btn-accent'; }
-  else { b.textContent='✓ Uloženo'; b.className='btn btn-ghost'; }
+  else { b.textContent='💾 Uložit'; b.className='btn btn-ghost'; }
 }
-// Změna se uloží LOKÁLNĚ hned; do cloudu až na tlačítko (nebo bezpečnostní auto-uložení za 20 s / při zavření).
+// Změna se uloží LOKÁLNĚ hned; do cloudu (KV) AŽ na tlačítko Uložit — automatický flush zrušen kvůli šetření KV zápisů.
+// Pojistka: beforeunload beacon uloží neuložené změny při zavření okna.
 function save(){
   const flat=buildFlatFromPeople(); _flat=flat;
   try{localStorage.setItem('trkFlat',JSON.stringify(flat));localStorage.setItem('trkRanks',JSON.stringify(ranks));}catch(e){}
   _dirty=true; _updateSaveBtn();
-  clearTimeout(saveTimer); saveTimer=setTimeout(()=>flushCloud(),8000);
 }
-async function flushCloud(){
+// No-op: cloud (KV) se propisuje JEN přes tlačítko Uložit (cloudSave) nebo beforeunload beacon.
+// Roztroušená volání flushCloud() tak jen ponechají změnu jako neuloženou (save() už označil _dirty).
+// Pozn.: budoucí výjimky, které mají jít do cloudu hned (např. checkboxy), zavolají přímo cloudSave().
+function flushCloud(){ _updateSaveBtn(); }
+async function cloudSave(){
   clearTimeout(saveTimer);
   if(!_dirty||_saving) return;
   const flat=buildFlatFromPeople(); _flat=flat;
