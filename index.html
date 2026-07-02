@@ -296,34 +296,34 @@ body.glass-on .raid-title{border-bottom-color:rgba(255,255,255,.12)}
 body.glass-on .modal{background:rgba(16,20,32,.92) !important;backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%)}
 
 /* ---- vysouvací side panel ---- */
-#sidePanel{position:fixed;top:0;left:0;height:100vh;z-index:90;display:flex;align-items:stretch;transform:translateX(-234px);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+#sidePanel{position:fixed;top:0;left:0;height:100vh;z-index:90;display:flex;align-items:stretch;transform:translateX(-244px);transition:transform .28s cubic-bezier(.4,0,.2,1)}
 #sidePanel:hover,#sidePanel.pinned{transform:translateX(0)}
-.sp-body{width:234px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;padding:16px 12px}
-.sp-handle{width:36px;background:var(--panel2);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:16px;padding-top:20px;cursor:pointer;color:var(--dim)}
+.sp-body{width:244px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;padding:14px 12px 12px}
+.sp-handle{width:34px;background:var(--panel2);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:16px;padding-top:20px;cursor:pointer;color:var(--dim)}
 .sp-handle:hover{color:var(--accent)}
 .sp-handle .sp-hicon{font-size:18px}
 .sp-handle .sp-htext{writing-mode:vertical-rl;text-orientation:mixed;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint)}
-.sp-title{font-size:13px;font-weight:800;letter-spacing:.04em;color:#fff;padding:2px 8px 14px}
-.sp-title span{color:var(--accent)}
-.sp-item{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:9px;border:1px solid transparent;color:var(--txt);font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s;margin-bottom:3px}
-.sp-item:hover{background:rgba(79,142,255,.1);border-color:rgba(79,142,255,.4)}
-.sp-item .sp-ico{font-size:17px;width:20px;text-align:center;flex:0 0 auto}
-.sp-item .sp-sub{font-size:11px;color:var(--dim);font-weight:500}
-.sp-item .sp-caret{margin-left:auto;font-size:11px;color:var(--dim);transition:transform .15s}
-.sp-item.open .sp-caret{transform:rotate(90deg)}
-.sp-submenu{display:none;flex-direction:column;gap:1px;margin:1px 0 6px 12px;padding-left:10px;border-left:1px solid var(--line)}
-.sp-submenu.open{display:flex}
-.sp-season{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:8px 8px 3px}
-.sp-raid{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:7px;color:var(--dim);font-size:13px;font-weight:600;text-decoration:none}
-.sp-raid:hover{background:rgba(255,255,255,.05);color:var(--txt)}
-.sp-raid .sp-rsub{font-size:10px;color:var(--faint)}
-.sp-badge{margin-left:auto;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:20px;padding:2px 7px}
-.sp-pin{margin-top:auto;font-size:11px;color:var(--faint);padding:12px 8px 2px;cursor:pointer}
-.sp-pin:hover{color:var(--dim)}
+.sp-logo{display:flex;align-items:center;justify-content:center;gap:9px;padding:4px 0 14px}
+.sp-logo svg{width:26px;height:26px;flex:0 0 auto}
+.sp-logo .sp-lname{font-size:15px;font-weight:800;letter-spacing:.02em;color:#fff}
+.sp-logo .sp-lname span{color:var(--accent)}
+.sp-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--txt);font-size:13.5px;font-weight:700;cursor:pointer;text-decoration:none;margin-bottom:6px;transition:background .15s,border-color .15s,color .15s}
+.sp-item:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.16)}
+.sp-item.active{background:rgba(79,142,255,.16);border-color:rgba(79,142,255,.5);color:#fff}
+.sp-item svg{width:18px;height:18px;flex:0 0 auto;color:var(--dim)}
+.sp-item.active svg,.sp-item:hover svg{color:var(--accent)}
+.sp-item>span:not(.sp-badge){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-item .sp-badge{margin-left:auto;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:20px;padding:2px 7px;flex:0 0 auto}
+.sp-head{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:12px 8px 9px;margin-top:6px;border-top:1px solid var(--line)}
+.sp-season{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);opacity:.75;padding:2px 8px 5px}
+.sp-login{margin-top:auto;display:flex;align-items:center;justify-content:center;gap:9px;padding:11px;border-radius:9px;border:1px solid rgba(79,142,255,.4);background:rgba(79,142,255,.1);color:var(--accent);font-size:13.5px;font-weight:800;cursor:pointer;margin-top:14px}
+.sp-login:hover{background:rgba(79,142,255,.18)}
+.sp-login svg{width:17px;height:17px}
 body.glass-on .sp-body{background:rgba(16,20,32,.82) !important;backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);border-right-color:rgba(255,255,255,.14)}
 body.glass-on .sp-handle{background:rgba(16,20,32,.68) !important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-right-color:rgba(255,255,255,.14)}
-body.glass-on .sp-item:hover{background:rgba(255,255,255,.12) !important;border-color:rgba(255,255,255,.2) !important}
-body.glass-on .sp-raid:hover{background:rgba(255,255,255,.1) !important}
+body.glass-on .sp-item{background:rgba(255,255,255,.06) !important;border-color:rgba(255,255,255,.14) !important}
+body.glass-on .sp-item:hover{background:rgba(255,255,255,.13) !important}
+body.glass-on .sp-item.active{background:rgba(79,142,255,.22) !important;border-color:rgba(79,142,255,.55) !important}
 
 /* editor modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:20px}
@@ -357,9 +357,12 @@ body.glass-on .sp-raid:hover{background:rgba(255,255,255,.1) !important}
 
 <div id="sidePanel">
   <div class="sp-body">
-    <div class="sp-title">Rapid<span>Evolution</span></div>
+    <div class="sp-logo">
+      <svg viewBox="0 0 24 24" fill="#e8536b"><path d="M12 2c1.5 2.5 4 3 6 3-1 3-1 6-6 15C7 11 7 8 6 5c2 0 4.5-.5 6-3z"/></svg>
+      <span class="sp-lname">Rapid<span>Evolution</span></span>
+    </div>
     <div id="spNav"></div>
-    <div class="sp-pin" id="spPin" onclick="spTogglePin()">📌 Připnout</div>
+    <div class="sp-login" id="spLogin" onclick="spLogin()"></div>
   </div>
   <div class="sp-handle" onclick="spTogglePin()" title="Menu (najeď myší / klikni pro připnutí)">
     <span class="sp-hicon">☰</span>
@@ -389,6 +392,7 @@ body.glass-on .sp-raid:hover{background:rgba(255,255,255,.1) !important}
     <button class="btn btn-ghost" onclick="openColEditor()">▦ Sloupce</button>
     <button class="btn btn-ghost" onclick="openIoEditor()">🎨 IO barvy</button>
     <button class="btn btn-ghost" onclick="setRosterPass()">🔑 Roster heslo</button>
+    <button class="btn btn-ghost" onclick="setDiscordUrl()">🔗 Discord odkaz</button>
     <span class="eb-sep"></span>
     <span class="eb-label">Na stránku</span>
     <select id="ebPer" onchange="setPerPage(this.value)" style="background:#0e1018;border:1px solid var(--line);border-radius:7px;color:var(--txt);font-size:12px;padding:6px 8px;outline:none;cursor:pointer">
@@ -612,6 +616,7 @@ let _ioMode = 'api';   // 'api' = barva přímo z Raider.IO | 'brackets' = perce
 let _cutoffs = [];     // [{label,min,color}] sestupně podle min (cloud)
 let _cutSeason = 'season-mn-1';
 let _perPage = 25;     // počet na stránku (nastavuje admin, cloud: index-cfg)
+let _discordUrl = '';  // odkaz na Discord v side panelu (cloud: index-cfg)
 
 const PROG_GRADS = [
   {id:'epic',    label:'Epic → Legendary',    from:'#a335ee', to:'#ff8000'},
@@ -667,7 +672,9 @@ async function loadCfg(){
       if(m && Array.isArray(m.cutoffs)){ _cutoffs = m.cutoffs.slice().sort((a,b)=>b.min-a.min); }
       if(m && m.cutSeason){ _cutSeason = m.cutSeason; }
       if(m && m.perPage){ _perPage = parseInt(m.perPage,10)||25; }
+      if(m && typeof m.discordUrl==='string'){ _discordUrl = m.discordUrl; }
       const ep=document.getElementById('ebPer'); if(ep) ep.value=String(_perPage);
+      renderSidePanel();
       if(m && Array.isArray(m.seasons) && m.seasons.length){ _manifest = { seasons: m.seasons }; }
       else if(m && Array.isArray(m.raids) && m.raids.length){ _manifest = { seasons:[{name:'Season 1',raids:m.raids}] }; }
     }
@@ -685,35 +692,48 @@ async function saveCfg(){
   try{
     await fetch(API_BASE + '/api/roster/' + CFG_KEY, {
       method:'PUT', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, rankNames: _rankNames, rosterCols: _cols(), ioMode: _ioMode, cutoffs: _cutoffs, cutSeason: _cutSeason, perPage: _perPage, seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
+      body: JSON.stringify({ theme: themeMode, progGrad: _progGrad, rankNames: _rankNames, rosterCols: _cols(), ioMode: _ioMode, cutoffs: _cutoffs, cutSeason: _cutSeason, perPage: _perPage, discordUrl: _discordUrl, seasons: (_manifest.seasons || []), updatedAt: new Date().toISOString() })
     });
   }catch(e){}
 }
 
 /* ---------- init ---------- */
 /* ---------- vysouvací side panel ---------- */
+const SP_ICONS = {
+  home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+  roster:'<circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.3 3.2-5.2 6.5-5.2s6.5 1.9 6.5 5.2"/><path d="M17 5.6a3.2 3.2 0 010 5.4"/><path d="M18.5 20c0-2.1-1-3.7-2.4-4.6"/>',
+  leaderboard:'<rect x="4" y="10" width="4" height="9" rx="1"/><rect x="10" y="4" width="4" height="15" rx="1"/><rect x="16" y="13" width="4" height="6" rx="1"/>',
+  raid:'<path d="M5 4h12a1 1 0 011 1v15l-4-2-4 2-4-2V4z"/><path d="M9 4v12.5"/>',
+  discord:'<path d="M8 5.5c-2 .3-3.7 1-4.8 2.4C1.4 11 1.4 15.6 2.4 17.6c1 .9 2.2 1.5 3.2 1.7L6.8 18"/><path d="M16 5.5c2 .3 3.7 1 4.8 2.4 1.8 3.1 1.8 7.7.8 9.7-1 .9-2.2 1.5-3.2 1.7L17.2 18"/><circle cx="9" cy="12.5" r="1.3"/><circle cx="15" cy="12.5" r="1.3"/>',
+  login:'<path d="M14 4h4a1 1 0 011 1v14a1 1 0 01-1 1h-4"/><path d="M10 12H3"/><path d="M6.5 8.5L3 12l3.5 3.5"/>',
+  logout:'<path d="M10 4H6a1 1 0 00-1 1v14a1 1 0 001 1h4"/><path d="M14 12h7"/><path d="M17.5 8.5L21 12l-3.5 3.5"/>'
+};
+function svgI(name){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${SP_ICONS[name]||SP_ICONS.raid}</svg>`; }
 function renderSidePanel(){
   const nav=document.getElementById('spNav'); if(!nav) return;
   const seasons=(_manifest && _manifest.seasons) || [];
-  const guideSub = seasons.map(se=>{
-    const raids=(se.raids||[]);
-    if(!raids.length) return '';
-    return `<div class="sp-season">${escH(se.name||'Season')}</div>` +
-      raids.map(r=>{ const n=(r.bosses||[]).length; return `<a class="sp-raid" href="raid.html?raid=${encodeURIComponent(r.slug)}">${escH(r.name)}<span class="sp-rsub">${n} boss${n===1?'':'ů'}</span></a>`; }).join('');
-  }).join('');
+  const multi = seasons.filter(s=>(s.raids||[]).length).length > 1;
+  let guides='';
+  seasons.forEach(se=>{ const raids=(se.raids||[]); if(!raids.length) return;
+    if(multi) guides += `<div class="sp-season">${escH(se.name||'Season')}</div>`;
+    guides += raids.map(r=>`<a class="sp-item" href="raid.html?raid=${encodeURIComponent(r.slug)}" title="${escH(r.name)}">${svgI('raid')}<span>${escH(r.name)}</span></a>`).join('');
+  });
   nav.innerHTML = `
-    <a class="sp-item" href="roster.html"><span class="sp-ico">📋</span><span>Roster<br><span class="sp-sub">Účast & progress</span></span></a>
-    <div class="sp-sec">
-      <div class="sp-item" id="spGuideBtn" onclick="spToggleGuide()"><span class="sp-ico">📖</span><span>Guide<br><span class="sp-sub">Sezóny & raidy</span></span><span class="sp-caret">▸</span></div>
-      <div class="sp-submenu" id="spGuideSub">${guideSub || '<div class="sp-season">Zatím žádné raidy</div>'}</div>
-    </div>
-    <a class="sp-item" href="#" onclick="return spLeaderboard(event)"><span class="sp-ico">🏆</span><span>Leaderboard<br><span class="sp-sub">Brzy</span></span><span class="sp-badge">brzy</span></a>`;
-  if(_spGuideOpen){ const b=document.getElementById('spGuideBtn'),s=document.getElementById('spGuideSub'); if(b)b.classList.add('open'); if(s)s.classList.add('open'); }
+    <a class="sp-item active" href="index.html">${svgI('home')}<span>Home</span></a>
+    <a class="sp-item" href="roster.html">${svgI('roster')}<span>Roster</span></a>
+    <a class="sp-item" href="#" onclick="return spLeaderboard(event)">${svgI('leaderboard')}<span>Leaderboard</span><span class="sp-badge">brzy</span></a>
+    <div class="sp-head">Guides</div>
+    ${guides || '<div class="sp-season">Zatím žádné raidy</div>'}
+    <div class="sp-head">External Links</div>
+    <a class="sp-item" id="spDiscord" href="${_discordUrl?escH(_discordUrl):'#'}" ${_discordUrl?'target="_blank" rel="noopener"':'onclick="return spDiscord(event)"'}>${svgI('discord')}<span>Discord</span></a>`;
+  const lg=document.getElementById('spLogin');
+  if(lg){ const admin=!!window.__IS_ADMIN; lg.innerHTML = `${svgI(admin?'logout':'login')}<span>${admin?'Odemčeno (admin)':'Login'}</span>`; }
 }
-let _spGuideOpen=false;
-function spToggleGuide(){ _spGuideOpen=!_spGuideOpen; const b=document.getElementById('spGuideBtn'),s=document.getElementById('spGuideSub'); if(b)b.classList.toggle('open',_spGuideOpen); if(s)s.classList.toggle('open',_spGuideOpen); }
-function spTogglePin(){ const p=document.getElementById('sidePanel'); if(!p) return; const on=p.classList.toggle('pinned'); const t=document.getElementById('spPin'); if(t) t.textContent = on?'📌 Odepnout':'📌 Připnout'; }
+function spTogglePin(){ const p=document.getElementById('sidePanel'); if(p) p.classList.toggle('pinned'); }
 function spLeaderboard(e){ e.preventDefault(); alert('Leaderboard — přidáme brzy 🙂'); return false; }
+function spLogin(){ if(typeof idxEdit==='function') idxEdit(); }
+function spDiscord(e){ e.preventDefault(); if(_discordUrl){ window.open(_discordUrl,'_blank','noopener'); return false; } if(window.__IS_ADMIN) setDiscordUrl(); else alert('Discord odkaz zatím nenastaven.'); return false; }
+function setDiscordUrl(){ const v=prompt('Odkaz na Discord (celá URL):', _discordUrl||''); if(v===null) return; _discordUrl=(v||'').trim(); renderSidePanel(); saveCfg(); }
 
 async function init(){
   renderSidePanel();
