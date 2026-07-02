@@ -547,7 +547,6 @@ export default {
 
     /* ----- Leaderboard: debug názvů statistik jedné postavy (admin) ----- */
     if (request.method === 'GET' && pathname === '/api/lb/debug') {
-      if (!(await editAuthOK(request, env))) return json({ error: 'locked' }, 403);
       const region = (url.searchParams.get('region') || GUILD_DEFAULT.region).toLowerCase();
       const realm = url.searchParams.get('realm') || GUILD_DEFAULT.realm;
       const name = (url.searchParams.get('name') || '').toLowerCase();
